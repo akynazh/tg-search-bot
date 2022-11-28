@@ -50,9 +50,16 @@ def record(id, stars, url):
         with open(PATH_RECORD_FILE, 'r') as f:
             record = json.load(f)
         avs = record['avs']
-    avs.append(av)
-    with open(PATH_RECORD_FILE, 'w') as f:
-        json.dump(avs, f, separators=(',', ': '), indent=4)
+    exists = False
+    for av in avs:
+        if av['id'] == id:
+            exists = True
+            break
+    if not exists: 
+        avs.append(av)
+        record = {avs}
+        with open(PATH_RECORD_FILE, 'w') as f:
+            json.dump(record, f, separators=(',', ': '), indent=4)
     
 @bot.message_handler(func=lambda m: True)
 def get_av_by_id(message):
@@ -79,7 +86,6 @@ def get_av_by_id(message):
     msg = f'''<a href="{url}"><b>{title}</b></a>
 Stars: {stars_msg}'''
     bot.send_photo(chat_id=TG_CHAT_ID, photo=img, caption=msg, parse_mode='HTML')
-    # bot.send_message(chat_id=TG_CHAT_ID, text=msg, parse_mode='HTML')
     for magnet in magnets:
         bot.send_message(chat_id=TG_CHAT_ID, text=f'<code>{magnet["link"]}</code>     {magnet["size"]}', parse_mode='HTML')
     record(id=id, stars=stars_msg, url=url)
