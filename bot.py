@@ -57,7 +57,7 @@ def record(id, stars, url):
             break
     if not exists: 
         avs.append(av)
-        record = {avs}
+        record = {'avs': avs}
         with open(PATH_RECORD_FILE, 'w') as f:
             json.dump(record, f, separators=(',', ': '), indent=4)
     
