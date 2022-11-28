@@ -52,7 +52,7 @@ def record(id, stars, url):
         avs = record['avs']
     exists = False
     for av in avs:
-        if av['id'] == id:
+        if av['id'].lower() == id.lower():
             exists = True
             break
     if not exists: 
