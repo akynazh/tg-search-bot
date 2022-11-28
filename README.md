@@ -1,4 +1,6 @@
-**2022-11-28更新：添加了记录查询历史功能**
+**2022-11-28更新：添加了记录查询历史功能，可通过/record查询历史记录。**
+
+---
 
 **A bot based on [ovnrain/javbus-api](https://github.com/ovnrain/javbus-api)**
 

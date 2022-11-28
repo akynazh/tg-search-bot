@@ -56,12 +56,14 @@ def record(id, stars, url):
     
 @bot.message_handler(func=lambda m: True)
 def get_av_by_id(message):
-    if message == '/record':
+    if message.text.strip() == '/record':
         get_record()
         return
     id = message.text.strip()
     resp = requests.get(SERVER_URL + id)
-    
+    if resp.status_code != 200:
+        bot.send_message(chat_id=TG_CHAT_ID, text='未查找到该记录>_<')
+        return
     id = resp.json()['id']
     title = resp.json()['title']
     img = resp.json()['img']
