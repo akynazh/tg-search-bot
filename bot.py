@@ -45,7 +45,7 @@ def get_record():
 def record(id, stars, url):
     PATH_RECORD_FILE = PATH_ROOT + '/record.json'
     avs = []
-    av = {'id': id, 'stars': stars, 'url': url}
+    new_av = {'id': id, 'stars': stars, 'url': url}
     if os.path.exists(PATH_RECORD_FILE):
         with open(PATH_RECORD_FILE, 'r') as f:
             record = json.load(f)
@@ -56,7 +56,7 @@ def record(id, stars, url):
             exists = True
             break
     if not exists: 
-        avs.append(av)
+        avs.append(new_av)
         record = {'avs': avs}
         with open(PATH_RECORD_FILE, 'w') as f:
             json.dump(record, f, separators=(',', ': '), indent=4)
