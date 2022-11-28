@@ -1,3 +1,5 @@
+**2022-11-28更新：添加了记录查询历史功能**
+
 **A bot based on [ovnrain/javbus-api](https://github.com/ovnrain/javbus-api)**
 
 发送给机器人一个番号，返回**Javbus地址，封面，演员，磁链**。

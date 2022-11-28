@@ -1,6 +1,9 @@
 import telebot
 import requests
 import credential
+import json
+import os
+import sys
 
 TG_CHAT_ID = credential.TG_CHAT_ID
 TG_BOT_TOKEN = credential.TG_BOT_TOKEN
@@ -20,8 +23,42 @@ def get_nice_magnets(magnets, prop):
         return magnets
     return magnets_nice
 
+def get_record():
+    PATH_RECORD_FILE = PATH_ROOT + '/record.json'
+    if os.path.exists(PATH_RECORD_FILE):
+        with open(PATH_RECORD_FILE, 'r') as f:
+            record = json.load(f)
+        avs = record['avs']
+        msg = ''
+        i = 1
+        for av in avs:
+            msg += f'{i}: {av["id"]}  {av["stars"]}  {av["url"]}\n'
+            i += 1
+            if i == 30:
+                bot.send_message(chat_id=TG_CHAT_ID, text=msg, disable_web_page_preview=True)
+                msg = ''
+        if msg != '':
+            bot.send_message(chat_id=TG_CHAT_ID, text=msg, disable_web_page_preview=True)
+    else:
+        bot.send_message(chat_id=TG_CHAT_ID, text='尚无记录=_=')
+        
+def record(id, stars, url):
+    PATH_RECORD_FILE = PATH_ROOT + '/record.json'
+    avs = []
+    av = {'id': id, 'stars': stars, 'url': url}
+    if os.path.exists(PATH_RECORD_FILE):
+        with open(PATH_RECORD_FILE, 'r') as f:
+            record = json.load(f)
+        avs = record['avs']
+    avs.append(av)
+    with open(PATH_RECORD_FILE, 'w') as f:
+        json.dump(avs, f, separators=(',', ': '), indent=4)
+    
 @bot.message_handler(func=lambda m: True)
 def get_av_by_id(message):
+    if message == '/record':
+        get_record()
+        return
     id = message.text.strip()
     resp = requests.get(SERVER_URL + id)
     
@@ -36,12 +73,15 @@ def get_av_by_id(message):
     stars_msg = ''
     for star in stars:
         stars_msg += f'{star["starName"]}  '
-    msg = f'''<a href="https://www.javbus.com/{id}"><b>{title}</b></a>
+    url = f'https://www.javbus.com/{id}'
+    msg = f'''<a href="{url}"><b>{title}</b></a>
 Stars: {stars_msg}'''
     bot.send_photo(chat_id=TG_CHAT_ID, photo=img, caption=msg, parse_mode='HTML')
     # bot.send_message(chat_id=TG_CHAT_ID, text=msg, parse_mode='HTML')
     for magnet in magnets:
         bot.send_message(chat_id=TG_CHAT_ID, text=f'<code>{magnet["link"]}</code>     {magnet["size"]}', parse_mode='HTML')
-        
+    record(id=id, stars=stars_msg, url=url)
+    
 if __name__ == '__main__':
+    PATH_ROOT = sys.path[0]
     bot.infinity_polling()
