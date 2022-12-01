@@ -59,7 +59,7 @@ def record(id, stars, url):
         avs.append(new_av)
         record = {'avs': avs}
         with open(PATH_RECORD_FILE, 'w') as f:
-            json.dump(record, f, separators=(',', ': '), indent=4)
+            json.dump(record, f, separators=(',', ': '), indent=4, ensure_ascii=False)
     
 @bot.message_handler(func=lambda m: True)
 def get_av_by_id(message):
