@@ -1,4 +1,5 @@
 import telebot
+from telebot import types
 import requests
 import credential
 import json
@@ -33,7 +34,7 @@ def get_record():
         i = 1
         for av in avs:
             msg += f'''{av["id"]}  {av["stars"].strip()}  <a href="{av["url"]}">src</a>
-            '''
+'''
             i += 1
             if i == 30:
                 bot.send_message(chat_id=TG_CHAT_ID, text=msg, disable_web_page_preview=True, parse_mode='HTML')
@@ -90,7 +91,17 @@ Stars: {stars_msg}'''
     for magnet in magnets:
         bot.send_message(chat_id=TG_CHAT_ID, text=f'<code>{magnet["link"]}</code>     {magnet["size"]}', parse_mode='HTML')
     record(id=id, stars=stars_msg, url=url)
-    
+
+# 设置机器人命令
+def set_command():
+    tg_cmd_dict = {
+        'record': '获取查询记录',
+    }
+    cmds = []
+    for cmd in tg_cmd_dict:
+        cmds.append(types.BotCommand(cmd, tg_cmd_dict[cmd]))
+    bot.set_my_commands(cmds)
+
 if __name__ == '__main__':
     PATH_ROOT = sys.path[0]
     bot.infinity_polling()
