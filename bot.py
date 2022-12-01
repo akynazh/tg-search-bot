@@ -32,7 +32,8 @@ def get_record():
         msg = ''
         i = 1
         for av in avs:
-            msg += f'{av["id"]}  {av["stars"].strip()}  <a href="{av["url"]}">src</a>'
+            msg += f'''{av["id"]}  {av["stars"].strip()}  <a href="{av["url"]}">src</a>
+            '''
             i += 1
             if i == 30:
                 bot.send_message(chat_id=TG_CHAT_ID, text=msg, disable_web_page_preview=True, parse_mode='HTML')
