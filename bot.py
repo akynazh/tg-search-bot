@@ -32,13 +32,13 @@ def get_record():
         msg = ''
         i = 1
         for av in avs:
-            msg += f'{i}: {av["id"]}  {av["stars"]}  {av["url"]}\n'
+            msg += f'{av["id"]}  {av["stars"].strip()}  <a href="{av["url"]}">src</a>'
             i += 1
             if i == 30:
-                bot.send_message(chat_id=TG_CHAT_ID, text=msg, disable_web_page_preview=True)
+                bot.send_message(chat_id=TG_CHAT_ID, text=msg, disable_web_page_preview=True, parse_mode='HTML')
                 msg = ''
         if msg != '':
-            bot.send_message(chat_id=TG_CHAT_ID, text=msg, disable_web_page_preview=True)
+            bot.send_message(chat_id=TG_CHAT_ID, text=msg, disable_web_page_preview=True, parse_mode='HTML')
     else:
         bot.send_message(chat_id=TG_CHAT_ID, text='尚无记录=_=')
         
