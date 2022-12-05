@@ -1,3 +1,5 @@
+**2022-12-05更新：添加了正则匹配番号功能。**
+
 **2022-11-28更新：添加了记录查询历史功能，可通过/record查询历史记录。**
 
 ---
@@ -25,7 +27,7 @@ docker run -d \
 ovnrain/javbus-api
 ```
 
-在 `bot.py` 同一目录下，编辑 `credential.py`:
+在 `bot.py` 同一目录下，编辑 `cfg.py`:
 
 ```
 TG_CHAT_ID = '' # your telegram chat id
