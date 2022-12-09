@@ -132,7 +132,7 @@ def handle_text(message):
 
     :param _type_ message: 消息
     '''
-    if message.from_user.id == TG_CHAT_ID:
+    if str(message.from_user.id) == TG_CHAT_ID:
         bot.send_message(chat_id=message.from_user.id, text='该机器人仅供私人使用哦，如需使用请自行部署，\
             项目地址：https://github.com/akynazh/tg-javbus-bot')
         return
