@@ -128,16 +128,15 @@ def get_av(ids:list):
 
 @bot.message_handler(content_types=['text'])
 def handle_text(message):
-    print(message)
     '''处理文本消息
 
     :param _type_ message: 消息
     '''
+    print(message.from_user.id) 
     if message.text.strip() == '/record':
         get_record()
         return
     get_av(get_ids(message.text.strip()))
-
 
 @bot.message_handler(content_types=['photo'])
 def handle_photo(message):
