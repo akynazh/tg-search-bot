@@ -66,7 +66,7 @@ def get_record_json():
     '''发送查询记录文件
     '''
     if os.path.exists(PATH_RECORD_FILE):
-        bot.send_document(chat_id=TG_CHAT_ID, document=types.InputFile(type=PATH_RECORD_FILE))
+        bot.send_document(chat_id=TG_CHAT_ID, document=types.InputFile(PATH_RECORD_FILE))
     else:
         bot.send_message(chat_id=TG_CHAT_ID, text='尚无记录=_=')
 
