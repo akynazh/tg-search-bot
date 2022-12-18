@@ -114,6 +114,8 @@ def get_av_by_id(id:str):
     for star in stars:
         stars_msg += f'{star["starName"]}  '
     stars_msg = stars_msg.strip()
+    if stars_msg.strip() == '':
+        stars_msg = 'unknown'
     url = f'https://www.javbus.com/{id}'
     msg = f'''<a href="{url}"><b>{title}</b></a>
 Stars: {stars_msg}'''
