@@ -31,31 +31,29 @@ def get_nice_magnets(magnets:list, prop:str) -> list:
         return magnets
     return magnets_nice
 
-def get_record(classify_by:str) -> dict:
-    '''获取查询记录
-    '''
-    PATH_RECORD_FILE = PATH_ROOT + '/record.json'
-    if os.path.exists(PATH_RECORD_FILE):
-        with open(PATH_RECORD_FILE, 'r') as f:
-            record = json.load(f)
-        avs = record['avs']
-        if classify_by != None:
-            avs.sort(key=lambda i : i[classify_by])
-        return avs
-    else:
-        bot.send_message(chat_id=TG_CHAT_ID, text='尚无记录=_=')
-        return []
-
-def send_record(classify_by:str=None):
+def get_record(classify_by:str=''):
     '''发送查询记录
     
     :param str classify_by: 分类字段, 演员: 'stars', 番号：'id', defaults to None
     '''
-    avs = get_record(classify_by)
+    avs = []
+    if os.path.exists(PATH_RECORD_FILE):
+        with open(PATH_RECORD_FILE, 'r') as f:
+            record = json.load(f)
+        avs = record['avs']
+        if classify_by != '':
+            avs.sort(key=lambda i : i[classify_by])
+    else:
+        bot.send_message(chat_id=TG_CHAT_ID, text='尚无记录=_=')
+        return
     msg = ''
     i = 1
     for av in avs:
-        msg += f'''<a href="https://javbus.com/{av["id"]}">{av["id"]}</a>  {av["stars"]}
+        if classify_by == 'stars':
+            msg += f'''{av["stars"]}  <a href="https://javbus.com/{av["id"]}">{av["id"]}</a>
+'''
+        else:
+            msg += f'''<a href="https://javbus.com/{av["id"]}">{av["id"]}</a>  {av["stars"]}
 '''
         i += 1
         if i == 30:
@@ -64,10 +62,13 @@ def send_record(classify_by:str=None):
     if msg != '':
         bot.send_message(chat_id=TG_CHAT_ID, text=msg, disable_web_page_preview=True, parse_mode='HTML')
 
-def send_record_json():
+def get_record_json():
     '''发送查询记录文件
     '''
-    bot.send_document(chat_id=TG_CHAT_ID, document=PATH_ROOT + '/record.json')
+    if os.path.exists(PATH_RECORD_FILE):
+        bot.send_document(chat_id=TG_CHAT_ID, document=PATH_RECORD_FILE)
+    else:
+        bot.send_message(chat_id=TG_CHAT_ID, text='尚无记录=_=')
 
 def record(id:str, stars:str):
     '''记录查询信息
@@ -75,7 +76,6 @@ def record(id:str, stars:str):
     :param str id: 番号
     :param str stars: 演员
     '''
-    PATH_RECORD_FILE = PATH_ROOT + '/record.json'
     avs = []
     new_av = {'id': id, 'stars': stars}
     if os.path.exists(PATH_RECORD_FILE):
@@ -95,6 +95,7 @@ def record(id:str, stars:str):
 
 def get_av_by_id(id:str):
     '''根据番号获取 av
+    
     :param str id: 番号
     '''
     resp = requests.get(SERVER_URL + id)
@@ -154,13 +155,13 @@ def handle_text(message):
         return
     my_msg = message.text.strip()
     if my_msg == '/record':
-        send_record()
+        get_record()
     elif my_msg == '/record_id':
-        send_record('id')
+        get_record('id')
     elif my_msg == '/record_stars':
-        send_record('stars')
+        get_record('stars')
     elif my_msg == '/record_json':
-        send_record_json()
+        get_record_json()
     else:
         get_av(get_ids(my_msg))
 
@@ -198,5 +199,6 @@ def set_command():
 
 if __name__ == '__main__':
     PATH_ROOT = sys.path[0]
+    PATH_RECORD_FILE = PATH_ROOT + '/record.json'
     set_command()
     bot.infinity_polling()
