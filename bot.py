@@ -31,33 +31,41 @@ def get_nice_magnets(magnets:list, prop:str) -> list:
         return magnets
     return magnets_nice
 
-def get_record():
+def get_record(classify_by:str=None):
     '''获取查询记录
+
+    :param str classify_by: 分类字段, 演员: 'stars', 番号：'id', defaults to None
     '''
     PATH_RECORD_FILE = PATH_ROOT + '/record.json'
     if os.path.exists(PATH_RECORD_FILE):
         with open(PATH_RECORD_FILE, 'r') as f:
             record = json.load(f)
         avs = record['avs']
-        msg = ''
-        i = 1
-        for av in avs:
-            msg += f'''<a href="https://javbus.com/{av["id"]}">{av["id"]}</a>  {av["stars"]}
-'''
-            i += 1
-            if i == 30:
-                bot.send_message(chat_id=TG_CHAT_ID, text=msg, disable_web_page_preview=True, parse_mode='HTML')
-                msg = ''
-        if msg != '':
-            bot.send_message(chat_id=TG_CHAT_ID, text=msg, disable_web_page_preview=True, parse_mode='HTML')
+        if classify_by != None:
+            avs.sort(key=lambda i : i[classify_by])
+        send_record(avs)
     else:
         bot.send_message(chat_id=TG_CHAT_ID, text='尚无记录=_=')
+
+def send_record(avs):
+    msg = ''
+    i = 1
+    for av in avs:
+        msg += f'''<a href="https://javbus.com/{av["id"]}">{av["id"]}</a>  {av["stars"]}
+'''
+        i += 1
+        if i == 30:
+            bot.send_message(chat_id=TG_CHAT_ID, text=msg, disable_web_page_preview=True, parse_mode='HTML')
+            msg = ''
+    if msg != '':
+        bot.send_message(chat_id=TG_CHAT_ID, text=msg, disable_web_page_preview=True, parse_mode='HTML')
+    
 
 def record(id:str, stars:str):
     '''记录查询信息
 
     :param str id: 番号
-    :param str stars: 演员们
+    :param str stars: 演员
     '''
     PATH_RECORD_FILE = PATH_ROOT + '/record.json'
     avs = []
@@ -118,7 +126,7 @@ def get_ids(text:str) -> list:
     return ids
 
 def get_av(ids:list):
-    '''遍历番号列表，依次查询 av
+    '''遍历番号列表, 依次查询 av
 
     :param list ids: 番号列表
     '''
@@ -133,13 +141,18 @@ def handle_text(message):
     :param _type_ message: 消息
     '''
     if str(message.from_user.id) != TG_CHAT_ID:
-        bot.send_message(chat_id=message.from_user.id, text='该机器人仅供私人使用哦，如需使用请自行部署，\
+        bot.send_message(chat_id=message.from_user.id, text='该机器人仅供私人使用哦, 如需使用请自行部署, \
 项目地址：https://github.com/akynazh/tg-javbus-bot')
         return
-    if message.text.strip() == '/record':
+    my_msg = message.text.strip()
+    if my_msg == '/record':
         get_record()
-        return
-    get_av(get_ids(message.text.strip()))
+    elif my_msg == '/record_id':
+        get_record('id')
+    elif my_msg == '/record_stars':
+        get_record('stars')
+    else:
+        get_av(get_ids(my_msg))
 
 @bot.message_handler(content_types=['photo'])
 def handle_photo(message):
@@ -164,6 +177,8 @@ def set_command():
     '''
     tg_cmd_dict = {
         'record': '获取查询记录',
+        'record_id': '获取查询记录, 根据番号分类',
+        'record_stars': '获取查询记录, 根据演员分类',
     }
     cmds = []
     for cmd in tg_cmd_dict:
@@ -172,5 +187,5 @@ def set_command():
 
 if __name__ == '__main__':
     PATH_ROOT = sys.path[0]
-    # set_command()
+    set_command()
     bot.infinity_polling()
