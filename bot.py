@@ -20,7 +20,7 @@ def get_nice_magnets(magnets:list, prop:str) -> list:
     :param str prop: 过滤属性 (属性值为 True 或 False)
     :return list: 过滤后的磁链列表
     '''
-    if len(magnets) == 0: return None
+    if len(magnets) == 0: return []
     if len(magnets) == 1: return magnets
     
     magnets_nice = []
