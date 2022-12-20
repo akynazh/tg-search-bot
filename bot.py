@@ -123,7 +123,7 @@ Stars: {stars_msg}'''
     for magnet in magnets:
         bot.send_message(chat_id=TG_CHAT_ID, text=f'<code>{magnet["link"]}</code>     {magnet["size"]}', parse_mode='HTML')
     if len(magnets) == 0:
-        bot.send_message('妹找到磁链 Q_Q')
+        bot.send_message(chat_id=TG_CHAT_ID, text='妹找到磁链 Q_Q')
     record(id=id, stars=stars_msg)
 
 def get_ids(text:str) -> list:
