@@ -44,7 +44,7 @@ def get_record(classify_by:str=''):
         if classify_by != '':
             avs.sort(key=lambda i : i[classify_by])
     else:
-        bot.send_message(chat_id=TG_CHAT_ID, text='尚无记录=_=')
+        bot.send_message(chat_id=TG_CHAT_ID, text='尚无记录 =_=')
         return
     msg = ''
     i = 1
@@ -68,7 +68,7 @@ def get_record_json():
     if os.path.exists(PATH_RECORD_FILE):
         bot.send_document(chat_id=TG_CHAT_ID, document=types.InputFile(PATH_RECORD_FILE))
     else:
-        bot.send_message(chat_id=TG_CHAT_ID, text='尚无记录=_=')
+        bot.send_message(chat_id=TG_CHAT_ID, text='尚无记录 =_=')
 
 def record(id:str, stars:str):
     '''记录查询信息
@@ -100,7 +100,7 @@ def get_av_by_id(id:str):
     '''
     resp = requests.get(SERVER_URL + id)
     if resp.status_code != 200:
-        bot.send_message(chat_id=TG_CHAT_ID, text=f'未查找到该番号：{id} >_<')
+        bot.send_message(chat_id=TG_CHAT_ID, text=f'妹查找到该番号：{id} Q_Q')
         return
     id = resp.json()['id']
     title = resp.json()['title']
@@ -122,6 +122,8 @@ Stars: {stars_msg}'''
     bot.send_photo(chat_id=TG_CHAT_ID, photo=img, caption=msg, parse_mode='HTML')
     for magnet in magnets:
         bot.send_message(chat_id=TG_CHAT_ID, text=f'<code>{magnet["link"]}</code>     {magnet["size"]}', parse_mode='HTML')
+    if len(magnets) == 0:
+        bot.send_message('妹找到磁链 Q_Q')
     record(id=id, stars=stars_msg)
 
 def get_ids(text:str) -> list:
@@ -132,7 +134,7 @@ def get_ids(text:str) -> list:
     '''
     ids = re.compile(r"[a-zA-Z]+-\d+").findall(text)
     if not ids:
-        bot.send_message(chat_id=TG_CHAT_ID, text='你滴消息不存在番号捏=_=')
+        bot.send_message(chat_id=TG_CHAT_ID, text='你滴消息不存在番号捏 =_=')
         return None
     return ids
 
