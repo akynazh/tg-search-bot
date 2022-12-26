@@ -126,26 +126,20 @@ Stars: {stars_msg}'''
         bot.send_message(chat_id=TG_CHAT_ID, text='妹找到磁链 Q_Q')
     record(id=id, stars=stars_msg)
 
-def get_ids(text:str) -> list:
-    '''从文本解析出番号列表
+def get_av(text):
+    '''解析消息获得番号列表，遍历番号列表, 依次查询 av
 
-    :param str text: 文本
-    :return list: 番号列表
+    :param text 消息
     '''
     ids = re.compile(r"[a-zA-Z]+-\d+").findall(text)
     if not ids:
         bot.send_message(chat_id=TG_CHAT_ID, text='你滴消息不存在番号捏 =_=')
-        return None
-    return ids
-
-def get_av(ids:list):
-    '''遍历番号列表, 依次查询 av
-
-    :param list ids: 番号列表
-    '''
-    if ids:
-        for id in ids:
-            get_av_by_id(id)
+        return
+    for i in range(0, len(ids)):
+        ids[i] = ids[i].lower().strip()
+    ids = list(set(ids))
+    for id in ids:
+        get_av_by_id(id)
 
 @bot.message_handler(content_types=['text'])
 def handle_text(message):
@@ -167,7 +161,7 @@ def handle_text(message):
     elif my_msg == '/record_json':
         get_record_json()
     else:
-        get_av(get_ids(my_msg))
+        get_av(my_msg)
 
 @bot.message_handler(content_types=['photo'])
 def handle_photo(message):
@@ -176,7 +170,7 @@ def handle_photo(message):
     :param _type_ message: 消息
     '''
     if message.caption:
-        get_av(get_ids(message.caption))
+        get_av(message.caption)
     
 @bot.message_handler(content_types=['video'])
 def handle_video(message):
@@ -185,7 +179,7 @@ def handle_video(message):
     :param _type_ message: 消息
     '''
     if message.caption:
-        get_av(get_ids(message.caption))
+        get_av(message.caption)
 
 def set_command():
     '''设置机器人命令
