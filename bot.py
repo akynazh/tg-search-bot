@@ -1,15 +1,20 @@
 import telebot
-from telebot import types
+from telebot import types, apihelper
 import requests
 import cfg
 import json
 import os
 import sys
 import re
+import util_tg_sender
 
 TG_CHAT_ID = cfg.TG_CHAT_ID
 TG_BOT_TOKEN = cfg.TG_BOT_TOKEN
 SERVER_URL = cfg.SERVER_URL
+
+PROXY_ADDR = f'{cfg.PROXY_SCHEME}://{cfg.PROXY_ADDR_HOST}:{cfg.PROXY_ADDR_PORT}'
+if cfg.USE_PROXY:
+    apihelper.proxy = {'http': PROXY_ADDR, 'https': PROXY_ADDR}
 
 bot = telebot.TeleBot(TG_BOT_TOKEN)
 
@@ -120,8 +125,12 @@ def get_av_by_id(id:str):
     msg = f'''<a href="{url}"><b>{title}</b></a>
 Stars: {stars_msg}'''
     bot.send_photo(chat_id=TG_CHAT_ID, photo=img, caption=msg, parse_mode='HTML')
-    for magnet in magnets:
-        bot.send_message(chat_id=TG_CHAT_ID, text=f'<code>{magnet["link"]}</code>     {magnet["size"]}', parse_mode='HTML')
+    for i, magnet in enumerate(magnets):
+        if i == 0: 
+            util_tg_sender.send_msg('@PikPak6_Bot', magnet)
+            bot.send_message('已经筛选出的最佳磁链发送到@PikPak6_Bot ^-^')
+        else:
+            bot.send_message(chat_id=TG_CHAT_ID, text=f'<code>{magnet["link"]}</code>     {magnet["size"]}', parse_mode='HTML')
     if len(magnets) == 0:
         bot.send_message(chat_id=TG_CHAT_ID, text='妹找到磁链 Q_Q')
     record(id=id, stars=stars_msg)
@@ -194,9 +203,10 @@ def set_command():
     for cmd in tg_cmd_dict:
         cmds.append(types.BotCommand(cmd, tg_cmd_dict[cmd]))
     bot.set_my_commands(cmds)
-
+    
 if __name__ == '__main__':
     PATH_ROOT = sys.path[0]
     PATH_RECORD_FILE = PATH_ROOT + '/record.json'
+    os.chdir(PATH_ROOT)
     set_command()
     bot.infinity_polling()
