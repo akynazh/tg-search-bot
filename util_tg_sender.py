@@ -20,4 +20,5 @@ def send_msg(name, msg):
             await app.send_message(name, msg)
     asyncio.run(main())
     
-# send_msg('@PikPak6_Bot', 'test')
+if __name__ == '__main__':
+    send_msg('@PikPak6_Bot', 'test')
