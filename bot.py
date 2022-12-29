@@ -126,9 +126,9 @@ def get_av_by_id(id:str):
 Stars: {stars_msg}'''
     bot.send_photo(chat_id=TG_CHAT_ID, photo=img, caption=msg, parse_mode='HTML')
     for i, magnet in enumerate(magnets):
-        if i == 0: 
-            util_tg_sender.send_msg('@PikPak6_Bot', magnet)
-            bot.send_message('已经筛选出的最佳磁链发送到@PikPak6_Bot ^-^')
+        if cfg.USE_PIKPAK and i == 0:
+            util_tg_sender.send_msg('@PikPak6_Bot', magnet["link"])
+            bot.send_message(chat_id=TG_CHAT_ID, text='已经筛选出的最佳磁链发送到@PikPak6_Bot ^-^')
         else:
             bot.send_message(chat_id=TG_CHAT_ID, text=f'<code>{magnet["link"]}</code>     {magnet["size"]}', parse_mode='HTML')
     if len(magnets) == 0:
