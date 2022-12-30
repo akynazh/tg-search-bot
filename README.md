@@ -26,6 +26,8 @@
 
 **安装过程如下：**
 
+前提：已经安装Python3（>=3.6）。
+
 ```
 git clone https://github.com/akynazh/tg-javbus-bot.git
 pip install -r requirements.txt
