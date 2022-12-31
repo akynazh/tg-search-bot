@@ -15,17 +15,22 @@ if cfg.USE_PROXY == 1:
     }
 
 
-def send_msg(msg):
-    pikpak_bot_name = cfg.PIKPAK_BOT_NAME
+def send_msg(msg) -> bool:
+    '''发送消息到Pikpak机器人
 
+    :param _type_ msg: 消息
+    :return bool: 是否发送成功
+    '''
     async def main():
         async with Client(
             name=SESSION_FILE_NAME, api_id=TG_API_ID, api_hash=TG_API_HASH, proxy=proxy
         ) as app:
-            await app.send_message(pikpak_bot_name, msg)
-
-    asyncio.run(main())
+            return await app.send_message(cfg.PIKPAK_BOT_NAME, msg)
+    res = asyncio.run(main())
+    if res: return True
+    return False
 
 
 if __name__ == "__main__":
-    send_msg("test")
+    if send_msg("test"):
+        print('ok')
