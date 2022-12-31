@@ -34,8 +34,8 @@ def get_video(id: str) -> dict:
                 if res['pv'] == '' and pv_url != '': res['pv'] = pv_url
             return res
 
-        
-def get_pv(id:str) -> str:
+
+def get_pv(id: str) -> str:
     '''获取预览视频
 
     :param str id: 番号
@@ -45,7 +45,7 @@ def get_pv(id:str) -> str:
     if video and video['pv'] != '': return video['pv']
 
 
-def get_fv(id:str) -> str:
+def get_fv(id: str) -> str:
     '''获取完整视频
 
     :param str id: 番号

@@ -1,4 +1,6 @@
-**2022-12-30更新：自主定制爬虫，无需再依赖[ovnrain/javbus-api](https://github.com/ovnrain/javbus-api)**
+**2022-12-31更新：添加在线视频功能。**
+
+**2022-12-30更新：自主定制爬虫，无需再依赖[javbus-api](https://github.com/ovnrain/javbus-api)。**
 
 **2022-12-29更新：集成了PikPak并添加了代理功能。**
 
@@ -12,9 +14,9 @@
 
 ~~A bot based on [ovnrain/javbus-api](https://github.com/ovnrain/javbus-api)~~
 
-**基于Javbus并集成Pikpak的一个番号查询机器人**
+**基于Javbus和Avgle并集成Pikpak的一个番号查询机器人**
 
-发送给机器人一个番号，返回**Javbus地址，封面，演员，磁链**，并记录该条查询。
+发送给机器人一个番号，返回**封面，演员，磁链**，并记录该条查询。
 
 磁链将是被过滤的，过滤顺序：**高清，有字幕**。
 
@@ -22,11 +24,13 @@
 
 通过配置可以让机器人自动将最优磁链发送到**pikpak**。
 
-支持添加**代理**功能。
+支持**代理**功能。
+
+支持**在线视频**功能。
 
 **安装过程如下：**
 
-前提：已经安装Python3（>=3.6）。
+前提：已经安装Python3（>=3.7）。
 
 ```
 git clone https://github.com/akynazh/tg-javbus-bot.git
