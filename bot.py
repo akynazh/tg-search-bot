@@ -1,6 +1,7 @@
 # -*- coding: UTF-8 -*-
 import telebot
 from telebot import types, apihelper
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 import cfg
 import json
 import os
@@ -39,6 +40,8 @@ def get_nice_magnets(magnets: list, prop: str, expect_val) -> list:
     for magnet in magnets:
         if magnet[prop] == expect_val:
             magnets_nice.append(magnet)
+            
+    # 如果过滤后已经没了，返回原来磁链列表
     if len(magnets_nice) == 0:
         return magnets
     return magnets_nice
@@ -84,7 +87,7 @@ def get_record(classify_by: str = ''):
             disable_web_page_preview=True,
             parse_mode='HTML',
         )
-        
+
 
 def get_record_json():
     '''发送查询记录文件'''
@@ -133,48 +136,73 @@ def get_av_by_id(id: str):
     img = av['img']
     stars = av['stars']
     magnets = av['magnets']
+    
+    # 过滤磁链
     magnets = get_nice_magnets(magnets, 'hd', expect_val='1')
     magnets = get_nice_magnets(magnets, 'zm', expect_val='1')
     if len(magnets) > 4:
         magnets = magnets[0:4]
+    
+    # 拼接演员名称
     stars_msg = ''
     for star in stars:
         stars_msg += f'{star}  '
     stars_msg = stars_msg.strip()
     if stars_msg.strip() == '':
         stars_msg = 'unknown'
+        
+    # 一些重要链接
     url = f'{BASE_URL_JAVBUS}/{id}'
+    wiki_url = f'https://ja.wikipedia.org/wiki/{stars_msg}'
+    more_av_url = f'{BASE_URL_JAVBUS}/search/{stars_msg}'
+    
+    # 拼接消息
     msg = f'''【标题】<a href="{url}">{title}</a>
-【番号】<a href="{url}">{id.upper()}</a>
-【演员】<a href="{BASE_URL_JAVBUS}/search/{stars_msg}">{stars_msg}</a>'''
+【番号】<code>{id}</code>
+【演员】<code>{stars_msg}</code> | <a href="{wiki_url}">Wiki</a> | <a href="{more_av_url}">其它AV</a>'''
+
+    # 加上磁链消息
     for i, magnet in enumerate(magnets):
         if i == 0: send_to_pikpak_magnet = magnet
         msg += f'''
 【{string.ascii_letters[i].upper()}. {magnet["size"]}】<code>{magnet["link"]}</code>'''
-    bot.send_photo(chat_id=TG_CHAT_ID, photo=img, caption=msg, parse_mode='HTML')
+
+    # 生成回调按钮
+    pv_btn = InlineKeyboardButton(text='观看预览视频', callback_data=f'{id}:0')
+    fv_btn = InlineKeyboardButton(text='观看完整视频', callback_data=f'{id}:1')
+    markup = InlineKeyboardMarkup().row(pv_btn, fv_btn)
+    
+    # 发送消息
+    bot.send_photo(chat_id=TG_CHAT_ID, photo=img, caption=msg, parse_mode='HTML', reply_markup=markup)
+
+    # 发给pikpak
     if cfg.USE_PIKPAK == 1 and send_to_pikpak_magnet: send_to_pikpak(send_to_pikpak_magnet)
+    
+    # 记录查询
     record(id=id, stars=stars_msg)
 
 
 def send_to_pikpak(magnet):
+    '''将磁链发送到pikpak
+
+    :param _type_ magnet: 磁链
+    '''
     name = cfg.PIKPAK_BOT_NAME
-    if util_pikpak.send_msg(magnet["link"]):
+    if util_pikpak.send_msg(magnet["link"]): # 成功发送
         bot.send_message(
             chat_id=TG_CHAT_ID,
             text=f'已经将筛选出的最佳磁链 <b>A</b> 发送到 <a href="https://t.me/{name}">@{name}</a> ^-^',
             parse_mode='HTML',
-            disable_web_page_preview=True
         )
-    else:
+    else: # 发送失败
         bot.send_message(
             chat_id=TG_CHAT_ID,
             text=f'未能将筛选出的最佳磁链<b>A</b>发送到 <a href="https://t.me/{name}">@{name}</a> 请自行发送或重试 =_=',
             parse_mode='HTML',
-            disable_web_page_preview=True
         )
         
 
-def get_av(text):
+def get_av(text:str):
     '''解析消息获得番号列表，遍历番号列表, 依次查询 av
 
     :param str text: 消息
@@ -188,14 +216,28 @@ def get_av(text):
     ids = list(set(ids))
     for id in ids:
         get_av_by_id(id)
+        
 
+def watch_av(id:str, type:str):
+    '''获取番号对应在线视频
 
-@bot.message_handler(content_types=['text'])
-def handle_text(message):
-    print(message)
-    '''处理文本消息
+    :param str id: 番号
+    :param str type: 0 预览视频 | 1 完整视频
+    '''
+    video = util_avgle.get_video(id)
+    if video:
+        if type == 0:
+            bot.send_video(chat_id=TG_CHAT_ID, video=video['pv'])
+        elif type == 1:
+            bot.send_message(chat_id=TG_CHAT_ID, text=f'视频地址：{video["fv"]}')
+    else:
+        bot.send_message(chat_id=TG_CHAT_ID, text='未找到视频 =_=')
+        
+def intercept_msg(message) -> bool:
+    '''拦截请求，检查消息来源
 
     :param _type_ message: 消息
+    :return bool: 是否为自己发送的消息
     '''
     if str(message.from_user.id) != TG_CHAT_ID:
         bot.send_message(
@@ -203,7 +245,18 @@ def handle_text(message):
             text='该机器人仅供私人使用哦, 如需使用请自行部署, \
 项目地址：https://github.com/akynazh/tg-javbus-bot',
         )
-        return
+        return False
+    return True
+
+
+@bot.message_handler(content_types=['text'])
+def handle_text(message):
+    '''处理文本消息
+
+    :param _type_ message: 消息
+    '''
+    if not intercept_msg(message):
+        return    
     my_msg = message.text.strip()
     if my_msg == '/record':
         get_record()
@@ -213,8 +266,32 @@ def handle_text(message):
         get_record('stars')
     elif my_msg == '/record_json':
         get_record_json()
+    elif my_msg.find('/pv') != -1:
+        msgs = my_msg.split(' ', 1)
+        if len(msgs) > 1:
+            watch_av(msgs[1], 0)
+        else: bot.send_message(chat_id=TG_CHAT_ID, text='缺失番号 =_=')
+    elif my_msg.find('/fv') != -1:
+        msgs = my_msg.split(' ', 1)
+        if len(msgs) > 1:
+            watch_av(msgs[1], 1)
+        else: bot.send_message(chat_id=TG_CHAT_ID, text='缺失番号 =_=')
     else:
         get_av(my_msg)
+        
+
+@bot.callback_query_handler(func=lambda call: True)
+def callback_listener(call):
+    '''消息回调处理器
+
+    :param _type_ call: 触发回调的消息内容
+    '''
+    data = call.data
+    type = data.split(':')[-1]
+    if type == '0': # 类型0：发送番号对应预览视频
+        watch_av(id, 0)
+    elif type == '1': # 类型1：发送番号对应完整视频
+        watch_av(id, 1)
 
 
 @bot.message_handler(content_types=['photo'])
@@ -223,6 +300,8 @@ def handle_photo(message):
 
     :param _type_ message: 消息
     '''
+    if not intercept_msg(message):
+        return  
     if message.caption:
         get_av(message.caption)
 
@@ -233,6 +312,8 @@ def handle_video(message):
 
     :param _type_ message: 消息
     '''
+    if not intercept_msg(message):
+        return  
     if message.caption:
         get_av(message.caption)
 
