@@ -15,6 +15,20 @@ def get_av(id: str) -> dict:
 
     :param str id: 番号
     :return dict: av
+    av格式: 
+    {
+        "id": id,      # 番号
+        "title": "",   # 标题
+        "img": "",     # 封面地址
+        "stars": [],   # 演员
+        "magnets": [], # 磁链
+    }
+    磁链格式:
+    {
+        "link": "", # 链接
+        "hd": "0",  # 是否高清 0 否 | 1 是
+        "zm": "0"   # 是否有字幕 0 否 | 1 是
+    }
     """
     av = {
         "id": id,

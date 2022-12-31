@@ -17,15 +17,17 @@ TG_CHAT_ID = cfg.TG_CHAT_ID
 PATH_ROOT = sys.path[0]
 PATH_RECORD_FILE = PATH_ROOT + '/record.json'
 proxies = {}
+BASE_URL_JAVBUS = 'https://javbus.com'
 if cfg.USE_PROXY == 1:
     proxies = {'http': cfg.PROXY_ADDR, 'https': cfg.PROXY_ADDR}
     apihelper.proxy = proxies
 
-def get_nice_magnets(magnets: list, prop: str) -> list:
+def get_nice_magnets(magnets: list, prop: str, expect_val) -> list:
     '''过滤磁链列表
 
     :param list magnets: 要过滤的磁链列表
-    :param str prop: 过滤属性 (属性值为 True 或 False)
+    :param str prop: 过滤属性
+    :param _type_ expect_val: 过滤属性的期望值
     :return list: 过滤后的磁链列表
     '''
     if len(magnets) == 0:
@@ -35,7 +37,7 @@ def get_nice_magnets(magnets: list, prop: str) -> list:
 
     magnets_nice = []
     for magnet in magnets:
-        if magnet[prop]:
+        if magnet[prop] == expect_val:
             magnets_nice.append(magnet)
     if len(magnets_nice) == 0:
         return magnets
@@ -61,10 +63,10 @@ def get_record(classify_by: str = ''):
     i = 1
     for av in avs:
         if classify_by == 'stars':
-            msg += f'''{av["stars"]}  <a href="https://javbus.com/{av["id"]}">{av["id"]}</a>
+            msg += f'''{av["stars"]}  <a href="{BASE_URL_JAVBUS}/{av["id"]}">{av["id"]}</a>
 '''
         else:
-            msg += f'''<a href="https://javbus.com/{av["id"]}">{av["id"]}</a>  {av["stars"]}
+            msg += f'''<a href="{BASE_URL_JAVBUS}/{av["id"]}">{av["id"]}</a>  {av["stars"]}
 '''
         i += 1
         if i == 30:
@@ -131,8 +133,8 @@ def get_av_by_id(id: str):
     img = av['img']
     stars = av['stars']
     magnets = av['magnets']
-    magnets = get_nice_magnets(magnets, 'hd')
-    magnets = get_nice_magnets(magnets, 'zm')
+    magnets = get_nice_magnets(magnets, 'hd', expect_val='1')
+    magnets = get_nice_magnets(magnets, 'zm', expect_val='1')
     if len(magnets) > 4:
         magnets = magnets[0:4]
     stars_msg = ''
@@ -141,13 +143,14 @@ def get_av_by_id(id: str):
     stars_msg = stars_msg.strip()
     if stars_msg.strip() == '':
         stars_msg = 'unknown'
-    url = f'https://www.javbus.com/{id}'
-    msg = f'''<a href="{url}"><b>{title}</b></a>
-【演员】<b>{stars_msg}</b>'''
+    url = f'{BASE_URL_JAVBUS}/{id}'
+    msg = f'''【标题】<a href="{url}">{title}</a>
+【番号】<a href="{url}">{id.upper()}</a>
+【演员】<a href="{BASE_URL_JAVBUS}/search/{stars_msg}">{stars_msg}</a>'''
     for i, magnet in enumerate(magnets):
         if i == 0: send_to_pikpak_magnet = magnet
         msg += f'''
-【<b>{string.ascii_letters[i].upper()}.</b> {magnet["size"]}】<code>{magnet["link"]}</code>'''
+【{string.ascii_letters[i].upper()}. {magnet["size"]}】<code>{magnet["link"]}</code>'''
     bot.send_photo(chat_id=TG_CHAT_ID, photo=img, caption=msg, parse_mode='HTML')
     if cfg.USE_PIKPAK == 1 and send_to_pikpak_magnet: send_to_pikpak(send_to_pikpak_magnet)
     record(id=id, stars=stars_msg)
@@ -158,7 +161,7 @@ def send_to_pikpak(magnet):
     if util_pikpak.send_msg(magnet["link"]):
         bot.send_message(
             chat_id=TG_CHAT_ID,
-            text=f'已经将筛选出的最佳磁链<b>A</b>发送到 <a href="https://t.me/{name}">@{name}</a> ^-^',
+            text=f'已经将筛选出的最佳磁链 <b>A</b> 发送到 <a href="https://t.me/{name}">@{name}</a> ^-^',
             parse_mode='HTML',
             disable_web_page_preview=True
         )
