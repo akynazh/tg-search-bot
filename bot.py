@@ -462,11 +462,15 @@ def test():
 
 def help():
     '''发送指令帮助消息'''
-    msg = '''/record >> 获取所有查询记录（根据查询时间排序，后接数字可指定条数）
-/record10 >> 获取最近10条查询记录
-/record_json >> 获取记录文件
-/star >> 获取所有搜过的演员（后接名称获取该演员对应的记录）
-/help >> 查看指令帮助
+    msg = '''/help  查看指令帮助
+
+/star  获取所有搜过的演员（后接名称获取该演员对应的记录）
+    
+/record  获取所有查询记录（根据查询时间排序，后接数字可指定条数）
+    
+/record10  获取最近10条查询记录
+
+/record_json  获取记录文件
 '''
     send_msg(msg)
 
@@ -474,11 +478,11 @@ def help():
 def set_command():
     '''设置机器人命令'''
     tg_cmd_dict = {
+        'help': '查看指令帮助',
+        'star': '获取所有搜过的演员',
         'record': '获取所有查询记录',
         'record10': '获取最近10条查询记录',
         'record_json': '获取记录文件',
-        'star': '获取所有搜过的演员',
-        'help': '查看指令帮助'
     }
     cmds = []
     for cmd in tg_cmd_dict:
