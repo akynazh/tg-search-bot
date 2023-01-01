@@ -38,6 +38,7 @@ def get_av(id: str) -> dict:
         'link': ''  # 演员链接
     }
     '''
+    # 初始化数据
     av = {
         'id': id,
         'title': '',
@@ -56,24 +57,21 @@ def get_av(id: str) -> dict:
         'X-Requested-With': 'XMLHttpRequest',
         'Referer': '',
     }
-
     # 查找av
     url = f'{BASE_URL}/{id}'
     headers['Referer'] = url
     resp = requests.get(url, proxies=proxies, headers=headers)
     if resp.status_code != 200:
         return None
-
     # 获取soup和html
     soup = BeautifulSoup(resp.text, 'lxml')
     html = soup.prettify()
-
     # 获取封面和标题
     big_image = soup.find(class_='bigImage')
     img = big_image['href']
     av['img'] = f'{BASE_URL}/{img}'
     av['title'] = big_image.img['title']
-
+    # 提取更多信息
     paras = soup.find(class_='col-md-3 info').find_all('p')
     for i, p in enumerate(paras):
         # 获取发行日期
@@ -94,32 +92,26 @@ def get_av(id: str) -> dict:
                 star['name'] = ''.join(tag.text.split())
                 star['link'] = tag['href']
                 av['stars'].append(star)
-
     # 获取uc
     uc_pattern = re.compile(r'var uc = .*?;')
     match = uc_pattern.findall(html)
     uc = match[0].replace('var uc = ', '').replace(';', '')
-
     # 获取gid
     gid_pattern = re.compile(r'var gid = .*?;')
     match = gid_pattern.findall(html)
     gid = match[0].replace('var gid = ', '').replace(';', '')
-
     # 获取截图
     sample_tags = soup.find_all(class_='sample-box')
     for tag in sample_tags:
         av['samples'].append(tag['href'])
-
     # 得到磁链的ajax请求地址
     url = f'{BASE_URL}/ajax/uncledatoolsbyajax.php?gid={gid}&lang=zh&img={img}&uc={uc}'
-
     # 发送请求获取含磁链页
     headers['Referer'] = url
     resp = requests.get(url, proxies=proxies, headers=headers)
     if resp.status_code != 200:
         return None
     soup = BeautifulSoup(resp.text, 'lxml')
-
     # 解析页面获取磁链
     for tr in soup.find_all('tr'):
         i = 0

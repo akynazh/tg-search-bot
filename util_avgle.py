@@ -18,10 +18,11 @@ def get_video(id: str) -> dict:
         'pv': ''  # 预览视频链接
     }
     '''
+    # 初始化数据
     page = 0
     limit = 3
     url = f'{BASE_URL}/v1/jav/{id}/{page}?limit={limit}'
-
+    # 获取视频
     resp = requests.get(url, proxies=proxies)
     if resp.status_code == 200 and resp.json()['success']:
         videos = resp.json()['response']['videos']
