@@ -183,9 +183,14 @@ def get_record_by_star_name(star_name: str) -> list:
             if star['name'] == star_name:
                 res.append(av)
                 if link == '': link = star['link']
-    msg = f'<a href="{link}">{star_name}</a>'
+    if link == '':
+        send_msg('没有该女优的记录=_=')
+        return
+    wiki = f'https://ja.wikipedia.org/wiki/{star_name}'
+    msg = f'<code>{star_name}</code> | <a href="{wiki}">Wiki</a> | <a href="{link}">更多AV</a>'
     # 生成回调按钮
     markup = InlineKeyboardMarkup()
+    markup.add(InlineKeyboardButton(text='随机获取一部AV', callback_data=f'{link}:4'))
     for av in res:
         id = av["id"]
         btn = InlineKeyboardButton(text=f'{id}', callback_data=f'{id}:3')
@@ -234,7 +239,7 @@ def get_av_by_id(id: str):
     # 本地查询记录不存在该番号
     if not av:
         record_exists = False
-        av = util_javbus.get_av(id)
+        av = util_javbus.get_av_by_id(id)
     # 未查找到该番号
     if not av:
         send_msg(f'妹查找到该番号：{id} Q_Q')
@@ -409,6 +414,10 @@ def listen_callback(call):
         get_sample_by_id(content)
     elif type == '3':  # 类型3：发送番号对应av
         get_av_by_id(content)
+    elif type == '4': # 类型4: 根据演员在Javbus的地址链接随机获取av
+        # ids = util_javbus.get_ids_by_star_link(content)
+        # 随机选择番号并获取
+        return
 
 
 @bot.message_handler(content_types=['text', 'photo', 'animation', 'video'])

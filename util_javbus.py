@@ -10,7 +10,16 @@ if cfg.USE_PROXY == 1:
     proxies = {'http': cfg.PROXY_ADDR, 'https': cfg.PROXY_ADDR}
 
 
-def get_av(id: str) -> dict:
+def get_ids_by_star_link(star_link: str) -> list:
+    '''根据演员在Javbus的地址链接获取番号
+
+    :param str star_link: 演员在Javbus的地址链接
+    :return list: 番号列表
+    '''
+    return
+
+
+def get_av_by_id(id: str) -> dict:
     '''通过javbus获取番号对应av
 
     :param str id: 番号
