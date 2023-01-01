@@ -314,9 +314,9 @@ def send_to_pikpak(magnet):
     '''
     name = cfg.PIKPAK_BOT_NAME
     if util_pikpak.send_msg(magnet['link']):  # 成功发送
-        send_msg(f'已经将筛选出的最佳磁链 <b>A</b> 发送到 <a href="https://t.me/{name}">@{name}</a> ^-^')
+        send_msg(f'已经将筛选出的最佳磁链 <b>A</b> 发送到 <a href="https://t.me/{name}">@{name}</a> ^-^', pv=True)
     else:  # 发送失败
-        send_msg('未能将筛选出的最佳磁链<b>A</b>发送到 <a href="https://t.me/{name}">@{name}</a> 请自行发送或重试 =_=')
+        send_msg('未能将筛选出的最佳磁链<b>A</b>发送到 <a href="https://t.me/{name}">@{name}</a> 请自行发送或重试 =_=', pv=True)
 
 
 def get_av(text: str):
