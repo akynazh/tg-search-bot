@@ -274,18 +274,18 @@ def get_av_by_id(id: str):
         wiki = f'https://ja.wikipedia.org/wiki/{name}'
         msg += f'''【演员】<code>{name}</code> | <a href="{wiki}">Wiki</a> | <a href="{link}">其它AV</a>
 '''
-    # 加上磁链消息
-    send_to_pikpak_magnet = ''
-    for i, magnet in enumerate(magnets):
-        if i == 0: send_to_pikpak_magnet = magnet
-        msg += f'''【{string.ascii_letters[i].upper()}. {magnet["size"]}】<code>{magnet["link"]}</code>
-'''
-    # 加上其它信息
+    # 加上其它消息
     if record_exists:
         msg += f'''【其它】从本地记录中获取到该内容
 '''
     else:
         msg += f'''【其它】从网络中查询到该内容
+'''
+    # 加上磁链消息
+    send_to_pikpak_magnet = ''
+    for i, magnet in enumerate(magnets):
+        if i == 0: send_to_pikpak_magnet = magnet
+        msg += f'''【{string.ascii_letters[i].upper()}. {magnet["size"]}】<code>{magnet["link"]}</code>
 '''
     # 生成回调按钮
     pv_btn = InlineKeyboardButton(text='观看预览视频', callback_data=f'{id}:0')
