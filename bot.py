@@ -49,10 +49,12 @@ def get_nice_magnets(magnets: list, prop: str, expect_val) -> list:
     return magnets_nice
 
 
-def get_all_record():
-    '''发送所有查询记录'''
+def check_has_record() -> list:
+    '''检查是否有记录，如果有，返回记录
+
+    :return list: 记录
+    '''
     avs = []
-    
     # 加载记录
     if os.path.exists(PATH_RECORD_FILE):
         with open(PATH_RECORD_FILE, 'r') as f:
@@ -62,25 +64,38 @@ def get_all_record():
     # 尚无记录
     if avs == [] or len(avs) == 0:
         bot.send_message(chat_id=TG_CHAT_ID, text='尚无记录 =_=')
-        return
+        return None
+    return avs
+
+
+def get_record(num:int=-1):
+    '''发送所有查询记录
+    
+    @param int num: 查询条数
+    '''
+    # 检查并获取记录
+    avs = check_has_record()
+    if not avs: return
     
     # 提取记录
     msg = ''
-    i = 1
-    for av in avs:
+    if num == -1: num = len(avs)
+    i, c = len(avs) - 1, 1
+    while i != -1:
+        av = avs[i]
         stars = av['stars']
         stars_msg = ''
         if stars == []:
             stars_msg = '未知'
-        for star in stars:
-            name = star['name']
-            link = star['link']
-            stars_msg += f'<a href="{link}">{name}</a> '
-        msg += f'''<a href="{BASE_URL_JAVBUS}/{av["id"]}">{av["id"]}</a>  {stars_msg.strip()}
+        else:
+            stars_msg = f'<a href="{stars[0]["link"]}">{stars[0]["name"]}</a>'
+            if len(stars) > 1:
+                stars_msg += '...'
+        msg += f'''<a href="{BASE_URL_JAVBUS}/{av["id"]}">{av["id"]}</a>  {stars_msg}
 '''
-        i += 1
+        c += 1
         # 满30条记录，发送记录
-        if i == 30:
+        if c == 30:
             bot.send_message(
                 chat_id=TG_CHAT_ID,
                 text=msg,
@@ -88,7 +103,10 @@ def get_all_record():
                 parse_mode='HTML',
             )
             msg = ''
-    
+        i -= 1
+        num -= 1
+        if num == 0: break
+
     # 发送记录
     if msg != '':
         bot.send_message(
@@ -98,6 +116,33 @@ def get_all_record():
             parse_mode='HTML',
         )
 
+        
+def get_record_stars():
+    # 检查并获取记录
+    avs = check_has_record()
+    if not avs: return
+    
+    # 提取记录
+    msg = ''
+    links = {}
+    for av in avs:
+        stars = av['stars']
+        for star in stars:
+            link = star['link']
+            name = star['name']
+            if link in links.keys() : continue
+            links[link] = 1
+            msg += f'''
+<code>{name}</code><a href="{link}"> visit javbus </a>'''
+            
+    # 发送记录
+    bot.send_message(
+        chat_id=TG_CHAT_ID,
+        text=msg,
+        disable_web_page_preview=True,
+        parse_mode='HTML',
+    )
+            
 
 def get_record_json():
     '''发送查询记录文件'''
@@ -129,17 +174,32 @@ def get_record_by_star_name(star_name:str) -> list:
     :param str star_name 演员名称
     :return list: 搜过的该演员的av列表
     '''
+    avs = check_has_record()
+    if not avs: return
     res = []
-    if os.path.exists(PATH_RECORD_FILE):
-        with open(PATH_RECORD_FILE, 'r') as f:
-            record = json.load(f)
-        avs = record['avs']
-        for av in avs:
-            stars = av['stars']
-            for star in stars:
-                if star['name'] == star_name:
-                    res.append(av)
-    return res
+    link = ''
+    for av in avs:
+        stars = av['stars']
+        for star in stars:
+            if star['name'] == star_name:
+                res.append(av)
+                if link == '': link = star['link']
+    msg = f'<a href="{link}">{star_name}</a>'
+    
+    # 生成回调按钮
+    markup = InlineKeyboardMarkup()
+    for av in res:
+        id = av["id"]
+        btn = InlineKeyboardButton(text=f'{id}', callback_data=f'{id}:3')
+        markup.add(btn)
+        
+    bot.send_message(
+        chat_id=TG_CHAT_ID,
+        text=msg,
+        disable_web_page_preview=True,
+        parse_mode='HTML',
+        reply_markup=markup
+    )
 
 
 def record(new_av:dict):
@@ -180,10 +240,15 @@ def get_av_by_id(id: str):
 
     :param str id: 番号
     '''
-    av = util_javbus.get_av(id)
-    if not av:
+    av = get_record_by_id(id)
+    record_exists = True
+    if not av: # 本地查询记录不存在该番号
+        record_exists = False
+        av = util_javbus.get_av(id)
+    if not av: # 未查找到该番号
         bot.send_message(chat_id=TG_CHAT_ID, text=f'妹查找到该番号：{id} Q_Q')
         return
+    
     title = av['title']
     img = av['img']
     date = av['date']
@@ -193,10 +258,11 @@ def get_av_by_id(id: str):
     samples = av['samples']
 
     # 过滤磁链
-    magnets = get_nice_magnets(magnets, 'hd', expect_val='1')
-    magnets = get_nice_magnets(magnets, 'zm', expect_val='1')
-    if len(magnets) > MAGNET_MAX_COUNT:
-        magnets = magnets[0:MAGNET_MAX_COUNT]
+    if not record_exists: # 如果是最新查询的，需要进行过滤
+        magnets = get_nice_magnets(magnets, 'hd', expect_val='1')
+        magnets = get_nice_magnets(magnets, 'zm', expect_val='1')
+        if len(magnets) > MAGNET_MAX_COUNT:
+            magnets = magnets[0:MAGNET_MAX_COUNT]
 
     # 拼接消息
     av_url = f'{BASE_URL_JAVBUS}/{id}'
@@ -242,12 +308,13 @@ def get_av_by_id(id: str):
                    reply_markup=markup)
 
     # 发给pikpak
-    if cfg.USE_PIKPAK == 1 and send_to_pikpak_magnet != '':
+    if cfg.USE_PIKPAK == 1 and send_to_pikpak_magnet != '' and not record_exists:
         send_to_pikpak(send_to_pikpak_magnet)
 
     # 记录本次查询
-    av['magnets'] = magnets
-    record(av)
+    if not record_exists:
+        av['magnets'] = magnets
+        record(av)
 
 
 def send_to_pikpak(magnet):
@@ -340,6 +407,18 @@ def intercept_msg(message) -> bool:
     return True
 
 
+def get_msg_param(msg):
+    '''获取消息参数
+
+    :param _type_ msg: 消息文本，已经通过strip()函数将两旁空白清除
+    :return _type_: 消息参数（保证只有一个）
+    '''
+    msgs = msg.split(' ', 1) # 划分为两部分
+    if len(msgs) > 1: # 有参数
+        param = ''.join(msgs[1].split()) # 去除参数所有空白
+        if param != '': return param
+
+
 @bot.message_handler(content_types=['text'])
 def handle_text(message):
     '''处理文本消息
@@ -349,10 +428,20 @@ def handle_text(message):
     if not intercept_msg(message):
         return
     my_msg = message.text.strip()
-    if my_msg == '/record':
-        get_all_record()
-    elif my_msg == '/record_json':
+    if my_msg == '/record_json':
         get_record_json()
+    elif my_msg == '/record10':
+        get_record(10)
+    elif my_msg == '/record':
+        get_record()
+    elif my_msg.find('/record') != -1:
+        param = get_msg_param(my_msg)
+        if param and param.isdigit(): get_record(int(param))
+        else: get_record()
+    elif my_msg.find('/star') != -1:
+        param = get_msg_param(my_msg)
+        if param: get_record_by_star_name(param)
+        else: get_record_stars()
     else:
         get_av(my_msg)
 
@@ -372,6 +461,8 @@ def callback_listener(call):
         watch_av(content, 1)
     elif type == '2': # 类型2：发送番号对应视频截图
         get_sample_by_id(content)
+    elif type == '3': # 类型3：发送番号对应av
+        get_av_by_id(content)
 
 
 @bot.message_handler(content_types=['photo'])
@@ -401,8 +492,10 @@ def handle_video(message):
 def set_command():
     '''设置机器人命令'''
     tg_cmd_dict = {
-        'record': '获取查询记录（默认根据查询时间排序）',
-        'record_json': '发送查询记录文件',
+        'record': '获取所有查询记录（根据查询时间排序，后接数字可指定条数）',
+        'record10': '获取最近10查询记录',
+        'record_json': '获取记录文件',
+        'star': '获取所有搜过的演员（后接名称获取该演员对应的记录）',
     }
     cmds = []
     for cmd in tg_cmd_dict:
