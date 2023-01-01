@@ -1,43 +1,26 @@
-**2022-12-31更新：添加在线视频功能。**
+# tg-jav-bot
 
-**2022-12-30更新：自主定制爬虫，无需再依赖[javbus-api](https://github.com/ovnrain/javbus-api)。**
+**基于Javbus和Avgle并集成Pikpak的一个番号查询机器人。**
 
-**2022-12-29更新：集成了PikPak并添加了代理功能。**
+## 功能简介
 
-**2022-12-18更新：添加了分类查询功能。**
+- 发送给机器人一个番号，返回**封面，演员，磁链**
+- 可以记录查找成功的番号消息
+- 可以过滤磁链（过滤顺序：**高清，有字幕**）
+- 可以让机器人自动将最优磁链发送到**pikpak**
+- 支持**代理**功能
+- 支持**在线视频**功能
 
-**2022-12-05更新：添加了正则匹配番号功能。**
-
-**2022-11-28更新：添加了记录查询历史功能，可通过/record查询历史记录。**
-
----
-
-~~A bot based on [ovnrain/javbus-api](https://github.com/ovnrain/javbus-api)~~
-
-**基于Javbus和Avgle并集成Pikpak的一个番号查询机器人**
-
-发送给机器人一个番号，返回**封面，演员，磁链**，并记录该条查询。
-
-磁链将是被过滤的，过滤顺序：**高清，有字幕**。
-
-过滤后磁链数目将被限制在3条以内，且附有文件大小描述，以方便选择。
-
-通过配置可以让机器人自动将最优磁链发送到**pikpak**。
-
-支持**代理**功能。
-
-支持**在线视频**功能。
-
-**安装过程如下：**
+## 使用教程
 
 前提：已经安装Python3（>=3.7）。
 
 ```
-git clone https://github.com/akynazh/tg-javbus-bot.git
+git clone https://github.com/akynazh/tg-jav-bot.git
 pip install -r requirements.txt
 ```
 
-将 `cfg.pub.py` 重命名为 `cfg.py` 并开始编辑:
+将 `cfg.pub.py` 重命名为 `cfg.py` 并根据提示编辑:
 
 ```
 TG_CHAT_ID = '' # your telegram chat id
@@ -61,5 +44,16 @@ TG_API_HASH = '' # telegram api hash
 运行你的机器人：
 
 ```
+cd tg-jav-bot
 nohup python3 bot.py >/dev/null 2>&1 &
 ```
+
+## 更新记录
+
+- 2022-12-31更新：添加了在线视频功能。
+
+- 2022-12-30更新：自主定制爬虫，无需再依赖[javbus-api](https://github.com/ovnrain/javbus-api)。
+
+- 2022-12-29更新：集成了PikPak并添加了代理功能。
+
+- 2022-11-28更新：添加了记录查询历史功能。
