@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
-import cfg
 import requests
+import cfg
 
 BASE_URL = 'https://api.avgle.com'
 proxies = {}
@@ -8,8 +8,8 @@ if cfg.USE_PROXY == 1:
     proxies = {'http': cfg.PROXY_ADDR, 'https': cfg.PROXY_ADDR}
 
 
-def get_video(id: str) -> dict:
-    '''avgle.com获取预览视频
+def get_video_by_id(id: str) -> dict:
+    '''从avgle获取预览视频
 
     :param str id: 番号
     :return dict: 完整视频链接和预览视频链接
@@ -36,26 +36,6 @@ def get_video(id: str) -> dict:
             return res
 
 
-def get_pv(id: str) -> str:
-    '''获取预览视频
-
-    :param str id: 番号
-    :return str: 链接地址
-    '''
-    video = get_video(id)
-    if video and video['pv'] != '': return video['pv']
-
-
-def get_fv(id: str) -> str:
-    '''获取完整视频
-
-    :param str id: 番号
-    :return str: 链接地址
-    '''
-    video = get_video(id)
-    if video and video['fv'] != '': return video['fv']
-
-
 if __name__ == '__main__':
-    v = get_video('ipx-369')
-    if v: print(v)
+    res = get_video_by_id('ssni-497')
+    if res: print(res)

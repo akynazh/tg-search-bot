@@ -2,38 +2,144 @@
 import requests
 import re
 import cfg
+import random
 from bs4 import BeautifulSoup
 
-BASE_URL = 'http://www.javbus.com'
+BASE_URL = 'https://www.javbus.com'
+HOST = BASE_URL.split('://')[1]
 proxies = {}
 if cfg.USE_PROXY == 1:
     proxies = {'http': cfg.PROXY_ADDR, 'https': cfg.PROXY_ADDR}
 
 
-def get_ids_by_star_link(star_link: str) -> list:
-    '''根据演员在Javbus的地址链接获取番号
+def get_headers(url: str) -> dict:
+    '''获取请求头
 
-    :param str star_link: 演员在Javbus的地址链接
-    :return list: 番号列表
+    :param str url: 'Referer'字段值，访问源至哪里来
+    :return dict: 请求头
     '''
-    return
+    return {
+        'User-Agent':
+        'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2272.101 Safari/537.36',
+        'Host': HOST,
+        'Connection': 'close',
+        'X-Requested-With': 'XMLHttpRequest',
+        'Referer': url.encode('utf-8'),
+    }
+
+    
+def get_id_from_page(url:str) -> str:
+    '''从av列表页面获取一个番号
+
+    :param str url: 页面地址
+    :return str: 番号
+    '''
+    headers = get_headers(url)
+    resp = requests.get(url=url, proxies=proxies, headers=headers)
+    if resp.status_code != 200:
+        return None
+    ids = []
+    soup = BeautifulSoup(resp.text, 'lxml')
+    tags = soup.find_all(class_='movie-box')
+    for tag in tags:
+        id_link = tag['href']
+        id = id_link[id_link.rfind('/') + 1:]
+        ids.append(id)
+    if ids != []:
+        return random.choice(ids)
+    
+
+def get_id_from_home(page=1) -> str:
+    '''从javbus主页获取一个番号
+
+    :param int page: 第几页，用于指定爬取哪一页的数据，默认第一页
+    :return str: 番号
+    '''
+    return get_id_from_page(f'{BASE_URL}/page/{page}')
 
 
-def get_av_by_id(id: str) -> dict:
+def get_id_by_star_name(star_name: str, page=1) -> str:
+    '''根据演员名称获取一个番号
+
+    :param str star_name: 演员名称
+    :param int page: 第几页，用于指定爬取哪一页的数据，默认第一页
+    :return str: 番号
+    '''
+    return get_id_from_page(f'{BASE_URL}/search/{star_name}/{page}')
+
+
+def get_id_by_star_id(star_id: str, page=1) -> str:
+    '''根据演员编号获取一个番号
+
+    :param str star_id: 演员编号
+    :param int page: 第几页，用于指定爬取哪一页的数据，默认第一页
+    :return str: 番号
+    '''
+    return get_id_from_page(f'{BASE_URL}/star/{star_id}/{page}')
+
+
+def get_samples_by_id(id: str) -> list:
+    '''根据番号获取截图
+
+    :param str id: 番号
+    :return list: 截图列表
+    '''
+    samples = []
+    url = f'{BASE_URL}/{id}'
+    headers = get_headers(url)
+    resp = requests.get(url, proxies=proxies, headers=headers)
+    if resp.status_code != 200:
+        return None
+    # 获取soup
+    soup = BeautifulSoup(resp.text, 'lxml')
+    # 获取截图
+    sample_tags = soup.find_all(class_='sample-box')
+    for tag in sample_tags:
+        samples.append(tag['href'])
+    if samples == []: return None
+    return samples
+
+
+def get_nice_magnets(magnets: list, prop: str, expect_val) -> list:
+    '''过滤磁链列表
+
+    :param list magnets: 要过滤的磁链列表
+    :param str prop: 过滤属性
+    :param _type_ expect_val: 过滤属性的期望值
+    :return list: 过滤后的磁链列表
+    '''
+    # 已经无法再过滤
+    if len(magnets) == 0:
+        return []
+    if len(magnets) == 1:
+        return magnets
+    # 开始过滤
+    magnets_nice = []
+    for magnet in magnets:
+        if magnet[prop] == expect_val:
+            magnets_nice.append(magnet)
+    # 如果过滤后已经没了，返回原来磁链列表
+    if len(magnets_nice) == 0:
+        return magnets
+    return magnets_nice
+
+
+def get_av_by_id(id: str, is_nice: bool, magnet_max_count=100) -> dict:
     '''通过javbus获取番号对应av
 
     :param str id: 番号
+    :param bool is_nice: 是否过滤磁链
+    :param int magnet_max_count: 过滤后磁链的最大数目
     :return dict: av
     av格式:
     {
-        'id': id,      # 番号
+        'id': '',      # 番号
         'title': '',   # 标题
         'img': '',     # 封面地址
         'date': '',    # 发行日期
         'tags': '',    # 标签
         'stars': [],   # 演员
         'magnets': [], # 磁链
-        'samples': [], # 截图
     }
     磁链格式:
     {
@@ -44,7 +150,7 @@ def get_av_by_id(id: str) -> dict:
     演员格式:
     {
         'name': '', # 演员名称
-        'link': ''  # 演员链接
+        'link': ''    # 演员链接
     }
     '''
     # 初始化数据
@@ -56,19 +162,10 @@ def get_av_by_id(id: str) -> dict:
         'tags': '',
         'stars': [],
         'magnets': [],
-        'samples': [],
-    }
-    headers = {
-        'User-Agent':
-        'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2272.101 Safari/537.36',
-        'Host': 'www.javbus.com',
-        'Connection': 'close',
-        'X-Requested-With': 'XMLHttpRequest',
-        'Referer': '',
     }
     # 查找av
     url = f'{BASE_URL}/{id}'
-    headers['Referer'] = url
+    headers = get_headers(url)
     resp = requests.get(url, proxies=proxies, headers=headers)
     if resp.status_code != 200:
         return None
@@ -78,7 +175,7 @@ def get_av_by_id(id: str) -> dict:
     # 获取封面和标题
     big_image = soup.find(class_='bigImage')
     img = big_image['href']
-    av['img'] = f'{BASE_URL}/{img}'
+    av['img'] = BASE_URL + img
     av['title'] = big_image.img['title']
     # 提取更多信息
     paras = soup.find(class_='col-md-3 info').find_all('p')
@@ -109,14 +206,10 @@ def get_av_by_id(id: str) -> dict:
     gid_pattern = re.compile(r'var gid = .*?;')
     match = gid_pattern.findall(html)
     gid = match[0].replace('var gid = ', '').replace(';', '')
-    # 获取截图
-    sample_tags = soup.find_all(class_='sample-box')
-    for tag in sample_tags:
-        av['samples'].append(tag['href'])
     # 得到磁链的ajax请求地址
     url = f'{BASE_URL}/ajax/uncledatoolsbyajax.php?gid={gid}&lang=zh&img={img}&uc={uc}'
     # 发送请求获取含磁链页
-    headers['Referer'] = url
+    headers = get_headers(url)
     resp = requests.get(url, proxies=proxies, headers=headers)
     if resp.status_code != 200:
         return None
@@ -142,9 +235,21 @@ def get_av_by_id(id: str) -> dict:
                 magnet['size'] = td.a.text.strip()
         if magnet['link'] != '':
             av['magnets'].append(magnet)
+    if is_nice:
+        magnets = av['magnets']
+        magnets = get_nice_magnets(magnets, 'hd', expect_val='1')  # 过滤高清
+        magnets = get_nice_magnets(magnets, 'zm', expect_val='1')  # 过滤有字幕
+        if len(magnets) > magnet_max_count:
+            magnets = magnets[0:magnet_max_count]
+        av['magnets'] = magnets
     return av
 
 
 if __name__ == '__main__':
-    av = get_av('JFB-303')
-    print(av)
+    res = None
+    # res = get_av_by_id(id='YMDD-301', is_nice=True, magnet_max_count=3)
+    # res = get_av_by_id(id='YMDD-301', is_nice=False)
+    # res = get_samples_by_id('ssni-497')
+    # res = get_id_by_star_id('okq', 2)
+    res = get_id_by_star_name('白夜みくる')
+    if res: print(res)
