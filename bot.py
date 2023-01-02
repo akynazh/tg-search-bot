@@ -84,7 +84,7 @@ def record(name: str, id: str):
     '''
     # 加载记录
     stars = check_has_record()
-    if not stars: return
+    if not stars: stars = []
     # 更新记录
     exists = False
     for star in stars:
@@ -345,8 +345,9 @@ def help():
     '''发送指令帮助消息'''
     msg = '''/help  查看指令帮助
 
-/star  获取所有搜过的演员（后接名称获取该演员对应的记录）
-    
+/star  获取所有搜过的演员
+
+/random  随机获取一部AV
 '''
     send_msg(msg)
 
