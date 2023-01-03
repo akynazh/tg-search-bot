@@ -500,7 +500,7 @@ def handle_message(message):
     elif msg == '/random':
         id = util_javbus.get_id_from_home()
         if not id: send_msg('获取失败，请重试 =_=')
-        else: get_av_by_id(id)
+        else: get_av_by_id(id=id, send_to_pikpak=False)
     elif msg == '/stars':
         get_stars_record()
     elif msg == '/avs':
@@ -510,7 +510,7 @@ def handle_message(message):
         if param:
             id = util_javbus.get_id_by_star_name(star_name=param)
             if not id: send_msg('获取失败，请重试 =_=')
-            else: get_av_by_id(id, send_to_pikpak=False)
+            else: get_av_by_id(id=id, send_to_pikpak=False)
     else:
         ids = re.compile(r'[a-zA-Z]+-\d+').findall(msg)
         if not ids: send_msg('你滴消息不存在番号捏 =_=')
