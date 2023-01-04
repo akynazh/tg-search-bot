@@ -4,9 +4,14 @@
 
 ## 功能简介
 
-- 发送给机器人一条含有番号的消息【会正则匹配所有番号，番号格式为“字母-数字”】，返回番号对应AV的**封面，标题，日期，演员，磁链等**
-- 支持过滤磁链（过滤顺序：**高清，有字幕**）
-- 支持让机器人自动将最优磁链发送到**pikpak**（随机获取时不会自动发送）
+**主要功能：**
+
+发送给机器人一条含有番号的消息，机器人会正则匹配所有符合规则的番号，然后进行搜索。如果番号存在并搜索到结果，则将返回番号对应AV的**封面，标题，日期，演员，磁链等**。
+
+**附加功能：**
+
+- 支持**过滤**磁链（过滤顺序：**高清，有字幕**）
+- 支持让机器人自动将**最优磁链**发送到**pikpak**（随机获取时不会自动发送）
 - 支持获取**在线视频**功能
 - 支持获取**截图**功能
 - 支持**代理**功能
@@ -17,6 +22,8 @@
 
 ## 使用教程
 
+### 安装依赖
+
 前提：已经安装Python3（>=3.7）。
 
 ```
@@ -25,6 +32,8 @@ pip install -r requirements.txt
 cd tg-jav-bot
 ```
 
+### 填写配置
+
 将 `cfg.pub.py` 重命名为 `cfg.py` 并根据提示编辑:
 
 ```
@@ -32,15 +41,15 @@ cd tg-jav-bot
 TG_CHAT_ID = '' # your telegram chat id
 TG_BOT_TOKEN = '' # your telegram bot token
 
-# 可选字段：代理配置
-USE_PROXY = 1 # 是否使用代理 1 是 | 0 否
+# 可选字段：关于代理的配置
+USE_PROXY = 0 # 是否使用代理 1 是 | 0 否
 # 如果不使用代理，以下四个字段不用管
 PROXY_SCHEME = '' # 代理类型 http | socks5 | socks4
 PROXY_ADDR_HOST = '' # IP地址
 PROXY_ADDR_PORT = '' # 端口地址
 PROXY_ADDR = f'{PROXY_SCHEME}://{PROXY_ADDR_HOST}:{PROXY_ADDR_PORT}' # 不用编辑该字段
 
-# 可选字段：Pikpak配置
+# 可选字段：关于自动发送磁链到Pikpak的配置
 USE_PIKPAK = 0 # 是否使用Pikpak 1 是 | 0 否
 # 如果不使用pikpak，以下三个字段不用管
 PIKPAK_BOT_NAME = 'PikPak6_Bot' # 默认使用官方机器人：https://t.me/PikPak6_Bot
@@ -49,8 +58,25 @@ TG_API_ID = '' # telegram api id
 TG_API_HASH = '' # telegram api hash
 ```
 
-运行你的机器人：
+### 运行机器人
 
 ```
 nohup python3 bot.py >/dev/null 2>&1 &
 ```
+
+### 番号规则
+
+- 091318_01 (1pondo/10mume)
+- 080916-226 (Caribbean) 加勒比
+- n1282  (东京热)
+- heyzo-1809 (HEYZO)
+- ID-034 (TMA)，正确格式是 xxID-034，但是javbus上是ID-034
+- ibw-631z（部分IBW末尾有个z）
+- gachi-1115 (gachi系列)
+- fc2-ppv-880652 (fc2)
+- 880652 (fc2)
+
+## TODO
+
+- 支持fc2番号
+- 更好的在线视频API

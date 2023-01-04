@@ -297,8 +297,19 @@ def get_av_by_id(id: str, is_nice: bool, magnet_max_count=100) -> dict:
 
 if __name__ == '__main__':
     res = None
-    res = get_av_by_id(id='GTJ-111', is_nice=True, magnet_max_count=3)
+    # javbus id test
+    # res = get_av_by_id(id='GTJ-111', is_nice=True, magnet_max_count=3)
     # res = get_av_by_id(id='YMDD-301', is_nice=False)
+    # res = get_av_by_id(id='091318_01', is_nice=True, magnet_max_count=3)
+    # res = get_av_by_id(id='080916-226', is_nice=True, magnet_max_count=3)
+    # res = get_av_by_id(id='n1282', is_nice=True, magnet_max_count=3)
+    # res = get_av_by_id(id='ibw-631z', is_nice=True, magnet_max_count=3)
+    
+    # fc2 id test
+    # res = get_av_by_id(id='fc2-ppv-880652', is_nice=True, magnet_max_count=3)
+    # res = get_av_by_id(id='880652', is_nice=True, magnet_max_count=3)
+    
+    # other test
     # res = get_samples_by_id('ssni-497')
     # res = get_id_by_star_id('okq', 2)
     # res = get_id_by_star_name('白夜みくる')

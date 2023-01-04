@@ -177,6 +177,67 @@ def record_id(id: str, stars: list):
         send_msg(f'已经收藏过<code>{id}</code>了 =_=')
 
 
+def create_btn(btn_type: int, obj: dict):
+    '''根据按钮种类创建按钮
+
+    :param int type: 按钮种类 0 演员 | 1 番号
+    :param dict obj: 数据对象
+    :return _type_: 按钮
+    '''
+    if btn_type == 0:  # star
+        return InlineKeyboardButton(
+            text=obj['name'],
+            callback_data=f'{obj["id"]}:{KEY_GET_STAR_AVS_RECORD}')
+    elif btn_type == 1:  # av
+        return InlineKeyboardButton(text=obj,
+                                    callback_data=f'{obj}:{KEY_GET_AV_BY_ID}')
+
+
+def send_msg_btns(max_btn_per_row: int,
+                  max_row_per_msg: int,
+                  btn_type: int,
+                  title: str,
+                  objs: list,
+                  extra_btn=None):
+    '''发送按钮消息
+
+    :param int max_btn_per_row: 每行最大按钮数量
+    :param int max_row_per_msg: 每条消息最多行数
+    :param int btn_type: 按钮种类 0 演员 | 1 番号
+    :param str title: 消息标题
+    :param dict objs: 数据对象数组
+    :param _type_ extra_btn: 附加按钮，加在每条消息尾部
+    '''
+    # 初始化数据
+    markup = InlineKeyboardMarkup()
+    row_count = 0
+    btns = []
+    # 开始生成按钮和发送消息
+    for obj in objs:
+        btns.append(create_btn(btn_type, obj))
+        # 若一行按钮的数量达到max_btn_per_row，则加入行
+        if len(btns) == max_btn_per_row:
+            markup.row(*btns)
+            row_count += 1
+            btns = []
+        # 若消息中行数达到max_row_per_msg，则发送消息
+        if row_count == max_row_per_msg:
+            if extra_btn:
+                markup.row(extra_btn)
+            send_msg(msg=title, markup=markup)
+            row_count = 0
+            markup = InlineKeyboardMarkup()
+    # 若当前行按钮数量不为0，则加入行
+    if btns != []:
+        markup.row(*btns)
+        row_count += 1
+    # 若当前行数不为0，则发送消息
+    if row_count != 0:
+        if extra_btn:
+            markup.row(extra_btn)
+        send_msg(msg=title, markup=markup)
+
+
 def get_stars_record():
     # 初始化数据
     record, is_star_exists, _ = check_has_record()
@@ -184,19 +245,12 @@ def get_stars_record():
         send_msg('尚无收藏记录 =_=')
         return
     stars = record['stars']
-    # 生成按钮
-    markup = InlineKeyboardMarkup()
-    star_btns = []
-    for star in stars:
-        star_btns.append(
-            InlineKeyboardButton(
-                text=star['name'],
-                callback_data=f'{star["id"]}:{KEY_GET_STAR_AVS_RECORD}'))
-        if len(star_btns) == 3:
-            markup.row(*star_btns)
-            star_btns = []
-    if star_btns != []: markup.row(*star_btns)
-    send_msg(msg='收藏的演员如下，点击演员对应按钮可查看更多信息 ^-^', markup=markup)
+    # 发送按钮消息
+    send_msg_btns(max_btn_per_row=3,
+                  max_row_per_msg=6,
+                  btn_type=0,
+                  title='<b>收藏的演员</b>',
+                  objs=stars)
 
 
 def get_star_avs_record(star_id: str):
@@ -215,45 +269,38 @@ def get_star_avs_record(star_id: str):
         # 如果演员编号在该AV的演员编号列表中
         if star_id in av['stars']:
             star_avs.append(av['id'])
-    # 生成按钮
-    markup = InlineKeyboardMarkup()
-    av_btns = []
-    for av in star_avs:
-        av_btns.append(
-            InlineKeyboardButton(text=av,
-                                 callback_data=f'{av}:{KEY_GET_AV_BY_ID}'))
-        if len(av_btns) == 5:
-            markup.row(*av_btns)
-            av_btns = []
-    if av_btns != []: markup.row(*av_btns)
-    markup.row(
-        InlineKeyboardButton(
-            text=f'随机获取一部该演员的AV',
-            callback_data=f'{star_id}:{kEY_RANDOM_GET_AV_BY_STAR_ID}'))
-    send_msg(msg=f'收藏的该演员的番号如下，点击番号对应按钮以获取番号对应AV ^-^', markup=markup)
+    # 发送按钮消息
+    extra_btn = InlineKeyboardButton(
+        text=f'随机获取一部该演员的AV',
+        callback_data=f'{star_id}:{kEY_RANDOM_GET_AV_BY_STAR_ID}')
+    if len(star_avs) == 0:  # 没有收藏记录
+        send_msg(msg='尚未收藏任何该演员的番号',
+                 markup=InlineKeyboardMarkup().row(extra_btn))
+        return
+    send_msg_btns(max_btn_per_row=5,
+                  max_row_per_msg=6,
+                  btn_type=1,
+                  title='<b>收藏的该演员的番号</b>',
+                  objs=star_avs,
+                  extra_btn=extra_btn)
 
 
 def get_avs_record():
+    # 初始化数据
     record, _, is_avs_exists = check_has_record()
     if not record or not is_avs_exists:
         send_msg('尚无收藏记录 =_=')
         return
-    avs = record['avs']
-    # 生成按钮
-    markup = InlineKeyboardMarkup()
-    av_btns = []
-    for av in avs:
-        av_btns.append(
-            InlineKeyboardButton(
-                text=av['id'], callback_data=f'{av["id"]}:{KEY_GET_AV_BY_ID}'))
-        if len(av_btns) == 5:
-            markup.row(*av_btns)
-            av_btns = []
-    if av_btns != []: markup.row(*av_btns)
-    markup.row(
-        InlineKeyboardButton(text='随机获取一部AV',
-                             callback_data=f'0:{KEY_RANDOM_GET_AV}'))
-    send_msg(msg='收藏的番号如下，点击番号对应按钮以获取番号对应AV ^-^', markup=markup)
+    avs = [av['id'] for av in record['avs']]
+    # 发送按钮消息
+    extra_btn = InlineKeyboardButton(text='随机获取一部AV',
+                                     callback_data=f'0:{KEY_RANDOM_GET_AV}')
+    send_msg_btns(max_btn_per_row=5,
+                  max_row_per_msg=6,
+                  btn_type=1,
+                  title='<b>收藏的番号</b>',
+                  objs=avs,
+                  extra_btn=extra_btn)
 
 
 def get_av_by_id(id: str,
@@ -276,7 +323,7 @@ def get_av_by_id(id: str,
         return
     # 未查找到该番号对应的AV
     if not av:
-        send_msg(f'妹找到该番号对应的AV Q_Q')
+        send_msg(f'妹找到番号<code>{id}</code>对应的AV Q_Q')
         return
     # 提取数据
     title = av['title']
@@ -372,14 +419,17 @@ def send_magnet_to_pikpak(magnet: str):
     try:
         if util_pikpak.send_msg(magnet):  # 成功发送
             send_msg(
-                f'已经将磁链 <b>A</b> 发送到 <a href="https://t.me/{name}">@{name}</a>')
+                f'已经将磁链 <b>A</b> 发送到 <a href="https://t.me/{name}">@{name}</a>'
+            )
         else:  # 发送失败
             send_msg(
-                f'未能将磁链 <b>A</b> 发送到 <a href="https://t.me/{name}">@{name}</a>')
+                f'未能将磁链 <b>A</b> 发送到 <a href="https://t.me/{name}">@{name}</a>'
+            )
     except Exception as e:
         LOG.info(e)
         send_msg(f'网络请求失败，请重试 Q_Q')
         return
+
 
 def get_sample_by_id(id: str):
     '''根据番号获取av截图
@@ -562,9 +612,14 @@ def handle_message(message):
             if not id: send_msg(f'妹找到{param}，请重试或用其它方式搜索 =_=')
             else: get_av_by_id(id=id, send_to_pikpak=False)
     else:
-        ids = re.compile(r'[a-zA-Z]+-\d+').findall(msg)
-        if not ids: send_msg('你滴消息不存在番号捏 =_=')
+        ids = []
+        ids = ids + re.compile(r'[a-zA-Z]+-\d+').findall(msg)  # base
+        ids = ids + re.compile(r'n\d+').findall(msg)  # tokyo hot
+        if not ids: send_msg('消息似乎不存在符合规则的番号捏 =_=')
         else:
+            ids = set(ids)
+            ids_msg = ', '.join(ids)
+            send_msg(f'检测到番号：{ids_msg}，开始搜索番号...')
             for id in ids:
                 get_av_by_id(
                     id=id,
