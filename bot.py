@@ -613,7 +613,7 @@ def handle_message(message):
             else: get_av_by_id(id=id, send_to_pikpak=False)
     else:
         ids = []
-        ids = ids + re.compile(r'[a-zA-Z]+-\d+').findall(msg)  # base
+        ids = ids + re.compile(r'[A-Za-z0-9]+[-_][A-Za-z0-9]+').findall(msg)  # base
         ids = ids + re.compile(r'n\d+').findall(msg)  # tokyo hot
         if not ids: send_msg('消息似乎不存在符合规则的番号捏 =_=')
         else:
