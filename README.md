@@ -79,4 +79,3 @@ nohup python3 bot.py >/dev/null 2>&1 &
 ## TODO
 
 - 支持fc2番号
-- 更好的在线视频API

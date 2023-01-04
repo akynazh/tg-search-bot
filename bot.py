@@ -108,7 +108,11 @@ def check_has_record() -> typing.Tuple[dict, bool, bool]:
     return record, is_stars_exists, is_avs_exists
 
 
-def renew_record(record):
+def renew_record(record:dict):
+    '''更新记录
+
+    :param dict record: 新的记录
+    '''
     with open(PATH_RECORD_FILE, 'w') as f:
         json.dump(record,
                   f,
@@ -239,6 +243,8 @@ def send_msg_btns(max_btn_per_row: int,
 
 
 def get_stars_record():
+    '''获取演员收藏记录
+    '''
     # 初始化数据
     record, is_star_exists, _ = check_has_record()
     if not record or not is_star_exists:
@@ -286,6 +292,8 @@ def get_star_avs_record(star_id: str):
 
 
 def get_avs_record():
+    '''获取番号收藏记录
+    '''
     # 初始化数据
     record, _, is_avs_exists = check_has_record()
     if not record or not is_avs_exists:
