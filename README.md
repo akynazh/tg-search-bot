@@ -12,6 +12,8 @@
 - 支持**代理**功能
 - 支持**收藏演员和番号**功能
 - 支持**随机获取**影片功能
+- 支持**日志记录**功能
+- 支持**搜索演员**功能
 
 ## 使用教程
 
@@ -20,6 +22,7 @@
 ```
 git clone https://github.com/akynazh/tg-jav-bot.git
 pip install -r requirements.txt
+cd tg-jav-bot
 ```
 
 将 `cfg.pub.py` 重命名为 `cfg.py` 并根据提示编辑:
@@ -49,6 +52,5 @@ TG_API_HASH = '' # telegram api hash
 运行你的机器人：
 
 ```
-cd tg-jav-bot
 nohup python3 bot.py >/dev/null 2>&1 &
 ```

@@ -91,7 +91,7 @@ def check_has_record() -> typing.Tuple[dict, bool, bool]:
             with open(PATH_RECORD_FILE, 'r') as f:
                 record = json.load(f)
         except Exception:
-            LOG.info('记录文件加载失败，请检查格式是否出错')
+            LOG.info('文件格式有误')
             return None, False, False
     # 尚无记录
     if not record or record == {}:
@@ -369,13 +369,17 @@ def send_magnet_to_pikpak(magnet: str):
     :param str magnet: 磁链
     '''
     name = cfg.PIKPAK_BOT_NAME
-    if util_pikpak.send_msg(magnet):  # 成功发送
-        send_msg(
-            f'已经将磁链 <b>A</b> 发送到 <a href="https://t.me/{name}">@{name}</a>', )
-    else:  # 发送失败
-        send_msg(
-            f'未能将磁链 <b>A</b> 发送到 <a href="https://t.me/{name}">@{name}</a>', )
-
+    try:
+        if util_pikpak.send_msg(magnet):  # 成功发送
+            send_msg(
+                f'已经将磁链 <b>A</b> 发送到 <a href="https://t.me/{name}">@{name}</a>')
+        else:  # 发送失败
+            send_msg(
+                f'未能将磁链 <b>A</b> 发送到 <a href="https://t.me/{name}">@{name}</a>')
+    except Exception as e:
+        LOG.info(e)
+        send_msg(f'网络请求失败，请重试 Q_Q')
+        return
 
 def get_sample_by_id(id: str):
     '''根据番号获取av截图
@@ -383,9 +387,14 @@ def get_sample_by_id(id: str):
     :param str id: 番号
     '''
     # 获取截图
-    samples = util_javbus.get_samples_by_id(id)
+    try:
+        samples = util_javbus.get_samples_by_id(id)
+    except Exception as e:
+        LOG.info(e)
+        send_msg(f'网络请求失败，请重试 Q_Q')
+        return
     if not samples:
-        send_msg(f'截图不存在或者网络出错了 Q_Q')
+        send_msg(f'未找到截图 Q_Q')
         return
     # 发送图片列表
     samples_imp = []
@@ -404,7 +413,12 @@ def watch_av(id: str, type: str):
     :param str id: 番号
     :param str type: 0 预览视频 | 1 完整视频
     '''
-    video = util_avgle.get_video_by_id(id)
+    try:
+        video = util_avgle.get_video_by_id(id)
+    except Exception as e:
+        LOG.info(e)
+        send_msg(f'网络请求失败，请重试 Q_Q')
+        return
     if video:
         if type == 0:
             bot.send_video(chat_id=TG_CHAT_ID, video=video['pv'])
@@ -442,7 +456,12 @@ def listen_callback(call):
     elif key_type == KEY_GET_SAMPLE_BY_ID:
         get_sample_by_id(id=content)
     elif key_type == KEY_GET_MORE_MAGNETS_BY_ID:
-        av = util_javbus.get_av_by_id(id=content, is_nice=False)
+        try:
+            av = util_javbus.get_av_by_id(id=content, is_nice=False)
+        except Exception as e:
+            LOG.info(e)
+            send_msg(f'网络请求失败，请重试 Q_Q')
+            return
         if not av:
             send_msg('获取失败，请重试 =_=')
             return
@@ -452,7 +471,12 @@ def listen_callback(call):
 '''
         send_msg(msg)
     elif key_type == kEY_RANDOM_GET_AV_BY_STAR_ID:
-        id = util_javbus.get_id_by_star_id(star_id=content)
+        try:
+            id = util_javbus.get_id_by_star_id(star_id=content)
+        except Exception as e:
+            LOG.info(e)
+            send_msg(f'网络请求失败，请重试 Q_Q')
+            return
         if id: get_av_by_id(id=id, send_to_pikpak=False)
         else: send_msg('获取失败，请重试=_=')
     elif key_type == KEY_RECORD_STAR:
@@ -472,7 +496,12 @@ def listen_callback(call):
     elif key_type == KEY_GET_AV_BY_ID:
         get_av_by_id(id=content, send_to_pikpak=False)
     elif key_type == KEY_RANDOM_GET_AV:
-        id = util_javbus.get_id_from_home()
+        try:
+            id = util_javbus.get_id_from_home()
+        except Exception as e:
+            LOG.info(e)
+            send_msg(f'网络请求失败，请重试 Q_Q')
+            return
         if not id: send_msg('获取失败，请重试 =_=')
         else: get_av_by_id(id=id, send_to_pikpak=False)
 
@@ -489,7 +518,7 @@ def handle_message(message):
         bot.send_message(
             chat_id=message.from_user.id,
             text=
-            f'该机器人仅供私人使用, 如需使用请自行部署，项目地址<a href="{PROJECT_ADDRESS}">{PROJECT_NAME}</a>',
+            f'该机器人仅供私人使用, 如需使用请自行部署，项目地址：<a href="{PROJECT_ADDRESS}">{PROJECT_NAME}</a>',
             parse_mode='HTML',
         )
         return
@@ -501,13 +530,19 @@ def handle_message(message):
     if not msg or msg.strip() == '':
         return
     msg = msg.strip()
+    LOG.info(f'收到消息：{msg}')
     # 处理消息
     if msg == '/test':
         test()
     elif msg == '/help':
         help()
     elif msg == '/random':
-        id = util_javbus.get_id_from_home()
+        try:
+            id = util_javbus.get_id_from_home()
+        except Exception as e:
+            LOG.info(e)
+            send_msg(f'网络请求失败，请重试 Q_Q')
+            return
         if not id: send_msg('获取失败，请重试 =_=')
         else: get_av_by_id(id=id, send_to_pikpak=False)
     elif msg == '/stars':
@@ -517,8 +552,14 @@ def handle_message(message):
     elif msg.find('/star') != -1:
         param = get_msg_param(msg)
         if param:
-            id = util_javbus.get_id_by_star_name(star_name=param)
-            if not id: send_msg('获取失败，请重试 =_=')
+            try:
+                LOG.info(f'搜索演员：{param}')
+                id = util_javbus.get_id_by_star_name(star_name=param)
+            except Exception as e:
+                LOG.info(e)
+                send_msg(f'网络请求失败，请重试 Q_Q')
+                return
+            if not id: send_msg(f'妹找到{param}，请重试或用其它方式搜索 =_=')
             else: get_av_by_id(id=id, send_to_pikpak=False)
     else:
         ids = re.compile(r'[a-zA-Z]+-\d+').findall(msg)
@@ -546,9 +587,9 @@ def help():
 
 /avs  获取收藏的番号
 
-/star  后接演员名称（日语）可随机获取一部该演员的AV
-
 /random  随机获取一部AV
+
+/star  后接演员名称（日语）可随机获取一部该演员的AV
 '''
     send_msg(msg)
 
@@ -570,5 +611,6 @@ def set_command():
 if __name__ == '__main__':
     os.chdir(PATH_ROOT)
     LOG = Logger(log_level=logging.INFO).logger
+    LOG.info(f'当前工作目录：{PATH_ROOT}')
     set_command()
     bot.infinity_polling()

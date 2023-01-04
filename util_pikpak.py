@@ -27,10 +27,7 @@ def send_msg(msg) -> bool:
                           api_id=TG_API_ID,
                           api_hash=TG_API_HASH,
                           proxy=proxy) as app:
-            try:
-                return await app.send_message(cfg.PIKPAK_BOT_NAME, msg)
-            except Exception:
-                return None
+            return await app.send_message(cfg.PIKPAK_BOT_NAME, msg)
 
     res = asyncio.run(main())
     if res: return True

@@ -23,10 +23,7 @@ def get_video_by_id(id: str) -> dict:
     limit = 3
     url = f'{BASE_URL}/v1/jav/{id}/{page}?limit={limit}'
     # 获取视频
-    try:
-        resp = requests.get(url, proxies=proxies)
-    except Exception:
-        return None
+    resp = requests.get(url, proxies=proxies)
     if resp.status_code == 200 and resp.json()['success']:
         videos = resp.json()['response']['videos']
         if videos != []:

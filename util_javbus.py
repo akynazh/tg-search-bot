@@ -36,10 +36,7 @@ def get_max_page(url: str) -> int:
     :param str url: 页面地址
     :return int: 最大页数
     '''
-    try:
-        resp = requests.get(url=url, proxies=proxies, headers=get_headers(url))
-    except Exception as e:
-        return None
+    resp = requests.get(url=url, proxies=proxies, headers=get_headers(url))
     if resp.status_code != 200:
         return None
     soup = BeautifulSoup(resp.text, 'lxml')
@@ -67,10 +64,7 @@ def get_id_from_page(base_page_url: str, page=-1) -> str:
             url = f'{base_page_url}/{random.randint(1, max_page)}'
     if url == '': return None
     # 开始获取番号
-    try:
-        resp = requests.get(url=url, proxies=proxies, headers=get_headers(url))
-    except Exception:
-        return None
+    resp = requests.get(url=url, proxies=proxies, headers=get_headers(url))
     if resp.status_code != 200:
         return None
     ids = []
@@ -125,10 +119,7 @@ def get_samples_by_id(id: str) -> list:
     '''
     samples = []
     url = f'{BASE_URL}/{id}'
-    try:
-        resp = requests.get(url, proxies=proxies, headers=get_headers(url))
-    except Exception:
-        return None
+    resp = requests.get(url, proxies=proxies, headers=get_headers(url))
     if resp.status_code != 200:
         return None
     # 获取soup
@@ -222,10 +213,7 @@ def get_av_by_id(id: str, is_nice: bool, magnet_max_count=100) -> dict:
     }
     # 查找av
     url = f'{BASE_URL}/{id}'
-    try:
-        resp = requests.get(url, proxies=proxies, headers=get_headers(url))
-    except Exception:
-        return None
+    resp = requests.get(url, proxies=proxies, headers=get_headers(url))
     if resp.status_code != 200:
         return None
     # 获取soup和html
@@ -268,10 +256,7 @@ def get_av_by_id(id: str, is_nice: bool, magnet_max_count=100) -> dict:
     # 得到磁链的ajax请求地址
     url = f'{BASE_URL}/ajax/uncledatoolsbyajax.php?gid={gid}&lang=zh&img={img}&uc={uc}'
     # 发送请求获取含磁链页
-    try:
-        resp = requests.get(url, proxies=proxies, headers=get_headers(url))
-    except Exception:
-        return None
+    resp = requests.get(url, proxies=proxies, headers=get_headers(url))
     if resp.status_code != 200:
         return None
     soup = BeautifulSoup(resp.text, 'lxml')
