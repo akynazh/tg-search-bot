@@ -37,6 +37,10 @@ KEY_GET_STARS_RECORD = 7
 KEY_GET_AVS_RECORD = 8
 KEY_GET_STAR_AVS_RECORD = 9
 KEY_GET_AV_BY_ID = 10
+KEY_RANDOM_GET_AV = 11
+PROJECT_ADDRESS = 'https://github.com/akynazh/tg-jav-bot'
+PROJECT_NAME = 'tg-jav-bot'
+AUTHOR = 'https://github.com/akynazh'
 
 
 class Logger:
@@ -129,13 +133,13 @@ def record_star(name: str, id: str):
     # 检查记录是否存在
     exists = False
     for star in stars:
-        if star['id'].upper() == id.upper():
+        if star['id'].lower() == id.lower():
             exists = True
             break
     # 如果记录需要更新则写回记录
     if not exists:
         LOG.info(f'收藏新的演员：{name}')
-        stars.append({'name': name, 'id': id.upper()})
+        stars.append({'name': name, 'id': id.lower()})
         record['stars'] = stars
         renew_record(record)
         send_msg(f'成功收藏<code>{name}</code> ^-^')
@@ -159,13 +163,13 @@ def record_id(id: str, stars: list):
     # 检查记录是否存在
     exists = False
     for av in avs:
-        if av['id'].upper() == id.upper():
+        if av['id'].lower() == id.lower():
             exists = True
             break
     # 如果记录需要更新则写回记录
     if not exists:
         LOG.info(f'收藏AV【番号：{id}, 演员：{str(stars)}】')
-        avs.append({'id': id.upper(), 'stars': stars})
+        avs.append({'id': id.lower(), 'stars': stars})
         record['avs'] = avs
         renew_record(record)
         send_msg(f'成功收藏<code>{id}</code> ^-^')
@@ -176,30 +180,22 @@ def record_id(id: str, stars: list):
 def get_stars_record():
     # 初始化数据
     record, is_star_exists, _ = check_has_record()
-    if not record or not is_star_exists: 
+    if not record or not is_star_exists:
         send_msg('尚无收藏记录 =_=')
         return
     stars = record['stars']
-    markup = InlineKeyboardMarkup()
     # 生成按钮
-    i = 0
-    while i < len(stars):
-        btn1 = InlineKeyboardButton(
-            text=stars[i]['name'],
-            callback_data=f'{stars[i]["id"]}:{KEY_GET_STAR_AVS_RECORD}')
-        btn2, btn3 = None, None
-        if i + 1 < len(stars):
-            btn2 = InlineKeyboardButton(
-                text=stars[i + 1]['name'],
-                callback_data=f'{stars[i+1]["id"]}:{KEY_GET_STAR_AVS_RECORD}')
-        if i + 2 < len(stars):
-            btn3 = InlineKeyboardButton(
-                text=stars[i + 2]['name'],
-                callback_data=f'{stars[i+2]["id"]}:{KEY_GET_STAR_AVS_RECORD}')
-        if btn2 and btn3: markup.row(btn1, btn2, btn3)
-        elif btn2: markup.row(btn1, btn2)
-        else: markup.row(btn1)
-        i += 3
+    markup = InlineKeyboardMarkup()
+    star_btns = []
+    for star in stars:
+        star_btns.append(
+            InlineKeyboardButton(
+                text=star['name'],
+                callback_data=f'{star["id"]}:{KEY_GET_STAR_AVS_RECORD}'))
+        if len(star_btns) == 3:
+            markup.row(*star_btns)
+            star_btns = []
+    if star_btns != []: markup.row(*star_btns)
     send_msg(msg='收藏的演员如下，点击演员对应按钮可查看更多信息 ^-^', markup=markup)
 
 
@@ -210,7 +206,7 @@ def get_star_avs_record(star_id: str):
     '''
     # 初始化数据
     record, _, is_avs_exists = check_has_record()
-    if not record or not is_avs_exists: 
+    if not record or not is_avs_exists:
         send_msg('尚无收藏记录 =_=')
         return
     avs = record['avs']
@@ -219,26 +215,17 @@ def get_star_avs_record(star_id: str):
         # 如果演员编号在该AV的演员编号列表中
         if star_id in av['stars']:
             star_avs.append(av['id'])
-    markup = InlineKeyboardMarkup()
     # 生成按钮
-    i = 0
-    while i < len(star_avs):
-        btn1 = InlineKeyboardButton(
-            text=star_avs[i],
-            callback_data=f'{star_avs[i]}:{KEY_GET_AV_BY_ID}')
-        btn2, btn3 = None, None
-        if i + 1 < len(star_avs):
-            btn2 = InlineKeyboardButton(
-                text=star_avs[i + 1],
-                callback_data=f'{star_avs[i+1]}:{KEY_GET_AV_BY_ID}')
-        if i + 2 < len(star_avs):
-            btn3 = InlineKeyboardButton(
-                text=star_avs[i + 2],
-                callback_data=f'{star_avs[i+2]}:{KEY_GET_AV_BY_ID}')
-        if btn2 and btn3: markup.row(btn1, btn2, btn3)
-        elif btn2: markup.row(btn1, btn2)
-        else: markup.row(btn1)
-        i += 3
+    markup = InlineKeyboardMarkup()
+    av_btns = []
+    for av in star_avs:
+        av_btns.append(
+            InlineKeyboardButton(text=av,
+                                 callback_data=f'{av}:{KEY_GET_AV_BY_ID}'))
+        if len(av_btns) == 5:
+            markup.row(*av_btns)
+            av_btns = []
+    if av_btns != []: markup.row(*av_btns)
     markup.row(
         InlineKeyboardButton(
             text=f'随机获取一部该演员的AV',
@@ -248,29 +235,24 @@ def get_star_avs_record(star_id: str):
 
 def get_avs_record():
     record, _, is_avs_exists = check_has_record()
-    if not record or not is_avs_exists: 
+    if not record or not is_avs_exists:
         send_msg('尚无收藏记录 =_=')
         return
     avs = record['avs']
+    # 生成按钮
     markup = InlineKeyboardMarkup()
-    i = 0
-    while i < len(avs):
-        btn1 = InlineKeyboardButton(
-            text=avs[i]['id'],
-            callback_data=f'{avs[i]["id"]}:{KEY_GET_AV_BY_ID}')
-        btn2, btn3 = None, None
-        if i + 1 < len(avs):
-            btn2 = InlineKeyboardButton(
-                text=avs[i + 1]['id'],
-                callback_data=f'{avs[i+1]["id"]}:{KEY_GET_AV_BY_ID}')
-        if i + 2 < len(avs):
-            btn3 = InlineKeyboardButton(
-                text=avs[i + 2]['id'],
-                callback_data=f'{avs[i+2]["id"]}:{KEY_GET_AV_BY_ID}')
-        if btn2 and btn3: markup.row(btn1, btn2, btn3)
-        elif btn2: markup.row(btn1, btn2)
-        else: markup.row(btn1)
-        i += 3
+    av_btns = []
+    for av in avs:
+        av_btns.append(
+            InlineKeyboardButton(
+                text=av['id'], callback_data=f'{av["id"]}:{KEY_GET_AV_BY_ID}'))
+        if len(av_btns) == 5:
+            markup.row(*av_btns)
+            av_btns = []
+    if av_btns != []: markup.row(*av_btns)
+    markup.row(
+        InlineKeyboardButton(text='随机获取一部AV',
+                             callback_data=f'0:{KEY_RANDOM_GET_AV}'))
     send_msg(msg='收藏的番号如下，点击番号对应按钮以获取番号对应AV ^-^', markup=markup)
 
 
@@ -286,10 +268,15 @@ def get_av_by_id(id: str,
     :param int magnet_max_count: 过滤后磁链的最大数目，默认为3
     '''
     # 获取AV
-    av = util_javbus.get_av_by_id(id, is_nice, magnet_max_count)
+    try:
+        av = util_javbus.get_av_by_id(id, is_nice, magnet_max_count)
+    except Exception as e:
+        LOG.info(e)
+        send_msg(f'网络请求失败，请重试 Q_Q')
+        return
     # 未查找到该番号对应的AV
     if not av:
-        send_msg(f'番号不存在或者网络出错了 Q_Q')
+        send_msg(f'妹找到该番号对应的AV Q_Q')
         return
     # 提取数据
     title = av['title']
@@ -320,7 +307,7 @@ def get_av_by_id(id: str,
         msg += f'''【演员】<code>{name}</code> | <a href="{wiki}">Wiki</a> | <a href="{link}">Javbus</a>
 '''
     # 加上其它消息
-    msg += f'''【其它】<a href="https://t.me/{cfg.PIKPAK_BOT_NAME}">@{cfg.PIKPAK_BOT_NAME}</a>
+    msg += f'''【其它】<a href="https://t.me/{cfg.PIKPAK_BOT_NAME}">@{cfg.PIKPAK_BOT_NAME}</a> | <a href="{AUTHOR}">作者</a> | <a href="{PROJECT_ADDRESS}">项目地址</a>
 '''
     # 加上磁链消息
     magnet_send_to_pikpak = ''
@@ -484,6 +471,10 @@ def listen_callback(call):
         get_star_avs_record(star_id=content)
     elif key_type == KEY_GET_AV_BY_ID:
         get_av_by_id(id=content, send_to_pikpak=False)
+    elif key_type == KEY_RANDOM_GET_AV:
+        id = util_javbus.get_id_from_home()
+        if not id: send_msg('获取失败，请重试 =_=')
+        else: get_av_by_id(id=id, send_to_pikpak=False)
 
 
 @bot.message_handler(content_types=['text', 'photo', 'animation', 'video'])
@@ -498,7 +489,8 @@ def handle_message(message):
         bot.send_message(
             chat_id=message.from_user.id,
             text=
-            '该机器人仅供私人使用, 如需使用请自行部署, 项目地址：https://github.com/akynazh/tg-jav-bot',
+            f'该机器人仅供私人使用, 如需使用请自行部署，项目地址<a href="{PROJECT_ADDRESS}">{PROJECT_NAME}</a>',
+            parse_mode='HTML',
         )
         return
     # 获取消息文本内容
