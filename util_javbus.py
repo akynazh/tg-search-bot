@@ -127,7 +127,10 @@ def get_samples_by_id(id: str) -> list:
     # 获取截图
     sample_tags = soup.find_all(class_='sample-box')
     for tag in sample_tags:
-        samples.append(tag['href'])
+        sample_link = tag['href']
+        if sample_link.find('https') == -1:
+            sample_link = BASE_URL + sample_link
+        samples.append(sample_link)
     if samples == []: return None
     return samples
 

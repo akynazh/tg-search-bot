@@ -565,11 +565,12 @@ def handle_message(message):
         ids = re.compile(r'[a-zA-Z]+-\d+').findall(msg)
         if not ids: send_msg('你滴消息不存在番号捏 =_=')
         else:
-            get_av_by_id(
-                id=ids[0],
-                send_to_pikpak=True,
-                is_nice=True,
-            )
+            for id in ids:
+                get_av_by_id(
+                    id=id,
+                    send_to_pikpak=True,
+                    is_nice=True,
+                )
 
 
 def test():
