@@ -83,10 +83,15 @@ def check_has_record() -> typing.Tuple[dict, bool, bool]:
     record = {}
     # 加载记录
     if os.path.exists(PATH_RECORD_FILE):
-        with open(PATH_RECORD_FILE, 'r') as f:
-            record = json.load(f)
+        try:
+            with open(PATH_RECORD_FILE, 'r') as f:
+                record = json.load(f)
+        except Exception:
+            LOG.info('记录文件加载失败，请检查格式是否出错')
+            return None, False, False
     # 尚无记录
-    if not record: return
+    if not record or record == {}:
+        return None, False, False
     # 检查并返回记录
     is_stars_exists = False
     is_avs_exists = False
@@ -116,23 +121,26 @@ def record_star(name: str, id: str):
     '''
     # 加载记录
     record, is_stars_exists, _ = check_has_record()
-    if not record or not is_stars_exists: stars = []
-    else: stars = record['stars']
+    if not record:
+        record, stars = {}, []
+    else:
+        if not is_stars_exists: stars = []
+        else: stars = record['stars']
     # 检查记录是否存在
     exists = False
     for star in stars:
-        if star['id'].lower() == id.lower():
+        if star['id'].upper() == id.upper():
             exists = True
             break
     # 如果记录需要更新则写回记录
     if not exists:
         LOG.info(f'收藏新的演员：{name}')
-        stars.append({'name': name, 'id': id})
+        stars.append({'name': name, 'id': id.upper()})
         record['stars'] = stars
         renew_record(record)
-        send_msg('收藏成功 ^-^')
+        send_msg(f'成功收藏<code>{name}</code> ^-^')
     else:
-        send_msg('已经收藏过啦 =_=')
+        send_msg(f'已经收藏过<code>{name}</code>了 =_=')
 
 
 def record_id(id: str, stars: list):
@@ -143,29 +151,34 @@ def record_id(id: str, stars: list):
     '''
     # 加载记录
     record, _, is_avs_exists = check_has_record()
-    if not record or not is_avs_exists: avs = []
-    else: avs = record['avs']
+    if not record:
+        record, avs = {}, []
+    else:
+        if not is_avs_exists: avs = []
+        else: avs = record['avs']
     # 检查记录是否存在
     exists = False
     for av in avs:
-        if av['id'].lower() == id.lower():
+        if av['id'].upper() == id.upper():
             exists = True
             break
     # 如果记录需要更新则写回记录
     if not exists:
         LOG.info(f'收藏AV【番号：{id}, 演员：{str(stars)}】')
-        avs.append({'id': id, 'stars': stars})
+        avs.append({'id': id.upper(), 'stars': stars})
         record['avs'] = avs
         renew_record(record)
-        send_msg('收藏成功 ^-^')
+        send_msg(f'成功收藏<code>{id}</code> ^-^')
     else:
-        send_msg('已经收藏过啦 =_=')
+        send_msg(f'已经收藏过<code>{id}</code>了 =_=')
 
 
 def get_stars_record():
     # 初始化数据
     record, is_star_exists, _ = check_has_record()
-    if not record or not is_star_exists: return
+    if not record or not is_star_exists: 
+        send_msg('尚无收藏记录 =_=')
+        return
     stars = record['stars']
     markup = InlineKeyboardMarkup()
     # 生成按钮
@@ -197,7 +210,9 @@ def get_star_avs_record(star_id: str):
     '''
     # 初始化数据
     record, _, is_avs_exists = check_has_record()
-    if not record or not is_avs_exists: return
+    if not record or not is_avs_exists: 
+        send_msg('尚无收藏记录 =_=')
+        return
     avs = record['avs']
     star_avs = []
     for av in avs:
@@ -233,7 +248,9 @@ def get_star_avs_record(star_id: str):
 
 def get_avs_record():
     record, _, is_avs_exists = check_has_record()
-    if not record or not is_avs_exists: return
+    if not record or not is_avs_exists: 
+        send_msg('尚无收藏记录 =_=')
+        return
     avs = record['avs']
     markup = InlineKeyboardMarkup()
     i = 0
