@@ -108,7 +108,7 @@ def check_has_record() -> typing.Tuple[dict, bool, bool]:
     return record, is_stars_exists, is_avs_exists
 
 
-def renew_record(record:dict):
+def renew_record(record: dict):
     '''更新记录
 
     :param dict record: 新的记录
@@ -121,11 +121,11 @@ def renew_record(record:dict):
                   ensure_ascii=False)
 
 
-def record_star(name: str, id: str):
+def record_star(star_name: str, star_id: str):
     '''记录演员
 
-    :param str name: 演员名称
-    :param str id: 演员编号
+    :param str star_name: 演员名称
+    :param str star_id: 演员编号
     '''
     # 加载记录
     record, is_stars_exists, _ = check_has_record()
@@ -137,18 +137,18 @@ def record_star(name: str, id: str):
     # 检查记录是否存在
     exists = False
     for star in stars:
-        if star['id'].lower() == id.lower():
+        if star['id'].lower() == star_id.lower():
             exists = True
             break
     # 如果记录需要更新则写回记录
     if not exists:
-        LOG.info(f'收藏新的演员：{name}')
-        stars.append({'name': name, 'id': id.lower()})
+        LOG.info(f'收藏新的演员：{star_name}')
+        stars.append({'name': star_name, 'id': star_id.lower()})
         record['stars'] = stars
         renew_record(record)
-        send_msg(f'成功收藏<code>{name}</code> ^-^')
+        send_msg(f'成功收藏<code>{star_name}</code> ^-^')
     else:
-        send_msg(f'已经收藏过<code>{name}</code>了 =_=')
+        send_msg(f'已经收藏过<code>{star_name}</code>了 =_=')
 
 
 def record_id(id: str, stars: list):
@@ -191,7 +191,8 @@ def create_btn(btn_type: int, obj: dict):
     if btn_type == 0:  # star
         return InlineKeyboardButton(
             text=obj['name'],
-            callback_data=f'{obj["id"]}:{KEY_GET_STAR_AVS_RECORD}')
+            callback_data=f'{obj["name"]}|{obj["id"]}:{KEY_GET_STAR_AVS_RECORD}'
+        )
     elif btn_type == 1:  # av
         return InlineKeyboardButton(text=obj,
                                     callback_data=f'{obj}:{KEY_GET_AV_BY_ID}')
@@ -259,9 +260,10 @@ def get_stars_record():
                   objs=stars)
 
 
-def get_star_avs_record(star_id: str):
+def get_star_avs_record(star_name: str, star_id: str):
     '''根据演员编号获取收藏的该演员的AV列表
 
+    :param str star_name: 演员名称
     :param str star_id: 演员编号
     '''
     # 初始化数据
@@ -277,7 +279,7 @@ def get_star_avs_record(star_id: str):
             star_avs.append(av['id'])
     # 发送按钮消息
     extra_btn = InlineKeyboardButton(
-        text=f'随机获取一部该演员的AV',
+        text=f'随机获取一部{star_name}的AV',
         callback_data=f'{star_id}:{kEY_RANDOM_GET_AV_BY_STAR_ID}')
     if len(star_avs) == 0:  # 没有收藏记录
         send_msg(msg='尚未收藏任何该演员的番号',
@@ -286,7 +288,7 @@ def get_star_avs_record(star_id: str):
     send_msg_btns(max_btn_per_row=5,
                   max_row_per_msg=6,
                   btn_type=1,
-                  title='<b>收藏的该演员的番号</b>',
+                  title=f'<b>收藏的<code>{star_name}</code>的番号</b>',
                   objs=star_avs,
                   extra_btn=extra_btn)
 
@@ -539,7 +541,7 @@ def listen_callback(call):
         else: send_msg('获取失败，请重试=_=')
     elif key_type == KEY_RECORD_STAR:
         s = content.find('|')
-        record_star(name=content[:s], id=content[s + 1:])
+        record_star(star_name=content[:s], star_id=content[s + 1:])
     elif key_type == KEY_RECORD_AV:
         res = content.split('|')
         id = res[0]
@@ -550,7 +552,8 @@ def listen_callback(call):
     elif key_type == KEY_GET_AVS_RECORD:
         get_avs_record()
     elif key_type == KEY_GET_STAR_AVS_RECORD:
-        get_star_avs_record(star_id=content)
+        s = content.find('|')
+        get_star_avs_record(star_name=content[:s], star_id=content[s + 1:])
     elif key_type == KEY_GET_AV_BY_ID:
         get_av_by_id(id=content, send_to_pikpak=False)
     elif key_type == KEY_RANDOM_GET_AV:
@@ -621,7 +624,8 @@ def handle_message(message):
             else: get_av_by_id(id=id, send_to_pikpak=False)
     else:
         ids = []
-        ids = ids + re.compile(r'[A-Za-z0-9]+[-_][A-Za-z0-9]+').findall(msg)  # base
+        ids = ids + re.compile(r'[A-Za-z0-9]+[-_][A-Za-z0-9]+').findall(
+            msg)  # base
         ids = ids + re.compile(r'n\d+').findall(msg)  # tokyo hot
         if not ids: send_msg('消息似乎不存在符合规则的番号捏 =_=')
         else:

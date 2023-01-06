@@ -224,9 +224,12 @@ def get_av_by_id(id: str, is_nice: bool, magnet_max_count=100) -> dict:
     html = soup.prettify()
     # 获取封面和标题
     big_image = soup.find(class_='bigImage')
-    img = big_image['href']
-    av['img'] = BASE_URL + img
-    av['title'] = big_image.img['title']
+    img = None
+    if big_image:
+        img = big_image['href']
+        if img.find('http') == -1:
+            av['img'] = BASE_URL + img
+            av['title'] = big_image.img['title']
     # 提取更多信息
     paras = soup.find(class_='col-md-3 info').find_all('p')
     for i, p in enumerate(paras):
@@ -251,17 +254,24 @@ def get_av_by_id(id: str, is_nice: bool, magnet_max_count=100) -> dict:
     # 获取uc
     uc_pattern = re.compile(r'var uc = .*?;')
     match = uc_pattern.findall(html)
-    uc = match[0].replace('var uc = ', '').replace(';', '')
+    uc = None
+    if match:
+        uc = match[0].replace('var uc = ', '').replace(';', '')
     # 获取gid
     gid_pattern = re.compile(r'var gid = .*?;')
     match = gid_pattern.findall(html)
-    gid = match[0].replace('var gid = ', '').replace(';', '')
+    gid = None
+    if match:
+        gid = match[0].replace('var gid = ', '').replace(';', '')
+    # 如果不存在磁链则直接返回
+    if not uc and not gid:
+        return av
     # 得到磁链的ajax请求地址
-    url = f'{BASE_URL}/ajax/uncledatoolsbyajax.php?gid={gid}&lang=zh&img={img}&uc={uc}'
+    url = f'{BASE_URL}/ajax/uncledatoolsbyajax.php?gid={gid}&lang=zh&uc={uc}'
     # 发送请求获取含磁链页
     resp = requests.get(url, proxies=proxies, headers=get_headers(url))
     if resp.status_code != 200:
-        return None
+        return av
     soup = BeautifulSoup(resp.text, 'lxml')
     # 解析页面获取磁链
     for tr in soup.find_all('tr'):
@@ -300,6 +310,7 @@ if __name__ == '__main__':
     # javbus id test
     # res = get_av_by_id(id='GTJ-111', is_nice=True, magnet_max_count=3)
     # res = get_av_by_id(id='YMDD-301', is_nice=False)
+    # res = get_av_by_id(id='ipx-811', is_nice=False)
     # res = get_av_by_id(id='091318_01', is_nice=True, magnet_max_count=3)
     # res = get_av_by_id(id='080916-226', is_nice=True, magnet_max_count=3)
     # res = get_av_by_id(id='n1282', is_nice=True, magnet_max_count=3)
