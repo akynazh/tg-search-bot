@@ -336,24 +336,29 @@ def get_av_by_id(id: str,
         send_msg(f'妹找到番号<code>{id}</code>对应的AV Q_Q')
         return
     # 提取数据
-    title = av['title']
-    img = av['img']
-    date = av['date']
-    tags = av['tags']
-    stars = av['stars']
-    magnets = av['magnets']
+    av_id = id
+    av_title = av['title']
+    av_img = av['img']
+    av_date = av['date']
+    av_tags = av['tags']
+    av_stars = av['stars']
+    av_magnets = av['magnets']
     # 拼接消息
-    av_url = f'{BASE_URL_JAVBUS}/{id}'
-    msg = f'''【标题】<a href="{av_url}">{title}</a>
-【日期】{date}
-【标签】{tags}
-【番号】<code>{id}</code>
+    av_url = f'{BASE_URL_JAVBUS}/{av_id}'
+    msg = ''
+    if av_title != '':
+        msg += f'''【标题】<a href="{av_url}">{av_title}</a>'''
+    msg += f'''【番号】<code>{av_id}</code>
 '''
+    if av_date != '':
+        msg += f'''【日期】{av_date}
+'''
+
     # 加上演员消息
-    if stars == []:
+    if av_stars == []:
         msg += f'''【演员】未知
 '''
-    for i, star in enumerate(stars):
+    for i, star in enumerate(av_stars):
         if i > 5:
             msg += f'''【演员】<a href="{av_url}">查看更多...</a>
 '''
@@ -363,58 +368,68 @@ def get_av_by_id(id: str,
         wiki = f'https://ja.wikipedia.org/wiki/{name}'
         msg += f'''【演员】<code>{name}</code> | <a href="{wiki}">Wiki</a> | <a href="{link}">Javbus</a>
 '''
+    if av_tags != '':
+        msg += f'''【标签】{av_tags}
+'''
     # 加上其它消息
     msg += f'''【其它】<a href="https://t.me/{cfg.PIKPAK_BOT_NAME}">@{cfg.PIKPAK_BOT_NAME}</a> | <a href="{AUTHOR}">作者</a> | <a href="{PROJECT_ADDRESS}">项目地址</a>
 '''
     # 加上磁链消息
     magnet_send_to_pikpak = ''
-    pikpak_btn = None
-    for i, magnet in enumerate(magnets):
+    for i, magnet in enumerate(av_magnets):
         if i == 0:
             magnet_send_to_pikpak = magnet['link']
         msg += f'''【{string.ascii_letters[i].upper()}. {magnet["size"]}】<code>{magnet["link"]}</code>
 '''
     # 生成回调按钮
-    pv_btn = InlineKeyboardButton(text='预览',
-                                  callback_data=f'{id}:{KEY_WATCH_PV_BY_ID}')
-    fv_btn = InlineKeyboardButton(text='观看',
-                                  callback_data=f'{id}:{KEY_WATCH_FV_BY_ID}')
+    pv_btn = InlineKeyboardButton(
+        text='预览', callback_data=f'{av_id}:{KEY_WATCH_PV_BY_ID}')
+    fv_btn = InlineKeyboardButton(
+        text='观看', callback_data=f'{av_id}:{KEY_WATCH_FV_BY_ID}')
     sample_btn = InlineKeyboardButton(
-        text='截图', callback_data=f'{id}:{KEY_GET_SAMPLE_BY_ID}')
+        text='截图', callback_data=f'{av_id}:{KEY_GET_SAMPLE_BY_ID}')
     more_btn = InlineKeyboardButton(
-        text='更多磁链', callback_data=f'{id}:{KEY_GET_MORE_MAGNETS_BY_ID}')
+        text='更多磁链', callback_data=f'{av_id}:{KEY_GET_MORE_MAGNETS_BY_ID}')
     markup = InlineKeyboardMarkup().row(sample_btn, pv_btn, fv_btn, more_btn)
-    if len(stars) == 1:
-        name = stars[0]['name']
-        link = stars[0]['link']
-        star_id = link[link.rfind('/') + 1:]
-        random_btn = InlineKeyboardButton(
-            text=f'随机获取一部该演员的作品',
-            callback_data=f'{star_id}:{kEY_RANDOM_GET_AV_BY_STAR_ID}')
-        record_star_btn = InlineKeyboardButton(
-            text=f'收藏{name}',
-            callback_data=f'{name}|{star_id}:{KEY_RECORD_STAR}')
-        markup.row(record_star_btn, random_btn)
+    star_random_btn = None
+    star_record_btn = None
+    if len(av_stars) == 1:
+        show_star_name = av_stars[0]['name']
+        show_star_link = av_stars[0]['link']
+        show_star_id = show_star_link[show_star_link.rfind('/') + 1:]
+        star_random_btn = InlineKeyboardButton(
+            text=f'演员随机AV',
+            callback_data=f'{show_star_id}:{kEY_RANDOM_GET_AV_BY_STAR_ID}')
+        star_record_btn = InlineKeyboardButton(
+            text=f'收藏{show_star_name}',
+            callback_data=f'{show_star_name}|{show_star_id}:{KEY_RECORD_STAR}')
     star_ids = ''
-    for i, star in enumerate(stars):
-        link = star['link']
-        star_id = link[link.rfind('/') + 1:]
+    for i, star in enumerate(av_stars):
+        star_link = star['link']
+        star_id = star_link[star_link.rfind('/') + 1:]
         star_ids += star_id + '|'
         if i >= 5:
             star_ids += '...|'
             break
     if star_ids != '': star_ids = star_ids[:len(star_ids) - 1]
-    record_av_btn = InlineKeyboardButton(
-        text=f'收藏{id}', callback_data=f'{id}|{star_ids}:{KEY_RECORD_AV}')
-    markup.row(record_av_btn)
-    if cfg.USE_PIKPAK == 1 and pikpak_btn:
-        markup.row(pikpak_btn)
+    av_record_btn = InlineKeyboardButton(
+        text=f'收藏番号', callback_data=f'{av_id}|{star_ids}:{KEY_RECORD_AV}')
+    if star_random_btn and star_record_btn:
+        markup.row(av_record_btn, star_record_btn, star_random_btn)
+    else:
+        markup.row(av_record_btn)
     # 发送消息
-    bot.send_photo(chat_id=TG_CHAT_ID,
-                   photo=img,
-                   caption=msg,
-                   parse_mode='HTML',
-                   reply_markup=markup)
+    if av_img == '':
+        send_msg(msg=msg, markup=markup)
+    else:
+        try:
+            bot.send_photo(chat_id=TG_CHAT_ID,
+                        photo=av_img,
+                        caption=msg,
+                        parse_mode='HTML',
+                        reply_markup=markup)
+        except Exception:  # 少数图片可能没法发送
+            send_msg(msg=msg, markup=markup)
     # 发给pikpak
     if cfg.USE_PIKPAK == 1 and magnet_send_to_pikpak != '' and send_to_pikpak:
         send_magnet_to_pikpak(magnet_send_to_pikpak)

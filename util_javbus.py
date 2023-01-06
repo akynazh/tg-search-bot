@@ -196,7 +196,8 @@ def get_av_by_id(id: str, is_nice: bool, magnet_max_count=100) -> dict:
         'link': '', # 链接
         'size': '', # 大小
         'hd': '0',  # 是否高清 0 否 | 1 是
-        'zm': '0'   # 是否有字幕 0 否 | 1 是
+        'zm': '0',   # 是否有字幕 0 否 | 1 是
+        'size_no_unit': 浮点值 # 去除单位后的大小值，用于排序，当要求过滤磁链时会存在该字段
     }
     演员格式:
     {

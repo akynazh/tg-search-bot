@@ -75,7 +75,3 @@ nohup python3 bot.py >/dev/null 2>&1 &
 - gachi-1115 (gachi系列)
 - fc2-ppv-880652 (fc2)
 - 880652 (fc2)
-
-## TODO
-
-- 支持fc2番号
