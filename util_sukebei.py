@@ -8,7 +8,8 @@ HOST = BASE_URL.split('://')[1]
 proxies = {}
 if cfg.USE_PROXY == 1:
     proxies = {'http': cfg.PROXY_ADDR, 'https': cfg.PROXY_ADDR}
-    
+
+
 def get_headers(url: str) -> dict:
     '''获取请求头
 
@@ -89,35 +90,37 @@ def get_av_by_id(id: str, is_nice: bool, magnet_max_count=100) -> dict:
     # 获取soup
     soup = BeautifulSoup(resp.text, 'lxml')
     torrent_list = soup.find(class_='torrent-list')
-    if not torrent_list: # 未找到该番号
+    if not torrent_list:  # 未找到该番号
         return None
     # 开始解析
     trs = torrent_list.tbody.find_all('tr')
     for i, tr in enumerate(trs):
         tds = tr.find_all('td')
         magnet = {
-            'link': '', # 链接
-            'size': '', # 大小
+            'link': '',  # 链接
+            'size': '',  # 大小
             'hd': '0',  # 是否高清 0 否 | 1 是
-            'zm': '0'   # 是否有字幕 0 否 | 1 是
+            'zm': '0'  # 是否有字幕 0 否 | 1 是
         }
         for j, td in enumerate(tds):
-            if j == 1: # 获取标题
+            if j == 1:  # 获取标题
                 title = td.a.text
-                if title.find(id) == -1: continue
-                if i == 0: av['title'] = td.a.text
-            if j == 2: # 获取磁链
+                if i == 0: av['title'] = title
+            if j == 2:  # 获取磁链
                 magnet['link'] = td.find_all('a')[-1]['href']
-            if j == 3: # 获取大小
+            if j == 3:  # 获取大小
                 magnet['size'] = td.text
         av['magnets'].append(magnet)
-    av['magnets'] = sort_magnets(av['magnets'])
+    # 过滤番号
+    if is_nice:
+        magnets = av['magnets']
+        if len(magnets) > magnet_max_count:
+            magnets = magnets[0:magnet_max_count]
+        magnets = sort_magnets(magnets)
+        av['magnets'] = magnets
     return av
 
 
 if __name__ == '__main__':
-    res = get_av_by_id(id='880652', is_nice=True, magnet_max_count=3)
-    # if res: print(res)
-    if res:
-        for magnet in res['magnets']:
-            print(magnet['size'])
+    res = get_av_by_id(id='siro-3352', is_nice=True, magnet_max_count=3)
+    if res: print(res)

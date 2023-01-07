@@ -66,12 +66,9 @@ nohup python3 bot.py >/dev/null 2>&1 &
 
 ### 番号规则
 
-- 091318_01 (1pondo/10mume)
-- 080916-226 (Caribbean) 加勒比
-- n1282  (东京热)
-- heyzo-1809 (HEYZO)
-- ID-034 (TMA)，正确格式是 xxID-034，但是javbus上是ID-034
-- ibw-631z（部分IBW末尾有个z）
-- gachi-1115 (gachi系列)
-- fc2-ppv-880652 (fc2)
-- 880652 (fc2)
+- 大部分：字母 + “-” +数字
+- 东京热：“n”或“k” + 数字
+- 加勒比：六位数字 + “-” + 数字
+- 1pondo/10mume：六位数字 + “_” + 数字
+- FC2：“fc2-ppv-” + 数字
+- MGSTAGE：数字 + 字母 + “-” + 数字

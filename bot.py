@@ -13,6 +13,7 @@ import string
 import util_pikpak
 import util_javbus
 import util_avgle
+import util_sukebei
 
 TG_BOT_TOKEN = cfg.TG_BOT_TOKEN
 bot = telebot.TeleBot(TG_BOT_TOKEN)
@@ -22,6 +23,7 @@ PATH_RECORD_FILE = PATH_ROOT + '/record.json'  # 收藏记录文件
 PATH_LOG_FILE = PATH_ROOT + '/log.txt'  # 日志记录文件
 proxies = {}
 BASE_URL_JAVBUS = util_javbus.BASE_URL
+BASE_URL_SUKEBEI = util_sukebei.BASE_URL
 if cfg.USE_PROXY == 1:
     proxies = {'http': cfg.PROXY_ADDR, 'https': cfg.PROXY_ADDR}
     apihelper.proxy = proxies
@@ -326,7 +328,11 @@ def get_av_by_id(id: str,
     '''
     # 获取AV
     try:
+        av_url = f'{BASE_URL_JAVBUS}/{id}'
         av = util_javbus.get_av_by_id(id, is_nice, magnet_max_count)
+        if not av:
+            av_url = f'{BASE_URL_SUKEBEI}?q={id}'
+            av = util_sukebei.get_av_by_id(id, is_nice, magnet_max_count)
     except Exception as e:
         LOG.info(e)
         send_msg(f'网络请求失败，请重试 Q_Q')
@@ -344,8 +350,8 @@ def get_av_by_id(id: str,
     av_stars = av['stars']
     av_magnets = av['magnets']
     # 拼接消息
-    av_url = f'{BASE_URL_JAVBUS}/{av_id}'
     msg = ''
+    print(av_title)
     if av_title != '':
         msg += f'''【标题】<a href="{av_url}">{av_title}</a>
 '''
@@ -382,6 +388,7 @@ def get_av_by_id(id: str,
             magnet_send_to_pikpak = magnet['link']
         msg += f'''【{string.ascii_letters[i].upper()}. {magnet["size"]}】<code>{magnet["link"]}</code>
 '''
+        if len(msg) > 2000: break
     # 生成回调按钮
     pv_btn = InlineKeyboardButton(
         text='预览', callback_data=f'{av_id}:{KEY_WATCH_PV_BY_ID}')
@@ -534,6 +541,8 @@ def listen_callback(call):
     elif key_type == KEY_GET_MORE_MAGNETS_BY_ID:
         try:
             av = util_javbus.get_av_by_id(id=content, is_nice=False)
+            if not av:
+                av = util_sukebei.get_av_by_id(id=content, is_nice=False)
         except Exception as e:
             LOG.info(e)
             send_msg(f'网络请求失败，请重试 Q_Q')
@@ -545,7 +554,10 @@ def listen_callback(call):
         for magnet in av['magnets']:
             msg += f'''【{magnet["size"]}】<code>{magnet["link"]}</code>
 '''
-        send_msg(msg)
+            if len(msg) > 2000:
+                send_msg(msg)
+                msg = ''
+        if msg != '': send_msg(msg)
     elif key_type == kEY_RANDOM_GET_AV_BY_STAR_ID:
         try:
             id = util_javbus.get_id_by_star_id(star_id=content)
@@ -630,7 +642,7 @@ def handle_message(message):
         param = get_msg_param(msg)
         if param:
             try:
-                LOG.info(f'搜索演员：{param}')
+                send_msg(f'搜索演员：{param}')
                 id = util_javbus.get_id_by_star_name(star_name=param)
             except Exception as e:
                 LOG.info(e)
@@ -638,11 +650,18 @@ def handle_message(message):
                 return
             if not id: send_msg(f'妹找到{param}，请重试或用其它方式搜索 =_=')
             else: get_av_by_id(id=id, send_to_pikpak=False)
+    elif msg.find('/av') != -1:
+        param = get_msg_param(msg)
+        if param:
+            try:
+                send_msg(f'搜索番号：{param}')
+                get_av_by_id(id=param)
+            except Exception as e:
+                LOG.info(e)
+                send_msg(f'网络请求失败，请重试 Q_Q')
+                return
     else:
-        ids = []
-        ids = ids + re.compile(r'[A-Za-z0-9]+[-_][A-Za-z0-9]+').findall(
-            msg)  # base
-        ids = ids + re.compile(r'n\d+').findall(msg)  # tokyo hot
+        ids = re.compile(r'^[A-Za-z]+[-][0-9]+$').findall(msg)
         if not ids: send_msg('消息似乎不存在符合规则的番号捏 =_=')
         else:
             ids = set(ids)
@@ -674,6 +693,8 @@ def help():
 /random  随机获取一部AV
 
 /star  后接演员名称（日语）可随机获取一部该演员的AV
+
+/av  后接番号可搜索该番号
 '''
     send_msg(msg)
 
