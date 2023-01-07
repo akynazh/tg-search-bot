@@ -347,7 +347,8 @@ def get_av_by_id(id: str,
     av_url = f'{BASE_URL_JAVBUS}/{av_id}'
     msg = ''
     if av_title != '':
-        msg += f'''【标题】<a href="{av_url}">{av_title}</a>'''
+        msg += f'''【标题】<a href="{av_url}">{av_title}</a>
+'''
     msg += f'''【番号】<code>{av_id}</code>
 '''
     if av_date != '':
