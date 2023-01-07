@@ -309,7 +309,7 @@ def get_av_by_id(id: str, is_nice: bool, magnet_max_count=100) -> dict:
 if __name__ == '__main__':
     res = None
     # javbus id test
-    # res = get_av_by_id(id='GTJ-111', is_nice=True, magnet_max_count=3)
+    res = get_av_by_id(id='GTJ-111', is_nice=True, magnet_max_count=3)
     # res = get_av_by_id(id='YMDD-301', is_nice=False)
     # res = get_av_by_id(id='ipx-811', is_nice=False)
     # res = get_av_by_id(id='091318_01', is_nice=True, magnet_max_count=3)

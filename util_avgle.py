@@ -37,5 +37,6 @@ def get_video_by_id(id: str) -> dict:
 
 
 if __name__ == '__main__':
+    res = None
     res = get_video_by_id('ssni-497')
     if res: print(res)

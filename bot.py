@@ -328,9 +328,10 @@ def get_av_by_id(id: str,
     '''
     # 获取AV
     try:
+        # 首先通过javbus查找
         av_url = f'{BASE_URL_JAVBUS}/{id}'
         av = util_javbus.get_av_by_id(id, is_nice, magnet_max_count)
-        if not av:
+        if not av:  # 如果找不到，再通过sukebei查找
             av_url = f'{BASE_URL_SUKEBEI}?q={id}'
             av = util_sukebei.get_av_by_id(id, is_nice, magnet_max_count)
     except Exception as e:
@@ -432,10 +433,10 @@ def get_av_by_id(id: str,
     else:
         try:
             bot.send_photo(chat_id=TG_CHAT_ID,
-                        photo=av_img,
-                        caption=msg,
-                        parse_mode='HTML',
-                        reply_markup=markup)
+                           photo=av_img,
+                           caption=msg,
+                           parse_mode='HTML',
+                           reply_markup=markup)
         except Exception:  # 少数图片可能没法发送
             send_msg(msg=msg, markup=markup)
     # 发给pikpak
@@ -661,12 +662,13 @@ def handle_message(message):
                 send_msg(f'网络请求失败，请重试 Q_Q')
                 return
     else:
-        ids = re.compile(r'^[A-Za-z]+[-][0-9]+$').findall(msg)
-        if not ids: send_msg('消息似乎不存在符合规则的番号捏 =_=')
+        # ids = re.compile(r'^[A-Za-z]+[-][0-9]+$').findall(msg)
+        ids = re.compile(r'[A-Za-z]+[-][0-9]+').findall(msg)
+        if not ids: send_msg('消息似乎不存在符合“字母-数字”格式的番号，请重试或使用“/av 番号”进行查找 =_=')
         else:
             ids = set(ids)
             ids_msg = ', '.join(ids)
-            send_msg(f'检测到番号：{ids_msg}，开始搜索番号...')
+            send_msg(f'检测到番号：{ids_msg}，开始搜索...')
             for id in ids:
                 get_av_by_id(
                     id=id,
@@ -682,7 +684,7 @@ def test():
 
 def help():
     '''发送指令帮助消息'''
-    msg = '''随机发送一条含番号的消息以获取该番号对应的AV
+    msg = '''发送给机器人一条含有番号的消息，机器人会匹配并搜索消息中所有符合“字母-数字”格式的番号（其它格式的番号可通过/av命令查找）。如果搜索到结果，将返回番号对应AV的<b>封面，标题，日期，演员，磁链</b>等**
     
 /help  查看指令帮助
 
@@ -692,9 +694,9 @@ def help():
 
 /random  随机获取一部AV
 
-/star  后接演员名称（日语）可随机获取一部该演员的AV
+<code>/star</code>  后接演员名称（日语）可随机获取一部该演员的AV
 
-/av  后接番号可搜索该番号
+<code>/av</code>  后接番号可搜索该番号
 '''
     send_msg(msg)
 

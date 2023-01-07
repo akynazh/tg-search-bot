@@ -122,5 +122,8 @@ def get_av_by_id(id: str, is_nice: bool, magnet_max_count=100) -> dict:
 
 
 if __name__ == '__main__':
-    res = get_av_by_id(id='siro-3352', is_nice=True, magnet_max_count=3)
+    res = None
+    res = get_av_by_id(id='fc2-ppv-880652', is_nice=True, magnet_max_count=3)
+    # res = get_av_by_id(id='880652', is_nice=True, magnet_max_count=3)
+    # res = get_av_by_id(id='siro-3352', is_nice=True, magnet_max_count=3)
     if res: print(res)
