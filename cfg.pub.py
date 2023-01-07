@@ -12,7 +12,7 @@ PROXY_ADDR = f'{PROXY_SCHEME}://{PROXY_ADDR_HOST}:{PROXY_ADDR_PORT}' # 不用编
 
 # 可选字段：关于自动发送磁链到Pikpak的配置
 USE_PIKPAK = 0 # 是否使用Pikpak 1 是 | 0 否
-# 如果不使用pikpak，以下三个字段不用管
+# 如果不使用pikpak自动发送功能，以下三个字段不用管
 PIKPAK_BOT_NAME = 'PikPak6_Bot' # 默认使用官方机器人：https://t.me/PikPak6_Bot
 # 在这里申请api：https://my.telegram.org/apps
 TG_API_ID = '' # telegram api id
