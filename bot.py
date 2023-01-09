@@ -380,7 +380,7 @@ def get_av_by_id(id: str,
         msg += f'''【标签】{av_tags}
 '''
     # 加上其它消息
-    msg += f'''【其它】<a href="https://t.me/{cfg.PIKPAK_BOT_NAME}">@{cfg.PIKPAK_BOT_NAME}</a> | <a href="{AUTHOR}">作者</a> | <a href="{PROJECT_ADDRESS}">项目地址</a>
+    msg += f'''【其它】<a href="https://t.me/{cfg.PIKPAK_BOT_NAME}">@{cfg.PIKPAK_BOT_NAME}</a> | <a href="{PROJECT_ADDRESS}">项目地址</a>
 '''
     # 加上磁链消息
     magnet_send_to_pikpak = ''

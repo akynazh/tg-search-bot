@@ -70,7 +70,7 @@ TG_API_HASH = '' # telegram api hash
 python3 util_pikpak.py
 ```
 
-再控制台中完成登录操作，即可生成 `my_account.session` 文件。
+接着需要在控制台中完成登录操作，即可生成 `my_account.session` 文件。
 
 ### 运行机器人
 

@@ -35,5 +35,5 @@ def send_msg(msg) -> bool:
 
 
 if __name__ == '__main__':
-    if send_msg('test'):
+    if send_msg('from tg-jav-bot'):
         print('ok')
