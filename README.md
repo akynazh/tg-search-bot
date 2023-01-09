@@ -24,12 +24,18 @@
 
 ### 安装依赖
 
-前提：已经安装Python3（>=3.7）。
+如果通过docker部署可以跳过该步骤。该步骤完成的前提是已经安装Python3（>=3.7）。
 
 ```
 git clone https://github.com/akynazh/tg-jav-bot.git
 pip install -r requirements.txt
 cd tg-jav-bot
+```
+
+注：`requirements.txt` 配置使用了国内镜像源，如需取消该设定，可以删除 `requirements.txt` 中的第一行内容：
+
+```
+-i https://pypi.tuna.tsinghua.edu.cn/simple
 ```
 
 ### 填写配置
@@ -58,8 +64,22 @@ TG_API_ID = '' # telegram api id
 TG_API_HASH = '' # telegram api hash
 ```
 
+注：如需使用Pikpak自动发送功能，需要先生成 `my_account.session` 文件，运行如下命令：
+
+```
+python3 util_pikpak.py
+```
+
+再控制台中完成登录操作，即可生成 `my_account.session` 文件。
+
 ### 运行机器人
 
 ```
 nohup python3 bot.py >/dev/null 2>&1 &
+```
+
+如果通过docker部署：（前提：安装了docker和docker-compose）
+
+```
+docker-compose up -d
 ```
