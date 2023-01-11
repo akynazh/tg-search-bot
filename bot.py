@@ -666,6 +666,7 @@ def handle_message(message):
         ids = re.compile(r'[A-Za-z]+[-][0-9]+').findall(msg)
         if not ids: send_msg('消息似乎不存在符合<b>“字母-数字”</b>格式的番号，请重试或使用“<code>/av</code> 番号”进行查找 =_=')
         else:
+            ids = [id.lower() for id in ids]
             ids = set(ids)
             ids_msg = ', '.join(ids)
             send_msg(f'检测到番号：{ids_msg}，开始搜索...')
