@@ -110,6 +110,16 @@ def check_has_record() -> typing.Tuple[dict, bool, bool]:
     return record, is_stars_exists, is_avs_exists
 
 
+def get_record_json():
+    '''发送收藏记录文件'''
+    if os.path.exists(PATH_RECORD_FILE):
+        bot.send_document(
+            chat_id=TG_CHAT_ID, document=types.InputFile(PATH_RECORD_FILE)
+        )
+    else:
+        bot.send_message(chat_id=TG_CHAT_ID, text='尚无记录 =_=')
+
+
 def renew_record(record: dict):
     '''更新记录
 
@@ -639,6 +649,8 @@ def handle_message(message):
         get_stars_record()
     elif msg == '/avs':
         get_avs_record()
+    elif msg == '/record':
+        get_record_json()
     elif msg.find('/star') != -1:
         param = get_msg_param(msg)
         if param:
@@ -695,6 +707,8 @@ def help():
 
 /random  随机获取一部AV
 
+/record  获取收藏记录文件
+
 <code>/star</code>  后接演员名称（日语）可随机获取一部该演员的AV
 
 <code>/av</code>  后接番号可搜索该番号
@@ -709,6 +723,7 @@ def set_command():
         'stars': '获取收藏的演员',
         'avs': '获取收藏的AV',
         'random': '随机获取一部AV',
+        'record': '获取收藏记录文件'
     }
     cmds = []
     for cmd in tg_cmd_dict:
