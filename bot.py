@@ -376,12 +376,15 @@ def get_av_detail_record(id: str):
 
     :param str id: 番号
     '''
-    button1 = InlineKeyboardButton(text=f'获取{id}对应AV',
-                                   callback_data=f'{id}:{KEY_GET_AV_BY_ID}')
-    button2 = InlineKeyboardButton(text=f'取消收藏{id}',
-                                   callback_data=f'{id}:{KEY_UNDO_RECORD_AV}')
+    markup = InlineKeyboardMarkup()
+    markup.row(
+        InlineKeyboardButton(text=f'获取{id}对应AV',
+                             callback_data=f'{id}:{KEY_GET_AV_BY_ID}'))
+    markup.row(
+        InlineKeyboardButton(text=f'取消收藏{id}',
+                             callback_data=f'{id}:{KEY_UNDO_RECORD_AV}'))
     send_msg(msg=f'<a href="{util_javbus.BASE_URL}/{id}">{id}</a>',
-             markup=InlineKeyboardMarkup().row(button1, button2))
+             markup=markup)
 
 
 def get_av_by_id(id: str,
