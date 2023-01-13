@@ -37,9 +37,12 @@ KEY_RECORD_STAR = 5
 KEY_RECORD_AV = 6
 KEY_GET_STARS_RECORD = 7
 KEY_GET_AVS_RECORD = 8
-KEY_GET_STAR_AVS_RECORD = 9
+KEY_GET_STAR_DETAIL_RECORD = 9
 KEY_GET_AV_BY_ID = 10
 KEY_RANDOM_GET_AV = 11
+KEY_UNDO_RECORD_STAR = 12
+KEY_UNDO_RECORD_AV = 13
+KEY_GET_AV_DETAIL_RECORD = 14
 PROJECT_ADDRESS = 'https://github.com/akynazh/tg-jav-bot'
 PROJECT_NAME = 'tg-jav-bot'
 AUTHOR = 'https://github.com/akynazh'
@@ -113,9 +116,8 @@ def check_has_record() -> typing.Tuple[dict, bool, bool]:
 def get_record_json():
     '''发送收藏记录文件'''
     if os.path.exists(PATH_RECORD_FILE):
-        bot.send_document(
-            chat_id=TG_CHAT_ID, document=types.InputFile(PATH_RECORD_FILE)
-        )
+        bot.send_document(chat_id=TG_CHAT_ID,
+                          document=types.InputFile(PATH_RECORD_FILE))
     else:
         bot.send_message(chat_id=TG_CHAT_ID, text='尚无记录 =_=')
 
@@ -193,6 +195,44 @@ def record_id(id: str, stars: list):
         send_msg(f'已经收藏过<code>{id}</code>了 =_=')
 
 
+def undo_record_star(star_id: str):
+    '''取消收藏演员
+
+    :param str star_id: 演员id
+    '''
+    # 加载记录
+    record, _, _ = check_has_record()
+    stars = record['stars']
+    # 删除记录
+    for i, star in enumerate(stars):
+        if star['id'] == star_id:
+            del stars[i]
+            break
+    # 更新记录
+    record['stars'] = stars
+    renew_record(record)
+    send_msg(msg='操作成功')
+
+
+def undo_record_id(id: str):
+    '''取消收藏番号
+
+    :param str id: 番号
+    '''
+    # 加载记录
+    record, _, _ = check_has_record()
+    avs = record['avs']
+    # 删除记录
+    for i, av in enumerate(avs):
+        if av['id'] == id:
+            del avs[i]
+            break
+    # 更新记录
+    record['avs'] = avs
+    renew_record(record)
+    send_msg(msg='操作成功')
+
+
 def create_btn(btn_type: int, obj: dict):
     '''根据按钮种类创建按钮
 
@@ -203,11 +243,11 @@ def create_btn(btn_type: int, obj: dict):
     if btn_type == 0:  # star
         return InlineKeyboardButton(
             text=obj['name'],
-            callback_data=f'{obj["name"]}|{obj["id"]}:{KEY_GET_STAR_AVS_RECORD}'
-        )
+            callback_data=
+            f'{obj["name"]}|{obj["id"]}:{KEY_GET_STAR_DETAIL_RECORD}')
     elif btn_type == 1:  # av
-        return InlineKeyboardButton(text=obj,
-                                    callback_data=f'{obj}:{KEY_GET_AV_BY_ID}')
+        return InlineKeyboardButton(
+            text=obj, callback_data=f'{obj}:{KEY_GET_AV_DETAIL_RECORD}')
 
 
 def send_msg_btns(max_btn_per_row: int,
@@ -215,7 +255,7 @@ def send_msg_btns(max_btn_per_row: int,
                   btn_type: int,
                   title: str,
                   objs: list,
-                  extra_btn=None):
+                  extra_btns=[]):
     '''发送按钮消息
 
     :param int max_btn_per_row: 每行最大按钮数量
@@ -223,7 +263,7 @@ def send_msg_btns(max_btn_per_row: int,
     :param int btn_type: 按钮种类 0 演员 | 1 番号
     :param str title: 消息标题
     :param dict objs: 数据对象数组
-    :param _type_ extra_btn: 附加按钮，加在每条消息尾部
+    :param list extra_btns: 附加按钮列表，每行一个按钮，附加在每条消息尾部，默认为空
     '''
     # 初始化数据
     markup = InlineKeyboardMarkup()
@@ -239,7 +279,7 @@ def send_msg_btns(max_btn_per_row: int,
             btns = []
         # 若消息中行数达到max_row_per_msg，则发送消息
         if row_count == max_row_per_msg:
-            if extra_btn:
+            for extra_btn in extra_btns:
                 markup.row(extra_btn)
             send_msg(msg=title, markup=markup)
             row_count = 0
@@ -250,7 +290,7 @@ def send_msg_btns(max_btn_per_row: int,
         row_count += 1
     # 若当前行数不为0，则发送消息
     if row_count != 0:
-        if extra_btn:
+        for extra_btn in extra_btns:
             markup.row(extra_btn)
         send_msg(msg=title, markup=markup)
 
@@ -265,15 +305,15 @@ def get_stars_record():
         return
     stars = record['stars']
     # 发送按钮消息
-    send_msg_btns(max_btn_per_row=3,
-                  max_row_per_msg=6,
+    send_msg_btns(max_btn_per_row=4,
+                  max_row_per_msg=15,
                   btn_type=0,
                   title='<b>收藏的演员</b>',
                   objs=stars)
 
 
-def get_star_avs_record(star_name: str, star_id: str):
-    '''根据演员编号获取收藏的该演员的AV列表
+def get_star_detail_record(star_name: str, star_id: str):
+    '''根据演员编号获取该演员更多信息
 
     :param str star_name: 演员名称
     :param str star_id: 演员编号
@@ -290,19 +330,25 @@ def get_star_avs_record(star_name: str, star_id: str):
         if star_id in av['stars']:
             star_avs.append(av['id'])
     # 发送按钮消息
-    extra_btn = InlineKeyboardButton(
+    extra_btn1 = InlineKeyboardButton(
         text=f'随机获取一部{star_name}的AV',
         callback_data=f'{star_id}:{kEY_RANDOM_GET_AV_BY_STAR_ID}')
+    extra_btn2 = InlineKeyboardButton(
+        text=f'取消收藏{star_name}',
+        callback_data=f'{star_id}:{KEY_UNDO_RECORD_STAR}')
+    title = f'<code>{star_name}</code> | <a href="https://ja.wikipedia.org/wiki/{star_name}">Wiki</a> | <a href="{util_javbus.BASE_URL}/star/{star_id}">Javbus</a>'
     if len(star_avs) == 0:  # 没有收藏记录
-        send_msg(msg='尚未收藏任何该演员的番号',
-                 markup=InlineKeyboardMarkup().row(extra_btn))
+        markup = InlineKeyboardMarkup()
+        markup.row(extra_btn1)
+        markup.row(extra_btn2)
+        send_msg(msg=title, markup=markup)
         return
     send_msg_btns(max_btn_per_row=5,
-                  max_row_per_msg=6,
+                  max_row_per_msg=20,
                   btn_type=1,
-                  title=f'<b>收藏的<code>{star_name}</code>的番号</b>',
+                  title=title,
                   objs=star_avs,
-                  extra_btn=extra_btn)
+                  extra_btns=[extra_btn1, extra_btn2])
 
 
 def get_avs_record():
@@ -318,11 +364,24 @@ def get_avs_record():
     extra_btn = InlineKeyboardButton(text='随机获取一部AV',
                                      callback_data=f'0:{KEY_RANDOM_GET_AV}')
     send_msg_btns(max_btn_per_row=5,
-                  max_row_per_msg=6,
+                  max_row_per_msg=20,
                   btn_type=1,
                   title='<b>收藏的番号</b>',
                   objs=avs,
-                  extra_btn=extra_btn)
+                  extra_btns=[extra_btn])
+
+
+def get_av_detail_record(id: str):
+    '''根据番号获取该番号更多信息
+
+    :param str id: 番号
+    '''
+    button1 = InlineKeyboardButton(text=f'获取{id}对应AV',
+                                   callback_data=f'{id}:{KEY_GET_AV_BY_ID}')
+    button2 = InlineKeyboardButton(text=f'取消收藏{id}',
+                                   callback_data=f'{id}:{KEY_UNDO_RECORD_AV}')
+    send_msg(msg=f'<a href="{util_javbus.BASE_URL}/{id}">{id}</a>',
+             markup=InlineKeyboardMarkup().row(button1, button2))
 
 
 def get_av_by_id(id: str,
@@ -590,9 +649,11 @@ def listen_callback(call):
         get_stars_record()
     elif key_type == KEY_GET_AVS_RECORD:
         get_avs_record()
-    elif key_type == KEY_GET_STAR_AVS_RECORD:
+    elif key_type == KEY_GET_STAR_DETAIL_RECORD:
         s = content.find('|')
-        get_star_avs_record(star_name=content[:s], star_id=content[s + 1:])
+        get_star_detail_record(star_name=content[:s], star_id=content[s + 1:])
+    elif key_type == KEY_GET_AV_DETAIL_RECORD:
+        get_av_detail_record(id=content)
     elif key_type == KEY_GET_AV_BY_ID:
         get_av_by_id(id=content, send_to_pikpak=False)
     elif key_type == KEY_RANDOM_GET_AV:
@@ -604,6 +665,10 @@ def listen_callback(call):
             return
         if not id: send_msg('获取失败，请重试 =_=')
         else: get_av_by_id(id=id, send_to_pikpak=False)
+    elif key_type == KEY_UNDO_RECORD_AV:
+        undo_record_id(id=content)
+    elif key_type == KEY_UNDO_RECORD_STAR:
+        undo_record_star(star_id=content)
 
 
 @bot.message_handler(content_types=['text', 'photo', 'animation', 'video'])
@@ -676,7 +741,10 @@ def handle_message(message):
     else:
         # ids = re.compile(r'^[A-Za-z]+[-][0-9]+$').findall(msg)
         ids = re.compile(r'[A-Za-z]+[-][0-9]+').findall(msg)
-        if not ids: send_msg('消息似乎不存在符合<b>“字母-数字”</b>格式的番号，请重试或使用“<code>/av</code> 番号”进行查找 =_=')
+        if not ids:
+            send_msg(
+                '消息似乎不存在符合<b>“字母-数字”</b>格式的番号，请重试或使用“<code>/av</code> 番号”进行查找 =_='
+            )
         else:
             ids = [id.lower() for id in ids]
             ids = set(ids)
