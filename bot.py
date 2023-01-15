@@ -554,14 +554,24 @@ def get_sample_by_id(id: str):
         return
     # 发送图片列表
     samples_imp = []
-    for i, sample in enumerate(samples):
+    sample_error = False
+    for sample in samples:
         samples_imp.append(InputMediaPhoto(sample))
-        if i == 9:  # 图片数目达到9张则发送一次
+        if len(samples_imp) == 10:  # 图片数目达到10张则发送一次
+            try:
+                bot.send_media_group(chat_id=TG_CHAT_ID, media=samples_imp)
+                samples_imp = []
+            except Exception as e:
+                sample_error = True
+                LOG.error(e)
+                send_msg('图片解析失败')
+                break
+    if samples_imp != [] and not sample_error:
+        try:
             bot.send_media_group(chat_id=TG_CHAT_ID, media=samples_imp)
-            samples_imp = []
-    if samples_imp != []:
-        bot.send_media_group(chat_id=TG_CHAT_ID, media=samples_imp)
-
+        except Exception as e:
+            LOG.error(e)
+            send_msg('图片解析失败')
 
 def watch_av(id: str, type: str):
     '''获取番号对应在线视频
