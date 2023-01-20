@@ -11,7 +11,7 @@
 **附加功能：**
 
 - 支持**过滤**磁链（过滤顺序：**高清，有字幕**）
-- 支持让机器人自动将**最优磁链**发送到**pikpak**（随机获取时不会自动发送）
+- 支持让机器人自动将**最优磁链**发送到 **pikpak**（随机获取时不会自动发送）
 - 支持通过 Dmm 获取**预览视频**功能 （由于 DMM 限制，只支持日本 IP）
 - 支持通过 Avgle 获取**完整视频**功能
 - 支持获取**截图**功能
@@ -34,7 +34,7 @@ cd tg-jav-bot
 
 如果使用 docker 部署，可以跳过该步骤。
 
-前提：系统已经安装Python3（>=3.7）
+前提：系统已经安装 Python3（>=3.7）
 
 ```
 pip install -r requirements.txt
@@ -72,7 +72,7 @@ TG_API_ID = '' # telegram api id
 TG_API_HASH = '' # telegram api hash
 ```
 
-如需使用Pikpak自动发送功能，需要先生成 `my_account.session` 文件，运行如下命令：
+如需使用 Pikpak 自动发送功能，需要先生成 `my_account.session` 文件，运行如下命令：
 
 ```
 python3 util_pikpak.py
@@ -82,13 +82,13 @@ python3 util_pikpak.py
 
 ### 四、运行机器人
 
-如果不是通过docker部署，运行如下命令：
+如果不是通过 docker 部署，运行如下命令：
 
 ```
 nohup python3 bot.py >/dev/null 2>&1 &
 ```
 
-如果通过docker部署，运行如下命令：（前提：安装了docker和docker-compose）
+如果通过 docker 部署，运行如下命令：（前提：安装了 docker 和 docker-compose ）
 
 ```
 docker-compose up -d
