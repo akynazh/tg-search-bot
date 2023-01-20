@@ -1,30 +1,9 @@
 # -*- coding: UTF-8 -*-
 import requests
-import cfg
+import common
 from bs4 import BeautifulSoup
 
 BASE_URL = 'https://sukebei.nyaa.si'
-HOST = BASE_URL.split('://')[1]
-proxies = {}
-if cfg.USE_PROXY == 1:
-    proxies = {'http': cfg.PROXY_ADDR, 'https': cfg.PROXY_ADDR}
-
-
-def get_headers(url: str) -> dict:
-    '''获取请求头
-
-    :param str url: 'Referer'字段值，访问源至哪里来
-    :return dict: 请求头
-    '''
-    return {
-        'User-Agent':
-        'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2272.101 Safari/537.36',
-        'Host': HOST,
-        'Connection': 'close',
-        'X-Requested-With': 'XMLHttpRequest',
-        'Referer': url.encode('utf-8'),
-    }
-
 
 def sort_magnets(magnets: list) -> list:
     # 统一单位为MB
@@ -84,7 +63,8 @@ def get_av_by_id(id: str, is_nice: bool, magnet_max_count=100) -> dict:
     }
     # 查找av
     url = f'{BASE_URL}?q={id}'
-    resp = requests.get(url, proxies=proxies, headers=get_headers(url))
+    headers = {'user-agent': common.ua()}
+    resp = requests.get(url, proxies=common.PROXY, headers=headers)
     if resp.status_code != 200:
         return None
     # 获取soup

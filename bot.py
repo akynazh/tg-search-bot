@@ -14,6 +14,7 @@ import util_pikpak
 import util_javbus
 import util_avgle
 import util_sukebei
+import util_dmm
 
 TG_BOT_TOKEN = cfg.TG_BOT_TOKEN
 bot = telebot.TeleBot(TG_BOT_TOKEN)
@@ -564,32 +565,39 @@ def get_sample_by_id(id: str):
             except Exception as e:
                 sample_error = True
                 LOG.error(e)
-                send_msg('图片解析失败')
+                send_msg('图片解析失败 Q_Q')
                 break
     if samples_imp != [] and not sample_error:
         try:
             bot.send_media_group(chat_id=TG_CHAT_ID, media=samples_imp)
         except Exception as e:
             LOG.error(e)
-            send_msg('图片解析失败')
+            send_msg('图片解析失败 Q_Q')
 
 def watch_av(id: str, type: str):
-    '''获取番号对应在线视频
+    '''获取番号对应视频
 
     :param str id: 番号
     :param str type: 0 预览视频 | 1 完整视频
     '''
     try:
-        video = util_avgle.get_video_by_id(id)
+        if type == 0:
+            video = util_dmm.get_pv_by_id(id)
+        elif type == 1:
+            video = util_avgle.get_fv_by_id(id)
     except Exception as e:
         LOG.info(e)
         send_msg(f'网络请求失败，请重试 Q_Q')
         return
     if video:
+        LOG.info(video)
         if type == 0:
-            bot.send_video(chat_id=TG_CHAT_ID, video=video['pv'])
+            try:
+                bot.send_video(chat_id=TG_CHAT_ID, video=video)
+            except Exception:
+                send_msg('视频解析失败 Q_Q')
         elif type == 1:
-            send_msg(f'番号{id}对应视频地址：{video["fv"]}')
+            send_msg(f'番号{id}对应视频地址：{video}')
     else:
         send_msg(f'未找到{id}对应视频 =_=')
 

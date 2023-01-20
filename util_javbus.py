@@ -1,33 +1,13 @@
 # -*- coding: UTF-8 -*-
 import requests
 import re
-import cfg
+import common
 import random
 from bs4 import BeautifulSoup
 
 BASE_URL = 'https://www.javbus.com'
 # BASE_URL = 'https://www.seejav.me'
-HOST = BASE_URL.split('://')[1]
 HOME_MAX_PAGE = 100
-proxies = {}
-if cfg.USE_PROXY == 1:
-    proxies = {'http': cfg.PROXY_ADDR, 'https': cfg.PROXY_ADDR}
-
-
-def get_headers(url: str) -> dict:
-    '''获取请求头
-
-    :param str url: 'Referer'字段值，访问源至哪里来
-    :return dict: 请求头
-    '''
-    return {
-        'User-Agent':
-        'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2272.101 Safari/537.36',
-        'Host': HOST,
-        'Connection': 'close',
-        'X-Requested-With': 'XMLHttpRequest',
-        'Referer': url.encode('utf-8'),
-    }
 
 
 def get_max_page(url: str) -> int:
@@ -36,7 +16,8 @@ def get_max_page(url: str) -> int:
     :param str url: 页面地址
     :return int: 最大页数
     '''
-    resp = requests.get(url=url, proxies=proxies, headers=get_headers(url))
+    headers = {'user-agent': common.ua()}
+    resp = requests.get(url=url, proxies=common.PROXY, headers=headers)
     if resp.status_code != 200:
         return None
     soup = BeautifulSoup(resp.text, 'lxml')
@@ -64,7 +45,8 @@ def get_id_from_page(base_page_url: str, page=-1) -> str:
             url = f'{base_page_url}/{random.randint(1, max_page)}'
     if url == '': return None
     # 开始获取番号
-    resp = requests.get(url=url, proxies=proxies, headers=get_headers(url))
+    headers = {'user-agent': common.ua()}
+    resp = requests.get(url=url, proxies=common.PROXY, headers=headers)
     if resp.status_code != 200:
         return None
     ids = []
@@ -119,7 +101,8 @@ def get_samples_by_id(id: str) -> list:
     '''
     samples = []
     url = f'{BASE_URL}/{id}'
-    resp = requests.get(url, proxies=proxies, headers=get_headers(url))
+    headers = {'user-agent': common.ua()}
+    resp = requests.get(url, proxies=common.PROXY, headers=headers)
     if resp.status_code != 200:
         return None
     # 获取soup
@@ -217,7 +200,8 @@ def get_av_by_id(id: str, is_nice: bool, magnet_max_count=100) -> dict:
     }
     # 查找av
     url = f'{BASE_URL}/{id}'
-    resp = requests.get(url, proxies=proxies, headers=get_headers(url))
+    headers = {'user-agent': common.ua()}
+    resp = requests.get(url, proxies=common.PROXY, headers=headers)
     if resp.status_code != 200:
         return None
     # 获取soup和html
@@ -269,8 +253,12 @@ def get_av_by_id(id: str, is_nice: bool, magnet_max_count=100) -> dict:
         return av
     # 得到磁链的ajax请求地址
     url = f'{BASE_URL}/ajax/uncledatoolsbyajax.php?gid={gid}&lang=zh&uc={uc}'
+    headers = {
+        'user-agent': common.ua(),
+        'referer': f'{BASE_URL}/{id}',
+    }
     # 发送请求获取含磁链页
-    resp = requests.get(url, proxies=proxies, headers=get_headers(url))
+    resp = requests.get(url, proxies=common.PROXY, headers=headers)
     if resp.status_code != 200:
         return av
     soup = BeautifulSoup(resp.text, 'lxml')
@@ -308,25 +296,13 @@ def get_av_by_id(id: str, is_nice: bool, magnet_max_count=100) -> dict:
 
 if __name__ == '__main__':
     res = None
-    # javbus id test
-    res = get_av_by_id(id='GTJ-111', is_nice=True, magnet_max_count=3)
-    # res = get_av_by_id(id='YMDD-301', is_nice=False)
+    # res = get_av_by_id(id='GTJ-111', is_nice=True, magnet_max_count=3)
     # res = get_av_by_id(id='ipx-811', is_nice=False)
-    # res = get_av_by_id(id='091318_01', is_nice=True, magnet_max_count=3)
-    # res = get_av_by_id(id='080916-226', is_nice=True, magnet_max_count=3)
-    # res = get_av_by_id(id='n1282', is_nice=True, magnet_max_count=3)
-    # res = get_av_by_id(id='ibw-631z', is_nice=True, magnet_max_count=3)
-    
-    # fc2 id test
-    # res = get_av_by_id(id='fc2-ppv-880652', is_nice=True, magnet_max_count=3)
-    # res = get_av_by_id(id='880652', is_nice=True, magnet_max_count=3)
-    
-    # other test
     # res = get_samples_by_id('ssni-497')
     # res = get_id_by_star_id('okq', 2)
     # res = get_id_by_star_name('白夜みくる')
     # res = get_max_page('https://www.javbus.com/star/okq')
-    # res = get_id_by_star_id('okq')
+    res = get_id_by_star_id('okq')
     # res = get_id_by_star_name('三上悠亜')
     # res = get_id_from_home()
     if res: print(res)
