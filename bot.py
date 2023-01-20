@@ -574,6 +574,7 @@ def get_sample_by_id(id: str):
             LOG.error(e)
             send_msg('图片解析失败 Q_Q')
 
+
 def watch_av(id: str, type: str):
     '''获取番号对应视频
 
@@ -590,11 +591,11 @@ def watch_av(id: str, type: str):
         send_msg(f'网络请求失败，请重试 Q_Q')
         return
     if video:
-        LOG.info(video)
         if type == 0:
             try:
                 bot.send_video(chat_id=TG_CHAT_ID, video=video)
-            except Exception:
+            except Exception as e:
+                LOG.info(e)
                 send_msg('视频解析失败 Q_Q')
         elif type == 1:
             send_msg(f'番号{id}对应视频地址：{video}')

@@ -1,6 +1,6 @@
 # tg-jav-bot
 
-**一个基于Javbus，Sukebei，Avgle, Dmm并集成Pikpak的TG番号查询机器人。**
+**一个基于 Javbus，Sukebei，Avgle, Dmm 并集成 Pikpak 的 TG 番号查询机器人。**
 
 ## 功能简介
 

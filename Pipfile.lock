@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "6f99fe2c4a79c0fe6e677e477ba951c783439444433fc498b2633323738baaaa"
+            "sha256": "196806143f6200e5910e499d6429ba7bebe62ccda466c0ca7e794e15645a3056"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -9,11 +9,6 @@
             "python_version": "3.7"
         },
         "sources": [
-            {
-                "name": "pypi",
-                "url": "https://pypi.org/simple",
-                "verify_ssl": true
-            },
             {
                 "name": "pypitunatsinghuaedu",
                 "url": "https://pypi.tuna.tsinghua.edu.cn/simple",
@@ -27,7 +22,7 @@
                 "sha256:f2dc98b0a6d70d6cefb4443d916fbf392ded1685ba4f13c741c053485d3ef6fa",
                 "sha256:f6be1f3a37d1d8563ec8971047fd7db870577f6634eea2d1bc69fc6a171a0ef9"
             ],
-            "index": "pypi",
+            "index": "pypitunatsinghuaedu",
             "version": "==1.0.10"
         },
         "beautifulsoup4": {
@@ -35,7 +30,7 @@
                 "sha256:58d5c3d29f5a36ffeb94f02f0d786cd53014cf9b3b3951d42e0080d8a9498d30",
                 "sha256:ad9aa55b65ef2808eb405f46cf74df7fcb7044d5cbc26487f96eb2ef2e436693"
             ],
-            "index": "pypi",
+            "index": "pypitunatsinghuaedu",
             "version": "==4.11.1"
         },
         "certifi": {
@@ -43,7 +38,7 @@
                 "sha256:35824b4c3a97115964b408844d64aa14db1cc518f6562e8d7261699d1350a9e3",
                 "sha256:4ad3232f5e926d6718ec31cfc1fcadfde020920e278684144551c91769c7bc18"
             ],
-            "index": "pypi",
+            "index": "pypitunatsinghuaedu",
             "version": "==2022.12.7"
         },
         "charset-normalizer": {
@@ -51,7 +46,7 @@
                 "sha256:5a3d016c7c547f69d6f81fb0db9449ce888b418b5b9952cc5e6e66843e9dd845",
                 "sha256:83e9a75d1911279afd89352c68b45348559d1fc0506b054b346651b5e7fee29f"
             ],
-            "index": "pypi",
+            "index": "pypitunatsinghuaedu",
             "version": "==2.1.1"
         },
         "colorama": {
@@ -67,7 +62,7 @@
                 "sha256:814f528e8dead7d329833b91c5faa87d60bf71824cd12a7530b5526063d02cb4",
                 "sha256:90b77e79eaa3eba6de819a0c442c0b4ceefc341a7a2ab77d7562bf49f425c5c2"
             ],
-            "index": "pypi",
+            "index": "pypitunatsinghuaedu",
             "version": "==3.4"
         },
         "loguru": {
@@ -158,14 +153,14 @@
                 "sha256:f1496ea22ca2c830cbcbd473de8f114a320da308438ae65abad6bab7867fe38f",
                 "sha256:f49e52d174375a7def9915c9f06ec4e569d235ad428f70751765f48d5926678c"
             ],
-            "index": "pypi",
+            "index": "pypitunatsinghuaedu",
             "version": "==4.9.2"
         },
         "pyaes": {
             "hashes": [
                 "sha256:02c1b1405c38d3c370b085fb952dd8bea3fadcee6411ad99f312cc129c536d8f"
             ],
-            "index": "pypi",
+            "index": "pypitunatsinghuaedu",
             "version": "==1.6.1"
         },
         "pyrogram": {
@@ -173,7 +168,7 @@
                 "sha256:1aa038d1da0a2a96452c9c2cae2592074ab83dcd95a1b996f49e583fd202fcab",
                 "sha256:863dd2de0b7d5cc26d0df65e545c309afcabfa2642c41c4670d3b28d580b1f4b"
             ],
-            "index": "pypi",
+            "index": "pypitunatsinghuaedu",
             "version": "==2.0.92"
         },
         "pysocks": {
@@ -182,14 +177,14 @@
                 "sha256:2725bd0a9925919b9b51739eea5f9e2bae91e83288108a9ad338b2e3a4435ee5",
                 "sha256:3f8804571ebe159c380ac6de37643bb4685970655d3bba243530d6558b799aa0"
             ],
-            "index": "pypi",
+            "index": "pypitunatsinghuaedu",
             "version": "==1.7.1"
         },
         "pytelegrambotapi": {
             "hashes": [
                 "sha256:ea77e95f3ab6c825432bca40b96cc0573af4a4a9f9547a9bdd41fd5578521c9d"
             ],
-            "index": "pypi",
+            "index": "pypitunatsinghuaedu",
             "version": "==4.8.0"
         },
         "requests": {
@@ -197,7 +192,7 @@
                 "sha256:7c5599b102feddaa661c826c56ab4fee28bfd17f5abca1ebbe3e7f19d7c97983",
                 "sha256:8fefa2a1a1365bf5520aac41836fbee479da67864514bdb821f31ce07ce65349"
             ],
-            "index": "pypi",
+            "index": "pypitunatsinghuaedu",
             "version": "==2.28.1"
         },
         "soupsieve": {
@@ -205,7 +200,7 @@
                 "sha256:3b2503d3c7084a42b1ebd08116e5f81aadfaea95863628c80a3b774a11b7c759",
                 "sha256:fc53893b3da2c33de295667a0e19f078c14bf86544af307354de5fcf12a3f30d"
             ],
-            "index": "pypi",
+            "index": "pypitunatsinghuaedu",
             "version": "==2.3.2.post1"
         },
         "tgcrypto": {
@@ -267,7 +262,7 @@
                 "sha256:f594e2680daf20dbac6bf56862f567ddc3cc8d6a19757ed07faa8320ff7acee4",
                 "sha256:f7ec9f0a571fcc38fbee224943ed9918123f752ac19bae5c195d8322f5b20fab"
             ],
-            "index": "pypi",
+            "index": "pypitunatsinghuaedu",
             "version": "==1.2.5"
         },
         "urllib3": {
@@ -275,7 +270,7 @@
                 "sha256:47cc05d99aaa09c9e72ed5809b60e7ba354e64b59c9c173ac3018642d8bb41fc",
                 "sha256:c083dd0dce68dbfbe1129d5271cb90f9447dea7d52097c6e0126120c521ddea8"
             ],
-            "index": "pypi",
+            "index": "pypitunatsinghuaedu",
             "version": "==1.26.13"
         },
         "win32-setctime": {

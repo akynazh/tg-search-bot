@@ -27,7 +27,8 @@ def get_pv_by_id(id: str) -> str:
     res = soup.find(class_='btn')
     if not res:
         return None
-    video_src = res.a['href'].replace('_sm_', '_dmb_')
+    video_src = res.a['href']
+    # video_src = video_src.replace('_sm_', '_dmb_')
     return video_src
 
 

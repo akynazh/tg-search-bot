@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 
 BASE_URL = 'https://sukebei.nyaa.si'
 
+
 def sort_magnets(magnets: list) -> list:
     # 统一单位为MB
     for magnet in magnets:
