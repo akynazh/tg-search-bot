@@ -593,7 +593,9 @@ def watch_av(id: str, type: str):
     if video:
         if type == 0:
             try:
+                video_nice = video.replace('_sm_', '_dmb_')
                 bot.send_video(chat_id=TG_CHAT_ID, video=video)
+                send_msg(f'由于 Telegram 的对机器人发送视频大小的限制，只能发送清晰度较差的视频 Q_Q 这是更清晰的视频的链接：<a href="{video_nice}">link</a>')
             except Exception as e:
                 LOG.info(e)
                 send_msg('视频解析失败 Q_Q')
