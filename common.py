@@ -8,6 +8,9 @@ PROXY = {}
 if cfg.USE_PROXY == 1:
     PROXY = {'http': cfg.PROXY_ADDR, 'https': cfg.PROXY_ADDR}
 
+PROXY_DMM = {}
+if cfg.USE_PROXY_DMM == 1:
+    PROXY_DMM = {'http': cfg.PROXY_ADDR, 'https': cfg.PROXY_ADDR}
 
 def ua_mobile() -> str:
     c = random.randint(0, 1)

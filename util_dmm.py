@@ -19,7 +19,7 @@ def get_pv_by_id(id: str) -> str:
         'user-agent': common.ua_mobile(),
         # 'accept-language': 'ja-JP'
     }
-    resp = requests.get(url=url, headers=headers, proxies=common.PROXY)
+    resp = requests.get(url=url, headers=headers, proxies=common.PROXY_DMM)
     if resp.status_code != 200:
         return None
     soup = BeautifulSoup(resp.text, 'lxml')
