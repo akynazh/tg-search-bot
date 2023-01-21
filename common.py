@@ -14,7 +14,7 @@ PROXY = {}
 if cfg.USE_PROXY == 1:
     PROXY = {'http': cfg.PROXY_ADDR, 'https': cfg.PROXY_ADDR}
 PROXY_DMM = {}
-if cfg.USE_PROXY == 1 or cfg.USE_PROXY_DMM == 1:
+if cfg.USE_PROXY_DMM == 1:
     PROXY_DMM = {'http': cfg.PROXY_ADDR, 'https': cfg.PROXY_ADDR}
 
 
@@ -67,7 +67,7 @@ def send_req(url,
     resp = requests.get(url, proxies=proxies, headers=headers)
     if resp.status_code == 200:
         return resp
-    
+
 
 if __name__ == '__main__':
     # print(ua_mobile())

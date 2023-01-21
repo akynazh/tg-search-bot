@@ -21,6 +21,8 @@
 - 支持**日志记录**功能
 - 支持**搜索演员**功能
 
+注：记录和日志等文件生成位置在 `~/.tg_jav_bot` 目录下。
+
 ## 使用教程
 
 ### 一、下载代码
@@ -52,25 +54,40 @@ pip install -r requirements.txt
 
 ```
 # 必填字段
-TG_CHAT_ID = '' # your telegram chat id
-TG_BOT_TOKEN = '' # your telegram bot token
+
+# your telegram chat id
+TG_CHAT_ID = ''
+ # your telegram bot token
+TG_BOT_TOKEN = ''
 
 # 可选字段：关于代理的配置
-USE_PROXY = 0 # 是否使用代理 1 是 | 0 否
-USE_PROXY_DMM = 0 # 访问 DMM 是否使用代理 1 是 | 0 否 （USE_PROXY 的值会覆盖该字段）
-# 如果不使用代理，以下四个字段不用管
-PROXY_SCHEME = '' # 代理类型 http | socks5 | socks4
-PROXY_ADDR_HOST = '' # IP地址
-PROXY_ADDR_PORT = '' # 端口地址
-PROXY_ADDR = f'{PROXY_SCHEME}://{PROXY_ADDR_HOST}:{PROXY_ADDR_PORT}' # 不用编辑该字段
 
-# 可选字段：关于自动发送磁链到Pikpak的配置
-USE_PIKPAK = 0 # 是否使用Pikpak自动发送功能 1 是 | 0 否
-# 如果不使用pikpak自动发送功能，以下三个字段不用管
-PIKPAK_BOT_NAME = 'PikPak6_Bot' # 默认使用官方机器人：https://t.me/PikPak6_Bot
-# 在这里申请api：https://my.telegram.org/apps
-TG_API_ID = '' # telegram api id
-TG_API_HASH = '' # telegram api hash
+# 是否使用代理 1 是 | 0 否
+USE_PROXY = 1
+ # 访问 DMM 是否使用代理 1 是 | 0 否 （该字段的值由自己决定，与 USE_PROXY 无关）
+USE_PROXY_DMM = 1
+# 如果不使用代理，以下三个字段不用管
+# 代理类型 http | socks5 | socks4
+PROXY_SCHEME = ''
+# IP 地址
+PROXY_ADDR_HOST = ''
+# 端口地址
+PROXY_ADDR_PORT = ''
+# 不用编辑该字段
+PROXY_ADDR = f'{PROXY_SCHEME}://{PROXY_ADDR_HOST}:{PROXY_ADDR_PORT}'
+
+# 可选字段：关于自动发送磁链到 Pikpak 的配置
+
+# 是否使用 Pikpak 自动发送功能 1 是 | 0 否
+USE_PIKPAK = 0
+# 如果不使用 pikpak 自动发送功能，以下三个字段不用管
+# 默认使用官方机器人：https://t.me/PikPak6_Bot
+PIKPAK_BOT_NAME = 'PikPak6_Bot'
+# 在这里申请 api：https://my.telegram.org/apps
+# telegram api id
+TG_API_ID = ''
+# telegram api hash
+TG_API_HASH = ''
 ```
 
 如需使用 Pikpak 自动发送功能，需要先生成 `my_account.session` 文件，运行如下命令：
@@ -80,8 +97,6 @@ python3 util_pikpak.py
 ```
 
 接着需要在控制台中完成登录操作，登录成功即可生成 `my_account.session` 文件。
-
-注：文件生成位置位于 `~/.tg_jav_bot` 目录下。
 
 ### 四、运行机器人
 
