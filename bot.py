@@ -15,15 +15,20 @@ import util_avgle
 import util_sukebei
 import util_dmm
 
+# 基本变量定义
 TG_BOT_TOKEN = cfg.TG_BOT_TOKEN
-bot = telebot.TeleBot(TG_BOT_TOKEN)
 TG_CHAT_ID = cfg.TG_CHAT_ID
 PATH_ROOT = common.PATH_ROOT
 PATH_RECORD_FILE = PATH_ROOT + '/record.json'
-apihelper.proxy = common.PROXY
 BASE_URL_JAVBUS = util_javbus.BASE_URL
 BASE_URL_SUKEBEI = util_sukebei.BASE_URL
-
+PROJECT_ADDRESS = 'https://github.com/akynazh/tg-jav-bot'
+PROJECT_NAME = 'tg-jav-bot'
+# 设置代理
+apihelper.proxy = common.PROXY
+# 初始化机器人
+bot = telebot.TeleBot(TG_BOT_TOKEN)
+# 回调按键值定义
 KEY_WATCH_PV_BY_ID = 0
 KEY_WATCH_FV_BY_ID = 1
 KEY_GET_SAMPLE_BY_ID = 2
@@ -39,9 +44,6 @@ KEY_RANDOM_GET_AV = 11
 KEY_UNDO_RECORD_STAR = 12
 KEY_UNDO_RECORD_AV = 13
 KEY_GET_AV_DETAIL_RECORD = 14
-PROJECT_ADDRESS = 'https://github.com/akynazh/tg-jav-bot'
-PROJECT_NAME = 'tg-jav-bot'
-AUTHOR = 'https://github.com/akynazh'
 
 
 def send_msg(msg, pv=False, markup=None):

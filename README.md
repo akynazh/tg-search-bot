@@ -106,8 +106,8 @@ python3 util_pikpak.py
 nohup python3 bot.py >/dev/null 2>&1 &
 ```
 
-如果通过 docker 部署，运行如下命令：（前提：安装了 docker 和 docker-compose ）
+如果通过 docker 部署，可运行如下命令：
 
 ```
-docker-compose up -d
+docker run -d .
 ```
