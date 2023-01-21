@@ -1,5 +1,4 @@
 # -*- coding: UTF-8 -*-
-import requests
 import common
 from bs4 import BeautifulSoup
 
@@ -64,10 +63,8 @@ def get_av_by_id(id: str, is_nice: bool, magnet_max_count=100) -> dict:
     }
     # 查找av
     url = f'{BASE_URL}?q={id}'
-    headers = {'user-agent': common.ua()}
-    resp = requests.get(url, proxies=common.PROXY, headers=headers)
-    if resp.status_code != 200:
-        return None
+    resp = common.send_req(url)
+    if not resp: return None
     # 获取soup
     soup = BeautifulSoup(resp.text, 'lxml')
     torrent_list = soup.find(class_='torrent-list')

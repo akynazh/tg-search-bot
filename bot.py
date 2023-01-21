@@ -5,9 +5,8 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMedia
 import cfg
 import json
 import os
-import sys
 import re
-import logging
+import common
 import typing
 import string
 import util_pikpak
@@ -19,16 +18,12 @@ import util_dmm
 TG_BOT_TOKEN = cfg.TG_BOT_TOKEN
 bot = telebot.TeleBot(TG_BOT_TOKEN)
 TG_CHAT_ID = cfg.TG_CHAT_ID
-PATH_ROOT = sys.path[0]
-PATH_RECORD_FILE = PATH_ROOT + '/record.json'  # 收藏记录文件
-PATH_LOG_FILE = PATH_ROOT + '/log.txt'  # 日志记录文件
-proxies = {}
+PATH_ROOT = common.PATH_ROOT
+PATH_RECORD_FILE = PATH_ROOT + '/record.json'
+apihelper.proxy = common.PROXY
 BASE_URL_JAVBUS = util_javbus.BASE_URL
 BASE_URL_SUKEBEI = util_sukebei.BASE_URL
-if cfg.USE_PROXY == 1:
-    proxies = {'http': cfg.PROXY_ADDR, 'https': cfg.PROXY_ADDR}
-    apihelper.proxy = proxies
-# 按钮键值定义
+
 KEY_WATCH_PV_BY_ID = 0
 KEY_WATCH_FV_BY_ID = 1
 KEY_GET_SAMPLE_BY_ID = 2
@@ -47,27 +42,6 @@ KEY_GET_AV_DETAIL_RECORD = 14
 PROJECT_ADDRESS = 'https://github.com/akynazh/tg-jav-bot'
 PROJECT_NAME = 'tg-jav-bot'
 AUTHOR = 'https://github.com/akynazh'
-
-
-class Logger:
-    '''日志记录器
-    '''
-
-    def __init__(self, log_level):
-        '''初始化日志记录器
-
-        :param _type_ log_level: 记录级别
-        '''
-        self.logger = logging.getLogger()
-        self.logger.addHandler(self.get_file_handler(PATH_LOG_FILE))
-        self.logger.addHandler(logging.StreamHandler())
-        self.logger.setLevel(log_level)
-
-    def get_file_handler(self, file):
-        file_handler = logging.FileHandler(file)
-        file_handler.setFormatter(
-            logging.Formatter('[%(asctime)s] %(levelname)s: %(message)s'))
-        return file_handler
 
 
 def send_msg(msg, pv=False, markup=None):
@@ -96,8 +70,8 @@ def check_has_record() -> typing.Tuple[dict, bool, bool]:
         try:
             with open(PATH_RECORD_FILE, 'r') as f:
                 record = json.load(f)
-        except Exception:
-            LOG.info('文件格式有误')
+        except Exception as e:
+            LOG.info(f'文件提取出错： {e}')
             return None, False, False
     # 尚无记录
     if not record or record == {}:
@@ -425,7 +399,6 @@ def get_av_by_id(id: str,
     av_magnets = av['magnets']
     # 拼接消息
     msg = ''
-    print(av_title)
     if av_title != '':
         msg += f'''【标题】<a href="{av_url}">{av_title}</a>
 '''
@@ -594,8 +567,12 @@ def watch_av(id: str, type: str):
         if type == 0:
             try:
                 video_nice = video.replace('_sm_', '_dmb_')
-                bot.send_video(chat_id=TG_CHAT_ID, video=video)
-                send_msg(f'由于 Telegram 的对机器人发送视频大小的限制，只能发送清晰度较差的视频 Q_Q 这是更清晰的视频的链接：<a href="{video_nice}">link</a>')
+                bot.send_video(
+                    chat_id=TG_CHAT_ID,
+                    video=video,
+                    caption=
+                    f'由于 Telegram 的对机器人发送视频大小的限制，只能发送清晰度较差的视频 Q_Q <a href="{video_nice}">点击这里以获取更清晰的视频~</a>',
+                    parse_mode='HTML')
             except Exception as e:
                 LOG.info(e)
                 send_msg('视频解析失败 Q_Q')
@@ -825,7 +802,6 @@ def set_command():
 
 if __name__ == '__main__':
     os.chdir(PATH_ROOT)
-    LOG = Logger(log_level=logging.INFO).logger
-    LOG.info(f'当前工作目录：{PATH_ROOT}')
+    LOG = common.LOG
     set_command()
     bot.infinity_polling()

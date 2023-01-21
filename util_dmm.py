@@ -1,5 +1,4 @@
 # -*- coding: UTF-8 -*-
-import requests
 import common
 from bs4 import BeautifulSoup
 
@@ -19,9 +18,8 @@ def get_pv_by_id(id: str) -> str:
         'user-agent': common.ua_mobile(),
         # 'accept-language': 'ja-JP'
     }
-    resp = requests.get(url=url, headers=headers, proxies=common.PROXY_DMM)
-    if resp.status_code != 200:
-        return None
+    resp = common.send_req(url=url, headers=headers, proxies=common.PROXY_DMM)
+    if not resp: return None
     soup = BeautifulSoup(resp.text, 'lxml')
     # 获取预览视频地址
     res = soup.find(class_='btn')

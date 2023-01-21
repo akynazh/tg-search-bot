@@ -2,10 +2,11 @@
 from pyrogram import Client
 import asyncio
 import cfg
+import common
 
 TG_API_ID = cfg.TG_API_ID
 TG_API_HASH = cfg.TG_API_HASH
-SESSION_FILE_NAME = 'my_account'
+SESSION_FILE_NAME = common.PATH_ROOT + '/my_account'
 proxy = {}
 if cfg.USE_PROXY == 1:
     proxy = {

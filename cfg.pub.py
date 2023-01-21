@@ -3,8 +3,8 @@ TG_CHAT_ID = '' # your telegram chat id
 TG_BOT_TOKEN = '' # your telegram bot token
 
 # 可选字段：关于代理的配置
-USE_PROXY = 0 # 是否使用代理 1 是 | 0 否
-USE_PROXY_DMM = 0 # 访问 DMM 是否使用代理 1 是 | 0 否 （由于 DMM 限制，只支持日本 IP），该字段和 USE_PROXY 不冲突
+USE_PROXY = 0 # 全局是否使用代理 1 是 | 0 否
+USE_PROXY_DMM = 0 # 访问 DMM 是否使用代理 1 是 | 0 否 （USE_PROXY 的值会覆盖该字段）
 # 如果不使用代理，以下四个字段不用管
 PROXY_SCHEME = '' # 代理类型 http | socks5 | socks4
 PROXY_ADDR_HOST = '' # IP地址

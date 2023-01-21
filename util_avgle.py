@@ -1,5 +1,4 @@
 # -*- coding: UTF-8 -*-
-import requests
 import common
 
 BASE_URL = 'https://api.avgle.com'
@@ -16,8 +15,8 @@ def get_fv_by_id(id: str) -> str:
     limit = 3
     url = f'{BASE_URL}/v1/jav/{id}/{page}?limit={limit}'
     # 获取视频
-    resp = requests.get(url, proxies=common.PROXY)
-    if resp.status_code == 200 and resp.json()['success']:
+    resp = common.send_req(url)
+    if resp and resp.json()['success']:
         videos = resp.json()['response']['videos']
         if videos != []:
             for video in videos:

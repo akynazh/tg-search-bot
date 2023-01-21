@@ -1,5 +1,4 @@
 # -*- coding: UTF-8 -*-
-import requests
 import re
 import common
 import random
@@ -16,10 +15,8 @@ def get_max_page(url: str) -> int:
     :param str url: 页面地址
     :return int: 最大页数
     '''
-    headers = {'user-agent': common.ua()}
-    resp = requests.get(url=url, proxies=common.PROXY, headers=headers)
-    if resp.status_code != 200:
-        return None
+    resp = common.send_req(url)
+    if not resp: return None
     soup = BeautifulSoup(resp.text, 'lxml')
     tag_pagination = soup.find(class_='pagination pagination-lg')
     # 如果没有分页块则只有第一页
@@ -45,10 +42,8 @@ def get_id_from_page(base_page_url: str, page=-1) -> str:
             url = f'{base_page_url}/{random.randint(1, max_page)}'
     if url == '': return None
     # 开始获取番号
-    headers = {'user-agent': common.ua()}
-    resp = requests.get(url=url, proxies=common.PROXY, headers=headers)
-    if resp.status_code != 200:
-        return None
+    resp = common.send_req(url)
+    if not resp: return None
     ids = []
     soup = BeautifulSoup(resp.text, 'lxml')
     tags = soup.find_all(class_='movie-box')
@@ -101,10 +96,8 @@ def get_samples_by_id(id: str) -> list:
     '''
     samples = []
     url = f'{BASE_URL}/{id}'
-    headers = {'user-agent': common.ua()}
-    resp = requests.get(url, proxies=common.PROXY, headers=headers)
-    if resp.status_code != 200:
-        return None
+    resp = common.send_req(url)
+    if not resp: return None
     # 获取soup
     soup = BeautifulSoup(resp.text, 'lxml')
     # 获取截图
@@ -200,10 +193,8 @@ def get_av_by_id(id: str, is_nice: bool, magnet_max_count=100) -> dict:
     }
     # 查找av
     url = f'{BASE_URL}/{id}'
-    headers = {'user-agent': common.ua()}
-    resp = requests.get(url, proxies=common.PROXY, headers=headers)
-    if resp.status_code != 200:
-        return None
+    resp = common.send_req(url)
+    if not resp: return None
     # 获取soup和html
     soup = BeautifulSoup(resp.text, 'lxml')
     html = soup.prettify()
@@ -258,9 +249,8 @@ def get_av_by_id(id: str, is_nice: bool, magnet_max_count=100) -> dict:
         'referer': f'{BASE_URL}/{id}',
     }
     # 发送请求获取含磁链页
-    resp = requests.get(url, proxies=common.PROXY, headers=headers)
-    if resp.status_code != 200:
-        return av
+    resp = common.send_req(url=url, headers=headers)
+    if not resp: return av
     soup = BeautifulSoup(resp.text, 'lxml')
     # 解析页面获取磁链
     for tr in soup.find_all('tr'):
