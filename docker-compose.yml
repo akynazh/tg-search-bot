@@ -4,3 +4,5 @@ services:
     build: .
     volumes:
       - ./cfg.py:/app/cfg.py
+      - ~/.tg_jav_bot:/root/.tg_jav_bot
+    network_mode: "host"
