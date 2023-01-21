@@ -1,0 +1,6 @@
+version: "3"
+services:
+  tg_jav_bot:
+    build: .
+    volumes:
+      - ./cfg.py:/app/cfg.py
