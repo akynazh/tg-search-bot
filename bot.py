@@ -58,6 +58,15 @@ def send_msg(msg, pv=False, markup=None):
                      disable_web_page_preview=not pv,
                      parse_mode='HTML',
                      reply_markup=markup)
+    
+
+def handle_network_err(err:Exception):
+    '''处理网络请求错误
+
+    :param Exception err
+    '''
+    LOG.info(err)
+    send_msg('网络请求失败，请重试 Q_Q')
 
 
 def check_has_record() -> typing.Tuple[dict, bool, bool]:
@@ -384,8 +393,7 @@ def get_av_by_id(id: str,
             av_url = f'{BASE_URL_SUKEBEI}?q={id}'
             av = util_sukebei.get_av_by_id(id, is_nice, magnet_max_count)
     except Exception as e:
-        LOG.info(e)
-        send_msg(f'网络请求失败，请重试 Q_Q')
+        handle_network_err(e)
         return
     # 未查找到该番号对应的AV
     if not av:
@@ -508,8 +516,7 @@ def send_magnet_to_pikpak(magnet: str):
                 f'未能将磁链 <b>A</b> 发送到 <a href="https://t.me/{name}">@{name}</a>'
             )
     except Exception as e:
-        LOG.info(e)
-        send_msg(f'网络请求失败，请重试 Q_Q')
+        handle_network_err(e)
         return
 
 
@@ -522,8 +529,7 @@ def get_sample_by_id(id: str):
     try:
         samples = util_javbus.get_samples_by_id(id)
     except Exception as e:
-        LOG.info(e)
-        send_msg(f'网络请求失败，请重试 Q_Q')
+        handle_network_err(e)
         return
     if not samples:
         send_msg(f'未找到截图 Q_Q')
@@ -562,8 +568,7 @@ def watch_av(id: str, type: str):
         elif type == 1:
             video = util_avgle.get_fv_by_id(id)
     except Exception as e:
-        LOG.info(e)
-        send_msg(f'网络请求失败，请重试 Q_Q')
+        handle_network_err(e)
         return
     if video:
         if type == 0:
@@ -617,8 +622,7 @@ def listen_callback(call):
             if not av:
                 av = util_sukebei.get_av_by_id(id=content, is_nice=False)
         except Exception as e:
-            LOG.info(e)
-            send_msg(f'网络请求失败，请重试 Q_Q')
+            handle_network_err(e)
             return
         if not av:
             send_msg('获取失败，请重试 =_=')
@@ -635,8 +639,7 @@ def listen_callback(call):
         try:
             id = util_javbus.get_id_by_star_id(star_id=content)
         except Exception as e:
-            LOG.info(e)
-            send_msg(f'网络请求失败，请重试 Q_Q')
+            handle_network_err(e)
             return
         if id: get_av_by_id(id=id, send_to_pikpak=False)
         else: send_msg('获取失败，请重试=_=')
@@ -663,8 +666,7 @@ def listen_callback(call):
         try:
             id = util_javbus.get_id_from_home()
         except Exception as e:
-            LOG.info(e)
-            send_msg(f'网络请求失败，请重试 Q_Q')
+            handle_network_err(e)
             return
         if not id: send_msg('获取失败，请重试 =_=')
         else: get_av_by_id(id=id, send_to_pikpak=False)
@@ -708,8 +710,7 @@ def handle_message(message):
         try:
             id = util_javbus.get_id_from_home()
         except Exception as e:
-            LOG.info(e)
-            send_msg(f'网络请求失败，请重试 Q_Q')
+            handle_network_err(e)
             return
         if not id: send_msg('获取失败，请重试 =_=')
         else: get_av_by_id(id=id, send_to_pikpak=False)
@@ -726,8 +727,7 @@ def handle_message(message):
                 send_msg(f'搜索演员：{param}')
                 id = util_javbus.get_id_by_star_name(star_name=param)
             except Exception as e:
-                LOG.info(e)
-                send_msg(f'网络请求失败，请重试 Q_Q')
+                handle_network_err(e)
                 return
             if not id: send_msg(f'妹找到{param}，请重试或用其它方式搜索 =_=')
             else: get_av_by_id(id=id, send_to_pikpak=False)
@@ -738,8 +738,7 @@ def handle_message(message):
                 send_msg(f'搜索番号：{param}')
                 get_av_by_id(id=param)
             except Exception as e:
-                LOG.info(e)
-                send_msg(f'网络请求失败，请重试 Q_Q')
+                handle_network_err(e)
                 return
     else:
         # ids = re.compile(r'^[A-Za-z]+[-][0-9]+$').findall(msg)
