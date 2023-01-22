@@ -21,10 +21,7 @@ TG_BOT_TOKEN = cfg.TG_BOT_TOKEN
 TG_CHAT_ID = cfg.TG_CHAT_ID
 PATH_ROOT = common.PATH_ROOT
 PATH_RECORD_FILE = PATH_ROOT + '/record.json'
-BASE_URL_JAVBUS = util_javbus.BASE_URL
-BASE_URL_SUKEBEI = util_sukebei.BASE_URL
 PROJECT_ADDRESS = 'https://github.com/akynazh/tg-jav-bot'
-PROJECT_NAME = 'tg-jav-bot'
 # 设置代理
 apihelper.proxy = common.PROXY
 # 初始化机器人
@@ -463,10 +460,10 @@ def get_av_by_id(id: str,
     # 获取AV
     try:
         # 首先通过javbus查找
-        av_url = f'{BASE_URL_JAVBUS}/{id}'
+        av_url = f'{util_javbus.BASE_URL}/{id}'
         av = util_javbus.get_av_by_id(id, is_nice, magnet_max_count)
         if not av:  # 如果找不到，再通过sukebei查找
-            av_url = f'{BASE_URL_SUKEBEI}?q={id}'
+            av_url = f'{util_sukebei.BASE_URL}?q={id}'
             av = util_sukebei.get_av_by_id(id, is_nice, magnet_max_count)
     except Exception as e:
         handle_network_err(e)
@@ -763,7 +760,7 @@ def handle_message(message):
         bot.send_message(
             chat_id=message.from_user.id,
             text=
-            f'该机器人仅供私人使用, 如需使用请自行部署，项目地址：<a href="{PROJECT_ADDRESS}">{PROJECT_NAME}</a>',
+            f'该机器人仅供私人使用, 如需使用请自行部署：<a href="{PROJECT_ADDRESS}">项目地址</a>',
             parse_mode='HTML',
         )
         return

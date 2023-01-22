@@ -70,7 +70,4 @@ def send_req(url,
 
 
 if __name__ == '__main__':
-    # print(ua_mobile())
-    # print(ua())
-    print(PATH_LOG_FILE)
-    LOG.info('test')
+    print(ua_mobile())
