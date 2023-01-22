@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
-import common
 from bs4 import BeautifulSoup
+import common
 
 BASE_URL = 'https://www.dmm.co.jp/search/=/searchstr='
 

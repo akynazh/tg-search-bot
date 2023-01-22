@@ -1,8 +1,8 @@
 # -*- coding: UTF-8 -*-
 import re
-import common
 import random
 from bs4 import BeautifulSoup
+import common
 
 BASE_URL = 'https://www.javbus.com'
 # BASE_URL = 'https://www.seejav.me'

@@ -1,9 +1,10 @@
-import cfg
+# -*- coding: UTF-8 -*-
 import random
 import requests
 import logging
 import os
 from anti_useragent import UserAgent
+import cfg
 
 PATH_ROOT = os.path.expanduser('~') + '/.tg_jav_bot'
 if not os.path.exists(PATH_ROOT):

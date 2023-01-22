@@ -2,14 +2,14 @@
 import telebot
 from telebot import types, apihelper
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto
-import cfg
 import math
 import json
 import os
 import re
-import common
 import typing
 import string
+import cfg
+import common
 import util_pikpak
 import util_javbus
 import util_avgle
@@ -19,8 +19,7 @@ import util_dmm
 # 基本变量定义
 TG_BOT_TOKEN = cfg.TG_BOT_TOKEN
 TG_CHAT_ID = cfg.TG_CHAT_ID
-PATH_ROOT = common.PATH_ROOT
-PATH_RECORD_FILE = PATH_ROOT + '/record.json'
+PATH_RECORD_FILE = common.PATH_ROOT + '/record.json'
 PROJECT_ADDRESS = 'https://github.com/akynazh/tg-jav-bot'
 # 设置代理
 apihelper.proxy = common.PROXY
@@ -759,8 +758,7 @@ def handle_message(message):
         LOG.info(f'拦截到非目标用户请求，id: {message.from_user.id}')
         bot.send_message(
             chat_id=message.from_user.id,
-            text=
-            f'该机器人仅供私人使用, 如需使用请自行部署：<a href="{PROJECT_ADDRESS}">项目地址</a>',
+            text=f'该机器人仅供私人使用, 如需使用请自行部署：<a href="{PROJECT_ADDRESS}">项目地址</a>',
             parse_mode='HTML',
         )
         return
@@ -874,7 +872,6 @@ def set_command():
 
 
 if __name__ == '__main__':
-    os.chdir(PATH_ROOT)
     LOG = common.LOG
     set_command()
     bot.infinity_polling()
