@@ -3,6 +3,7 @@ import telebot
 from telebot import types, apihelper
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto
 import cfg
+import math
 import json
 import os
 import re
@@ -58,9 +59,9 @@ def send_msg(msg, pv=False, markup=None):
                      disable_web_page_preview=not pv,
                      parse_mode='HTML',
                      reply_markup=markup)
-    
 
-def handle_network_err(err:Exception):
+
+def handle_network_err(err: Exception):
     '''处理网络请求错误
 
     :param Exception err
@@ -241,7 +242,8 @@ def send_msg_btns(max_btn_per_row: int,
                   btn_type: int,
                   title: str,
                   objs: list,
-                  extra_btns=[]):
+                  extra_btns=[],
+                  page_btns=[]):
     '''发送按钮消息
 
     :param int max_btn_per_row: 每行最大按钮数量
@@ -267,6 +269,8 @@ def send_msg_btns(max_btn_per_row: int,
         if row_count == max_row_per_msg:
             for extra_btn in extra_btns:
                 markup.row(extra_btn)
+            if page_btns != []:
+                markup.row(*page_btns)
             send_msg(msg=title, markup=markup)
             row_count = 0
             markup = InlineKeyboardMarkup()
@@ -278,11 +282,67 @@ def send_msg_btns(max_btn_per_row: int,
     if row_count != 0:
         for extra_btn in extra_btns:
             markup.row(extra_btn)
+        if page_btns != []:
+            markup.row(*page_btns)
         send_msg(msg=title, markup=markup)
 
 
-def get_stars_record():
+def get_page_elements(objs: dict, page: int, col: int, row: int,
+                      key_type: int) -> typing.Tuple[dict, list, str]:
+    '''获取当前页对象字典，分页按钮列表，数量标题
+
+    :param dict objs: 对象字典
+    :param int page: 当前页
+    :param int col: 当前页列数
+    :param int row: 当前页行数
+    :param int key_type: 按键类型
+    :return tuple[dict, list, str]: 当前页对象字典，分页按钮列表，数量标题
+    '''
+    # 记录总数
+    record_count_total = len(objs)
+    # 每页记录数
+    record_count_per_page = col * row
+    # 页数
+    if record_count_per_page > record_count_total:
+        page_count = 1
+    else:
+        page_count = math.ceil(record_count_total / record_count_per_page)
+    # 如果要获取的页大于总页数，那么获取的页设为最后一页
+    if page > page_count:
+        page = page_count
+    # 获取当前页对象字典
+    start_idx = (page - 1) * record_count_per_page
+    objs = objs[start_idx:start_idx + record_count_per_page]
+    # 获取按键列表
+    if page == 1:
+        to_previous = 1
+    else:
+        to_previous = page - 1
+    if page == page_count:
+        to_next = page_count
+    else:
+        to_next = page + 1
+    btn_to_first = InlineKeyboardButton(text='<<',
+                                        callback_data=f'1:{key_type}')
+    btn_to_previous = InlineKeyboardButton(
+        text='<', callback_data=f'{to_previous}:{key_type}')
+    btn_to_current = InlineKeyboardButton(text=f'-{page}-',
+                                          callback_data=f'{page}:{key_type}')
+    btn_to_next = InlineKeyboardButton(text='>',
+                                       callback_data=f'{to_next}:{key_type}')
+    btn_to_last = InlineKeyboardButton(
+        text='>>', callback_data=f'{page_count}:{key_type}')
+    # 获取数量标题
+    title = f'总数：<b>{record_count_total}</b>，总页数：<b>{page_count}</b>'
+    return objs, [
+        btn_to_first, btn_to_previous, btn_to_current, btn_to_next, btn_to_last
+    ], title
+
+
+def get_stars_record(page=1):
     '''获取演员收藏记录
+    
+    :param int page: 第几页，默认第一页
     '''
     # 初始化数据
     record, is_star_exists, _ = check_has_record()
@@ -290,12 +350,19 @@ def get_stars_record():
         send_msg('尚无收藏记录 =_=')
         return
     stars = record['stars']
+    col, row = 4, 5
+    objs, page_btns, title = get_page_elements(objs=stars,
+                                               page=page,
+                                               col=col,
+                                               row=row,
+                                               key_type=KEY_GET_STARS_RECORD)
     # 发送按钮消息
-    send_msg_btns(max_btn_per_row=4,
-                  max_row_per_msg=15,
+    send_msg_btns(max_btn_per_row=col,
+                  max_row_per_msg=row,
                   btn_type=0,
-                  title='<b>收藏的演员</b>',
-                  objs=stars)
+                  title='收藏的演员：' + title,
+                  objs=objs,
+                  page_btns=page_btns)
 
 
 def get_star_detail_record(star_name: str, star_id: str):
@@ -337,8 +404,10 @@ def get_star_detail_record(star_name: str, star_id: str):
                   extra_btns=[extra_btn1, extra_btn2])
 
 
-def get_avs_record():
+def get_avs_record(page=1):
     '''获取番号收藏记录
+    
+    :param int page: 第几页，默认第一页
     '''
     # 初始化数据
     record, _, is_avs_exists = check_has_record()
@@ -349,12 +418,19 @@ def get_avs_record():
     # 发送按钮消息
     extra_btn = InlineKeyboardButton(text='随机获取一部AV',
                                      callback_data=f'0:{KEY_RANDOM_GET_AV}')
-    send_msg_btns(max_btn_per_row=5,
-                  max_row_per_msg=20,
+    col, row = 5, 10
+    objs, page_btns, title = get_page_elements(objs=avs,
+                                               page=page,
+                                               col=col,
+                                               row=row,
+                                               key_type=KEY_GET_AVS_RECORD)
+    send_msg_btns(max_btn_per_row=col,
+                  max_row_per_msg=row,
                   btn_type=1,
-                  title='<b>收藏的番号</b>',
-                  objs=avs,
-                  extra_btns=[extra_btn])
+                  title='收藏的番号：' + title,
+                  objs=objs,
+                  extra_btns=[extra_btn],
+                  page_btns=page_btns)
 
 
 def get_av_detail_record(id: str):
@@ -577,8 +653,7 @@ def watch_av(id: str, type: str):
                 bot.send_video(
                     chat_id=TG_CHAT_ID,
                     video=video,
-                    caption=
-                    f'由于 Telegram 的对机器人发送视频大小的限制，只能发送清晰度较差的视频 Q_Q <a href="{video_nice}">点击这里以获取更清晰的视频~</a>',
+                    caption=f'<a href="{video_nice}">从这里观看更清晰的版本</a>',
                     parse_mode='HTML')
             except Exception as e:
                 LOG.info(e)
@@ -652,9 +727,9 @@ def listen_callback(call):
         stars = [s for s in res[1:]]
         record_id(id=id, stars=stars)
     elif key_type == KEY_GET_STARS_RECORD:
-        get_stars_record()
+        get_stars_record(page=int(content))
     elif key_type == KEY_GET_AVS_RECORD:
-        get_avs_record()
+        get_avs_record(page=int(content))
     elif key_type == KEY_GET_STAR_DETAIL_RECORD:
         s = content.find('|')
         get_star_detail_record(star_name=content[:s], star_id=content[s + 1:])
