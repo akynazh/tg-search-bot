@@ -646,15 +646,14 @@ def watch_av(id: str, type: str):
                     bot.send_video(
                         chat_id=TG_CHAT_ID,
                         video=video,
-                        caption=f'<a href="{video_nice}">从这里观看更清晰的版本</a>',
+                        caption=f'通过 DMM 搜索得到结果，<a href="{video_nice}">在这里观看更清晰的版本</a>',
                         parse_mode='HTML')
                 except Exception as e:
                     LOG.error(e)
-                    send_msg(f'解析失败：<a href="{video_nice}">视频地址</a> Q_Q')
+                    send_msg(f'通过 DMM 搜索得到结果，但视频解析失败：<a href="{video_nice}">视频地址</a> Q_Q')
                 return
         except Exception as e:
             LOG.error(e)
-            send_msg('网络请求 dmm 失败，尝试使用 avgle......')
             pass
         # dmm 搜不到，使用avgle搜索
         try:
@@ -663,14 +662,14 @@ def watch_av(id: str, type: str):
                 try:
                     bot.send_video(chat_id=TG_CHAT_ID,
                                    video=video,
+                                   caption=f'通过 Avgle 搜索得到结果：<a href="{video}">视频地址</a>',
                                    parse_mode='HTML')
                 except Exception as e:
                     LOG.error(e)
-                    send_msg(f'解析失败：<a href="{video}">视频地址</a> Q_Q')
+                    send_msg(f'通过 Avgle 搜索得到结果，但视频解析失败：<a href="{video}">视频地址</a> Q_Q')
                 return
         except Exception as e:
-            LOG.error(e)
-            send_msg('网络请求 avgle 失败 Q_Q')
+            handle_network_err(e)
             return
         send_msg(f'未找到视频 Q_Q')
     elif type == 1:
