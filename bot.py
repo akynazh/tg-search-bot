@@ -62,7 +62,7 @@ def handle_network_err(err: Exception):
 
     :param Exception err
     '''
-    LOG.info(err)
+    LOG.error(err)
     send_msg('网络请求失败，请重试 Q_Q')
 
 
@@ -79,7 +79,7 @@ def check_has_record() -> typing.Tuple[dict, bool, bool]:
             with open(PATH_RECORD_FILE, 'r') as f:
                 record = json.load(f)
         except Exception as e:
-            LOG.info(f'文件提取出错： {e}')
+            LOG.error(f'文件提取出错： {e}')
             return None, False, False
     # 尚无记录
     if not record or record == {}:
@@ -634,30 +634,54 @@ def watch_av(id: str, type: str):
     :param str id: 番号
     :param str type: 0 预览视频 | 1 完整视频
     '''
-    try:
-        if type == 0:
+    if type == 0:
+        # 首先使用dmm搜索
+        try:
             video = util_dmm.get_pv_by_id(id)
-        elif type == 1:
+            if video:
+                try:
+                    # 获取更清晰的视频
+                    video_nice = util_dmm.get_nice_pv_by_src(video)
+                    # 发送普通视频，附带更清晰的视频链接
+                    bot.send_video(
+                        chat_id=TG_CHAT_ID,
+                        video=video,
+                        caption=f'<a href="{video_nice}">从这里观看更清晰的版本</a>',
+                        parse_mode='HTML')
+                except Exception as e:
+                    LOG.error(e)
+                    send_msg(f'解析失败：<a href="{video_nice}">视频地址</a> Q_Q')
+                return
+        except Exception as e:
+            LOG.error(e)
+            send_msg('网络请求 dmm 失败，尝试使用 avgle......')
+            pass
+        # dmm 搜不到，使用avgle搜索
+        try:
+            video = util_avgle.get_pv_by_id(id)
+            if video:
+                try:
+                    bot.send_video(chat_id=TG_CHAT_ID,
+                                   video=video,
+                                   parse_mode='HTML')
+                except Exception as e:
+                    LOG.error(e)
+                    send_msg(f'解析失败：<a href="{video}">视频地址</a> Q_Q')
+                return
+        except Exception as e:
+            LOG.error(e)
+            send_msg('网络请求 avgle 失败 Q_Q')
+            return
+        send_msg(f'未找到视频 Q_Q')
+    elif type == 1:
+        try:
             video = util_avgle.get_fv_by_id(id)
-    except Exception as e:
-        handle_network_err(e)
-        return
-    if video:
-        if type == 0:
-            try:
-                video_nice = video.replace('_sm_', '_dmb_')
-                bot.send_video(
-                    chat_id=TG_CHAT_ID,
-                    video=video,
-                    caption=f'<a href="{video_nice}">从这里观看更清晰的版本</a>',
-                    parse_mode='HTML')
-            except Exception as e:
-                LOG.info(e)
-                send_msg('视频解析失败 Q_Q')
-        elif type == 1:
-            send_msg(f'番号{id}对应视频地址：{video}')
-    else:
-        send_msg(f'未找到{id}对应视频 =_=')
+            if video:
+                send_msg(f'视频地址：{video}')
+            else:
+                send_msg(f'未找到视频 Q_Q')
+        except Exception as e:
+            handle_network_err(e)
 
 
 def get_msg_param(msg):

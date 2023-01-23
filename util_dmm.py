@@ -23,11 +23,16 @@ def get_pv_by_id(id: str) -> str:
     soup = BeautifulSoup(resp.text, 'lxml')
     # 获取预览视频地址
     res = soup.find(class_='btn')
-    if not res:
-        return None
-    video_src = res.a['href']
-    # video_src = video_src.replace('_sm_', '_dmb_')
-    return video_src
+    if res: return res.a['href']
+
+
+def get_nice_pv_by_src(src: str) -> str:
+    '''根据普通 src 获取更清晰的 src
+
+    :param str src
+    :return str: nice src
+    '''
+    return src.replace('_sm_', '_dmb_')
 
 
 if __name__ == '__main__':
