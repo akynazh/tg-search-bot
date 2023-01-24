@@ -50,10 +50,25 @@ def ua_mobile() -> str:
     else:
         return UA.iphone
 
+def ua_desktop() -> str:
+    c = random.randint(0, 1)
+    if c == 0:
+        return UserAgent(platform='windows').random
+    else:
+        return UserAgent(platform='mac').random
+
 
 def ua() -> str:
     return UA.random
 
+def write_html(resp:requests.Response, file='t.html'):
+    '''将requests.Response.text写入文件
+
+    :param requests.Response resp
+    :param str file: 文件名, defaults to 't.html'
+    '''
+    with open(file, 'w') as f:
+        f.write(resp.text)
 
 def send_req(url,
              proxies=PROXY,
@@ -71,4 +86,5 @@ def send_req(url,
 
 
 if __name__ == '__main__':
-    print(ua_mobile())
+    # print(ua_mobile())
+    print(ua_desktop())

@@ -8,6 +8,7 @@ import os
 import re
 import typing
 import string
+import concurrent.futures
 import cfg
 import common
 import util_pikpak
@@ -457,19 +458,37 @@ def get_av_by_id(id: str,
     :param int magnet_max_count: 过滤后磁链的最大数目，默认为3
     '''
     # 获取AV
-    try:
-        # 首先通过javbus查找
-        av_url = f'{util_javbus.BASE_URL}/{id}'
-        av = util_javbus.get_av_by_id(id, is_nice, magnet_max_count)
-        if not av:  # 如果找不到，再通过sukebei查找
-            av_url = f'{util_sukebei.BASE_URL}?q={id}'
-            av = util_sukebei.get_av_by_id(id, is_nice, magnet_max_count)
-    except Exception as e:
-        handle_network_err(e)
-        return
+    av = None
+    av_url = ''
+    av_score = ''
+    get_av_network_err = None
+    futures = {}
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        futures[executor.submit(util_dmm.get_score_by_id, id)] = 0 # 获取AV评分
+        futures[executor.submit(util_javbus.get_av_by_id, id, is_nice, magnet_max_count)] = 1 # 通过javbus获取AV
+        futures[executor.submit(util_sukebei.get_av_by_id, id, is_nice, magnet_max_count)] = 2 # 通过sukebei获取AV
+        for future in concurrent.futures.as_completed(futures):
+            future_type = futures[future]
+            try:
+                if future_type == 0:
+                    av_score = future.result()
+                elif future_type == 1:
+                    av_url = f'{util_javbus.BASE_URL}/{id}'
+                    av = future.result()
+                elif future_type == 2:
+                    av_url = f'{util_sukebei.BASE_URL}?q={id}'
+                    if not av: # 如果没获取到javbus结果
+                        av = future.result()
+            except Exception as e:
+                if future_type != 0:
+                    get_av_network_err = e
+    
     # 未查找到该番号对应的AV
     if not av:
-        send_msg(f'妹找到番号<code>{id}</code>对应的AV Q_Q')
+        if get_av_network_err:
+            handle_network_err(get_av_network_err)
+        else:
+            send_msg(f'妹找到番号<code>{id}</code>对应的AV Q_Q')
         return
     # 提取数据
     av_id = id
@@ -489,7 +508,9 @@ def get_av_by_id(id: str,
     if av_date != '':
         msg += f'''【日期】{av_date}
 '''
-
+    if av_score != '':
+        msg += f'''【评分】{av_score}
+'''
     # 加上演员消息
     if av_stars == []:
         msg += f'''【演员】未知
@@ -683,6 +704,15 @@ def watch_av(id: str, type: str):
             handle_network_err(e)
 
 
+def get_top_stars():
+    stars = util_dmm.get_all_top_stars()
+    msg = '''DMM TOP 100
+'''
+    for i, star in enumerate(stars):
+        msg += f'''{i+1} => <code>{star}</code>
+'''
+    send_msg(msg)
+    
 def get_msg_param(msg):
     '''获取消息参数
 
@@ -813,6 +843,8 @@ def handle_message(message):
         get_avs_record()
     elif msg == '/record':
         get_record_json()
+    elif msg == '/top100':
+        get_top_stars()
     elif msg.find('/star') != -1:
         param = get_msg_param(msg)
         if param:
@@ -886,7 +918,8 @@ def set_command():
         'stars': '获取收藏的演员',
         'avs': '获取收藏的AV',
         'random': '随机获取一部AV',
-        'record': '获取收藏记录文件'
+        'record': '获取收藏记录文件',
+        'top100': '获取DMM女优排行榜前100位名单'
     }
     cmds = []
     for cmd in tg_cmd_dict:
