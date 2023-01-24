@@ -8,25 +8,15 @@ import os
 import re
 import typing
 import string
-import concurrent.futures
-import cfg
 import common
-import util_pikpak
-import util_javbus
-import util_avgle
-import util_sukebei
-import util_dmm
+import concurrent.futures
+import utils.util_pikpak as util_pikpak
+import utils.util_javbus as util_javbus
+import utils.util_avgle as util_avgle
+import utils.util_sukebei as util_sukebei
+import utils.util_dmm as util_dmm
 
-# 基本变量定义
-TG_BOT_TOKEN = cfg.TG_BOT_TOKEN
-TG_CHAT_ID = cfg.TG_CHAT_ID
-PATH_RECORD_FILE = common.PATH_ROOT + '/record.json'
-PROJECT_ADDRESS = 'https://github.com/akynazh/tg-jav-bot'
-# 设置代理
-apihelper.proxy = common.PROXY
-# 初始化机器人
-bot = telebot.TeleBot(TG_BOT_TOKEN)
-# 回调按键值定义
+# 定义回调按键值
 KEY_WATCH_PV_BY_ID = 0
 KEY_WATCH_FV_BY_ID = 1
 KEY_GET_SAMPLE_BY_ID = 2
@@ -43,6 +33,13 @@ KEY_UNDO_RECORD_STAR = 12
 KEY_UNDO_RECORD_AV = 13
 KEY_GET_AV_DETAIL_RECORD = 14
 
+# 设置代理
+apihelper.proxy = common.PROXY
+# 初始化机器人
+bot = telebot.TeleBot(common.TG_BOT_TOKEN)
+# 日志记录器
+LOG = common.LOG
+
 
 def send_msg(msg, pv=False, markup=None):
     '''发送消息
@@ -51,20 +48,39 @@ def send_msg(msg, pv=False, markup=None):
     :param bool pv: 是否展现预览, 默认不展示
     :param _type_ markup: 标记, 默认没有
     '''
-    bot.send_message(chat_id=TG_CHAT_ID,
+    bot.send_message(chat_id=common.TG_CHAT_ID,
                      text=msg,
                      disable_web_page_preview=not pv,
                      parse_mode='HTML',
                      reply_markup=markup)
 
 
-def handle_network_err(err: Exception):
-    '''处理网络请求错误
-
-    :param Exception err
+def send_msg_404():
+    '''处理 404 错误
     '''
-    LOG.error(err)
+    send_msg('未查找到结果 Q_Q')
+
+
+def send_msg_502():
+    '''处理 502 错误
+    '''
     send_msg('网络请求失败，请重试 Q_Q')
+
+
+def check_success(code: int) -> bool:
+    '''检查状态码，确认请求是否成功
+
+    :param int code: 状态码
+    :return bool: 请求成功与否
+    '''
+    if code == 200:
+        return True
+    elif code == 404:
+        send_msg_404()
+        return False
+    elif code == 502:
+        send_msg_502()
+        return False
 
 
 def check_has_record() -> typing.Tuple[dict, bool, bool]:
@@ -75,9 +91,9 @@ def check_has_record() -> typing.Tuple[dict, bool, bool]:
     # 初始化数据
     record = {}
     # 加载记录
-    if os.path.exists(PATH_RECORD_FILE):
+    if os.path.exists(common.PATH_RECORD_FILE):
         try:
-            with open(PATH_RECORD_FILE, 'r') as f:
+            with open(common.PATH_RECORD_FILE, 'r') as f:
                 record = json.load(f)
         except Exception as e:
             LOG.error(f'文件提取出错： {e}')
@@ -98,12 +114,13 @@ def check_has_record() -> typing.Tuple[dict, bool, bool]:
 
 
 def get_record_json():
-    '''发送收藏记录文件'''
-    if os.path.exists(PATH_RECORD_FILE):
-        bot.send_document(chat_id=TG_CHAT_ID,
-                          document=types.InputFile(PATH_RECORD_FILE))
+    '''发送收藏记录文件
+    '''
+    if os.path.exists(common.PATH_RECORD_FILE):
+        bot.send_document(chat_id=common.TG_CHAT_ID,
+                          document=types.InputFile(common.PATH_RECORD_FILE))
     else:
-        bot.send_message(chat_id=TG_CHAT_ID, text='尚无记录 =_=')
+        send_msg('尚无记录 =_=')
 
 
 def renew_record(record: dict):
@@ -111,7 +128,7 @@ def renew_record(record: dict):
 
     :param dict record: 新的记录
     '''
-    with open(PATH_RECORD_FILE, 'w') as f:
+    with open(common.PATH_RECORD_FILE, 'w') as f:
         json.dump(record,
                   f,
                   separators=(',', ': '),
@@ -130,8 +147,10 @@ def record_star(star_name: str, star_id: str):
     if not record:
         record, stars = {}, []
     else:
-        if not is_stars_exists: stars = []
-        else: stars = record['stars']
+        if not is_stars_exists:
+            stars = []
+        else:
+            stars = record['stars']
     # 检查记录是否存在
     exists = False
     for star in stars:
@@ -140,7 +159,6 @@ def record_star(star_name: str, star_id: str):
             break
     # 如果记录需要更新则写回记录
     if not exists:
-        LOG.info(f'收藏新的演员：{star_name}')
         stars.append({'name': star_name, 'id': star_id.lower()})
         record['stars'] = stars
         renew_record(record)
@@ -170,13 +188,12 @@ def record_id(id: str, stars: list):
             break
     # 如果记录需要更新则写回记录
     if not exists:
-        LOG.info(f'收藏AV【番号：{id}, 演员：{str(stars)}】')
         avs.append({'id': id.lower(), 'stars': stars})
         record['avs'] = avs
         renew_record(record)
-        send_msg(f'成功收藏<code>{id}</code> ^-^')
+        send_msg(f'成功收藏 <code>{id}</code> ^-^')
     else:
-        send_msg(f'已经收藏过<code>{id}</code>了 =_=')
+        send_msg(f'已经收藏过 <code>{id}</code> 了 =_=')
 
 
 def undo_record_star(star_id: str):
@@ -187,15 +204,17 @@ def undo_record_star(star_id: str):
     # 加载记录
     record, _, _ = check_has_record()
     stars = record['stars']
+    star_name = ''
     # 删除记录
     for i, star in enumerate(stars):
         if star['id'] == star_id:
+            star_name = star['name']
             del stars[i]
             break
     # 更新记录
     record['stars'] = stars
     renew_record(record)
-    send_msg(msg='操作成功')
+    send_msg(msg=f'成功删除<code>{star_name}</code>')
 
 
 def undo_record_id(id: str):
@@ -214,7 +233,7 @@ def undo_record_id(id: str):
     # 更新记录
     record['avs'] = avs
     renew_record(record)
-    send_msg(msg='操作成功')
+    send_msg(msg=f'成功删除 <code>{id}</code>')
 
 
 def create_btn(btn_type: int, obj: dict):
@@ -257,12 +276,12 @@ def send_msg_btns(max_btn_per_row: int,
     # 开始生成按钮和发送消息
     for obj in objs:
         btns.append(create_btn(btn_type, obj))
-        # 若一行按钮的数量达到max_btn_per_row，则加入行
+        # 若一行按钮的数量达到 max_btn_per_row，则加入行
         if len(btns) == max_btn_per_row:
             markup.row(*btns)
             row_count += 1
             btns = []
-        # 若消息中行数达到max_row_per_msg，则发送消息
+        # 若消息中行数达到 max_row_per_msg，则发送消息
         if row_count == max_row_per_msg:
             for extra_btn in extra_btns:
                 markup.row(extra_btn)
@@ -271,11 +290,11 @@ def send_msg_btns(max_btn_per_row: int,
             send_msg(msg=title, markup=markup)
             row_count = 0
             markup = InlineKeyboardMarkup()
-    # 若当前行按钮数量不为0，则加入行
+    # 若当前行按钮数量不为 0，则加入行
     if btns != []:
         markup.row(*btns)
         row_count += 1
-    # 若当前行数不为0，则发送消息
+    # 若当前行数不为 0，则发送消息
     if row_count != 0:
         for extra_btn in extra_btns:
             markup.row(extra_btn)
@@ -376,7 +395,7 @@ def get_star_detail_record(star_name: str, star_id: str):
     avs = record['avs']
     star_avs = []
     for av in avs:
-        # 如果演员编号在该AV的演员编号列表中
+        # 如果演员编号在该 AV 的演员编号列表中
         if star_id in av['stars']:
             star_avs.append(av['id'])
     # 发送按钮消息
@@ -386,7 +405,7 @@ def get_star_detail_record(star_name: str, star_id: str):
     extra_btn2 = InlineKeyboardButton(
         text=f'取消收藏{star_name}',
         callback_data=f'{star_id}:{KEY_UNDO_RECORD_STAR}')
-    title = f'<code>{star_name}</code> | <a href="https://ja.wikipedia.org/wiki/{star_name}">Wiki</a> | <a href="{util_javbus.BASE_URL}/star/{star_id}">Javbus</a>'
+    title = f'<code>{star_name}</code> | <a href="{common.BASE_URL_JAPAN_WIKI}/{star_name}">Wiki</a> | <a href="{util_javbus.BASE_URL}/star/{star_id}">Javbus</a>'
     if len(star_avs) == 0:  # 没有收藏记录
         markup = InlineKeyboardMarkup()
         markup.row(extra_btn1)
@@ -413,7 +432,7 @@ def get_avs_record(page=1):
         return
     avs = [av['id'] for av in record['avs']]
     # 发送按钮消息
-    extra_btn = InlineKeyboardButton(text='随机获取一部AV',
+    extra_btn = InlineKeyboardButton(text='随机获取一部 AV',
                                      callback_data=f'0:{KEY_RANDOM_GET_AV}')
     col, row = 5, 10
     objs, page_btns, title = get_page_elements(objs=avs,
@@ -436,12 +455,11 @@ def get_av_detail_record(id: str):
     :param str id: 番号
     '''
     markup = InlineKeyboardMarkup()
-    markup.row(
-        InlineKeyboardButton(text=f'获取{id}对应AV',
-                             callback_data=f'{id}:{KEY_GET_AV_BY_ID}'))
-    markup.row(
-        InlineKeyboardButton(text=f'取消收藏{id}',
-                             callback_data=f'{id}:{KEY_UNDO_RECORD_AV}'))
+    btn1 = InlineKeyboardButton(text=f'获取 {id} 对应 AV',
+                                callback_data=f'{id}:{KEY_GET_AV_BY_ID}')
+    btn2 = InlineKeyboardButton(text=f'取消收藏 {id}',
+                                callback_data=f'{id}:{KEY_UNDO_RECORD_AV}')
+    markup.row(btn1, btn2)
     send_msg(msg=f'<a href="{util_javbus.BASE_URL}/{id}">{id}</a>',
              markup=markup)
 
@@ -449,47 +467,50 @@ def get_av_detail_record(id: str):
 def get_av_by_id(id: str,
                  send_to_pikpak=True,
                  is_nice=True,
-                 magnet_max_count=3):
+                 magnet_max_count=3,
+                 not_send=False) -> dict:
     '''根据番号获取 av
 
     :param str id: 番号
-    :param bool send_to_pikpak: 是否发给pikpak，默认是
+    :param bool send_to_pikpak: 是否发给 pikpak，默认是
     :param bool is_nice: 是否过滤磁链，默认是
-    :param int magnet_max_count: 过滤后磁链的最大数目，默认为3
+    :param int magnet_max_count: 过滤后磁链的最大数目，默认为 3
+    :param not_send: 是否不发送 AV 结果，默认发送
+    :return dict: 当不发送 AV 结果时，返回得到的 AV（如果有）
     '''
-    # 获取AV
-    av = None
-    av_url = ''
-    av_score = ''
-    get_av_network_err = None
+    # 获取 AV
+    av_score = None
     futures = {}
     with concurrent.futures.ProcessPoolExecutor() as executor:
-        futures[executor.submit(util_dmm.get_score_by_id, id)] = 0 # 获取AV评分
-        futures[executor.submit(util_javbus.get_av_by_id, id, is_nice, magnet_max_count)] = 1 # 通过javbus获取AV
-        futures[executor.submit(util_sukebei.get_av_by_id, id, is_nice, magnet_max_count)] = 2 # 通过sukebei获取AV
+        if not not_send:
+            futures[executor.submit(util_dmm.get_score_by_id,
+                                    id)] = 0  # 获取 AV 评分
+        futures[executor.submit(util_javbus.get_av_by_id, id, is_nice,
+                                magnet_max_count)] = 1  # 通过 javbus 获取 AV
+        futures[executor.submit(util_sukebei.get_av_by_id, id, is_nice,
+                                magnet_max_count)] = 2  # 通过 sukebei 获取 AV
         for future in concurrent.futures.as_completed(futures):
             future_type = futures[future]
-            try:
-                if future_type == 0:
-                    av_score = future.result()
-                elif future_type == 1:
-                    av_url = f'{util_javbus.BASE_URL}/{id}'
-                    av = future.result()
-                elif future_type == 2:
-                    av_url = f'{util_sukebei.BASE_URL}?q={id}'
-                    if not av: # 如果没获取到javbus结果
-                        av = future.result()
-            except Exception as e:
-                if future_type != 0:
-                    get_av_network_err = e
-    
-    # 未查找到该番号对应的AV
-    if not av:
-        if get_av_network_err:
-            handle_network_err(get_av_network_err)
-        else:
-            send_msg(f'妹找到番号<code>{id}</code>对应的AV Q_Q')
+            if future_type == 0:
+                _, av_score = future.result()
+            elif future_type == 1:
+                code_javbus, av_javbus = future.result()
+            elif future_type == 2:
+                code_sukebei, av_sukebei = future.result()
+    if code_javbus == 502 and code_sukebei == 502:
+        send_msg_502()
         return
+    if code_javbus == 404 and code_sukebei == 404:
+        send_msg_404()
+        return
+    if code_javbus == 200:  # 优先选择 javbus
+        av = av_javbus
+        av_url = f'{util_javbus.BASE_URL}/{id}'
+    elif code_sukebei == 200:
+        av = av_sukebei
+        av_url = f'{util_sukebei.BASE_URL}?q={id}'
+    if not_send:
+        return av
     # 提取数据
     av_id = id
     av_title = av['title']
@@ -508,7 +529,7 @@ def get_av_by_id(id: str,
     if av_date != '':
         msg += f'''【日期】{av_date}
 '''
-    if av_score != '':
+    if av_score:
         msg += f'''【评分】{av_score}
 '''
     # 加上演员消息
@@ -522,14 +543,14 @@ def get_av_by_id(id: str,
             break
         name = star['name']
         link = star['link']
-        wiki = f'https://ja.wikipedia.org/wiki/{name}'
+        wiki = f'{common.BASE_URL_JAPAN_WIKI}/{name}'
         msg += f'''【演员】<code>{name}</code> | <a href="{wiki}">Wiki</a> | <a href="{link}">Javbus</a>
 '''
     if av_tags != '':
         msg += f'''【标签】{av_tags}
 '''
     # 加上其它消息
-    msg += f'''【其它】<a href="https://t.me/{cfg.PIKPAK_BOT_NAME}">@{cfg.PIKPAK_BOT_NAME}</a> | <a href="{PROJECT_ADDRESS}">项目地址</a>
+    msg += f'''【其它】<a href="https://t.me/{common.PIKPAK_BOT_NAME}">@{common.PIKPAK_BOT_NAME}</a> | <a href="{common.PROJECT_ADDRESS}">项目地址</a>
 '''
     # 加上磁链消息
     magnet_send_to_pikpak = ''
@@ -556,7 +577,7 @@ def get_av_by_id(id: str,
         show_star_link = av_stars[0]['link']
         show_star_id = show_star_link[show_star_link.rfind('/') + 1:]
         star_random_btn = InlineKeyboardButton(
-            text=f'演员随机AV',
+            text=f'演员随机 AV',
             callback_data=f'{show_star_id}:{kEY_RANDOM_GET_AV_BY_STAR_ID}')
         star_record_btn = InlineKeyboardButton(
             text=f'收藏{show_star_name}',
@@ -581,7 +602,7 @@ def get_av_by_id(id: str,
         send_msg(msg=msg, markup=markup)
     else:
         try:
-            bot.send_photo(chat_id=TG_CHAT_ID,
+            bot.send_photo(chat_id=common.TG_CHAT_ID,
                            photo=av_img,
                            caption=msg,
                            parse_mode='HTML',
@@ -589,7 +610,7 @@ def get_av_by_id(id: str,
         except Exception:  # 少数图片可能没法发送
             send_msg(msg=msg, markup=markup)
     # 发给pikpak
-    if cfg.USE_PIKPAK == 1 and magnet_send_to_pikpak != '' and send_to_pikpak:
+    if common.USE_PIKPAK == 1 and magnet_send_to_pikpak != '' and send_to_pikpak:
         send_magnet_to_pikpak(magnet_send_to_pikpak)
 
 
@@ -598,19 +619,13 @@ def send_magnet_to_pikpak(magnet: str):
     
     :param str magnet: 磁链
     '''
-    name = cfg.PIKPAK_BOT_NAME
-    try:
-        if util_pikpak.send_msg(magnet):  # 成功发送
-            send_msg(
-                f'已经将磁链 <b>A</b> 发送到 <a href="https://t.me/{name}">@{name}</a>'
-            )
-        else:  # 发送失败
-            send_msg(
-                f'未能将磁链 <b>A</b> 发送到 <a href="https://t.me/{name}">@{name}</a>'
-            )
-    except Exception as e:
-        handle_network_err(e)
-        return
+    name = common.PIKPAK_BOT_NAME
+    if util_pikpak.send_msg(magnet):
+        send_msg(
+            f'已经将磁链 <b>A</b> 发送到 <a href="https://t.me/{name}">@{name}</a>')
+    else:
+        send_msg(
+            f'未能将磁链 <b>A</b> 发送到 <a href="https://t.me/{name}">@{name}</a>')
 
 
 def get_sample_by_id(id: str):
@@ -619,33 +634,27 @@ def get_sample_by_id(id: str):
     :param str id: 番号
     '''
     # 获取截图
-    try:
-        samples = util_javbus.get_samples_by_id(id)
-    except Exception as e:
-        handle_network_err(e)
-        return
-    if not samples:
-        send_msg(f'未找到截图 Q_Q')
+    code, samples = util_javbus.get_samples_by_id(id)
+    if not check_success(code):
         return
     # 发送图片列表
     samples_imp = []
     sample_error = False
     for sample in samples:
         samples_imp.append(InputMediaPhoto(sample))
-        if len(samples_imp) == 10:  # 图片数目达到10张则发送一次
+        if len(samples_imp) == 10:  # 图片数目达到 10 张则发送一次
             try:
-                bot.send_media_group(chat_id=TG_CHAT_ID, media=samples_imp)
+                bot.send_media_group(chat_id=common.TG_CHAT_ID,
+                                     media=samples_imp)
                 samples_imp = []
-            except Exception as e:
+            except Exception:
                 sample_error = True
-                LOG.error(e)
                 send_msg('图片解析失败 Q_Q')
                 break
     if samples_imp != [] and not sample_error:
         try:
-            bot.send_media_group(chat_id=TG_CHAT_ID, media=samples_imp)
-        except Exception as e:
-            LOG.error(e)
+            bot.send_media_group(chat_id=common.TG_CHAT_ID, media=samples_imp)
+        except Exception:
             send_msg('图片解析失败 Q_Q')
 
 
@@ -656,73 +665,77 @@ def watch_av(id: str, type: str):
     :param str type: 0 预览视频 | 1 完整视频
     '''
     if type == 0:
-        # 首先使用dmm搜索
-        try:
-            video = util_dmm.get_pv_by_id(id)
-            if video:
-                try:
-                    # 获取更清晰的视频
-                    video_nice = util_dmm.get_nice_pv_by_src(video)
-                    # 发送普通视频，附带更清晰的视频链接
-                    bot.send_video(
-                        chat_id=TG_CHAT_ID,
-                        video=video,
-                        caption=f'通过 DMM 搜索得到结果，<a href="{video_nice}">在这里观看更清晰的版本</a>',
-                        parse_mode='HTML')
-                except Exception as e:
-                    LOG.error(e)
-                    send_msg(f'通过 DMM 搜索得到结果，但视频解析失败：<a href="{video_nice}">视频地址</a> Q_Q')
-                return
-        except Exception as e:
-            LOG.error(e)
-            pass
-        # dmm 搜不到，使用avgle搜索
-        try:
-            video = util_avgle.get_pv_by_id(id)
-            if video:
-                try:
-                    bot.send_video(chat_id=TG_CHAT_ID,
-                                   video=video,
-                                   caption=f'通过 Avgle 搜索得到结果：<a href="{video}">视频地址</a>',
-                                   parse_mode='HTML')
-                except Exception as e:
-                    LOG.error(e)
-                    send_msg(f'通过 Avgle 搜索得到结果，但视频解析失败：<a href="{video}">视频地址</a> Q_Q')
-                return
-        except Exception as e:
-            handle_network_err(e)
+        futures = {}
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            futures[executor.submit(util_dmm.get_pv_by_id, id)] = 1
+            futures[executor.submit(util_avgle.get_pv_by_id, id)] = 2
+            for future in concurrent.futures.as_completed(futures):
+                if futures[future] == 1:
+                    code_dmm, pv_dmm = future.result()
+                elif futures[future] == 2:
+                    code_avgle, pv_avgle = future.result()
+        if code_dmm == 502 and code_avgle == 502:
+            send_msg_502()
             return
-        send_msg(f'未找到视频 Q_Q')
+        if code_dmm == 404 and code_avgle == 404:
+            send_msg_404()
+            return
+        if code_dmm == 200:
+            try:
+                # 获取更清晰的视频
+                video_nice = util_dmm.get_nice_pv_by_src(video)
+                # 发送普通视频，附带更清晰的视频链接
+                bot.send_video(
+                    chat_id=common.TG_CHAT_ID,
+                    video=video,
+                    caption=
+                    f'通过 DMM 搜索得到结果，<a href="{video_nice}">在这里观看更清晰的版本</a>',
+                    parse_mode='HTML')
+            except Exception:
+                send_msg(
+                    f'通过 DMM 搜索得到结果，但视频解析失败：<a href="{video_nice}">视频地址</a> Q_Q'
+                )
+        elif code_avgle == 200:
+            try:
+                bot.send_video(
+                    chat_id=common.TG_CHAT_ID,
+                    video=video,
+                    caption=f'通过 Avgle 搜索得到结果：<a href="{video}">视频地址</a>',
+                    parse_mode='HTML')
+            except Exception:
+                send_msg(
+                    f'通过 Avgle 搜索得到结果，但视频解析失败：<a href="{video}">视频地址</a> Q_Q')
     elif type == 1:
-        try:
-            video = util_avgle.get_fv_by_id(id)
-            if video:
-                send_msg(f'视频地址：{video}')
-            else:
-                send_msg(f'未找到视频 Q_Q')
-        except Exception as e:
-            handle_network_err(e)
+        code, video = util_avgle.get_fv_by_id(id)
+        if check_success(code):
+            send_msg(f'Avgle 视频地址：{video}')
 
 
 def get_top_stars():
-    stars = util_dmm.get_all_top_stars()
+    '''获取 DMM 排行榜前 100 名女优
+    '''
+    code, stars = util_dmm.get_all_top_stars()
+    if not check_success(code):
+        return
     msg = '''DMM TOP 100
 '''
     for i, star in enumerate(stars):
-        msg += f'''{i+1} => <code>{star}</code>
+        msg += f'''{i+1} => <a href="{common.BASE_URL_JAPAN_WIKI}/{star}">{star}</a>
 '''
     send_msg(msg)
-    
-def get_msg_param(msg):
+
+
+def get_msg_param(msg: str) -> str:
     '''获取消息参数
 
-    :param _type_ msg: 消息文本，已经通过strip()函数将两旁空白清除
-    :return _type_: 消息参数（保证只有一个）
+    :param str msg: 消息文本，已经通过 strip() 函数将两旁空白清除
+    :return str: 消息参数（保证只有一个）
     '''
     msgs = msg.split(' ', 1)  # 划分为两部分
     if len(msgs) > 1:  # 有参数
         param = ''.join(msgs[1].split())  # 去除参数所有空白
-        if param != '': return param
+        if param != '':
+            return param
 
 
 @bot.callback_query_handler(func=lambda call: True)
@@ -731,9 +744,11 @@ def listen_callback(call):
 
     :param _type_ call: 触发回调的消息内容
     '''
+    # 提取回调内容
     idx = call.data.rfind(':')
     content = call.data[:idx]
     key_type = int(call.data[idx + 1:])
+    # 检查按键类型并处理
     if key_type == KEY_WATCH_PV_BY_ID:
         watch_av(id=content, type=0)
     elif key_type == KEY_WATCH_FV_BY_ID:
@@ -741,15 +756,11 @@ def listen_callback(call):
     elif key_type == KEY_GET_SAMPLE_BY_ID:
         get_sample_by_id(id=content)
     elif key_type == KEY_GET_MORE_MAGNETS_BY_ID:
-        try:
-            av = util_javbus.get_av_by_id(id=content, is_nice=False)
-            if not av:
-                av = util_sukebei.get_av_by_id(id=content, is_nice=False)
-        except Exception as e:
-            handle_network_err(e)
-            return
+        av = get_av_by_id(id=content,
+                          send_to_pikpak=False,
+                          is_nice=False,
+                          not_send=True)
         if not av:
-            send_msg('获取失败，请重试 =_=')
             return
         msg = ''
         for magnet in av['magnets']:
@@ -758,15 +769,12 @@ def listen_callback(call):
             if len(msg) > 2000:
                 send_msg(msg)
                 msg = ''
-        if msg != '': send_msg(msg)
+        if msg != '':
+            send_msg(msg)
     elif key_type == kEY_RANDOM_GET_AV_BY_STAR_ID:
-        try:
-            id = util_javbus.get_id_by_star_id(star_id=content)
-        except Exception as e:
-            handle_network_err(e)
-            return
-        if id: get_av_by_id(id=id, send_to_pikpak=False)
-        else: send_msg('获取失败，请重试=_=')
+        code, id = util_javbus.get_id_by_star_id(star_id=content)
+        if check_success(code):
+            get_av_by_id(id=id, send_to_pikpak=False)
     elif key_type == KEY_RECORD_STAR:
         s = content.find('|')
         record_star(star_name=content[:s], star_id=content[s + 1:])
@@ -787,13 +795,9 @@ def listen_callback(call):
     elif key_type == KEY_GET_AV_BY_ID:
         get_av_by_id(id=content, send_to_pikpak=False)
     elif key_type == KEY_RANDOM_GET_AV:
-        try:
-            id = util_javbus.get_id_from_home()
-        except Exception as e:
-            handle_network_err(e)
-            return
-        if not id: send_msg('获取失败，请重试 =_=')
-        else: get_av_by_id(id=id, send_to_pikpak=False)
+        code, id = util_javbus.get_id_from_home()
+        if check_success(code):
+            get_av_by_id(id=id, send_to_pikpak=False)
     elif key_type == KEY_UNDO_RECORD_AV:
         undo_record_id(id=content)
     elif key_type == KEY_UNDO_RECORD_STAR:
@@ -807,11 +811,12 @@ def handle_message(message):
     :param _type_ message: 消息
     '''
     # 拦截请求，检查消息来源
-    if str(message.from_user.id) != TG_CHAT_ID:
+    if str(message.from_user.id) != common.TG_CHAT_ID:
         LOG.info(f'拦截到非目标用户请求，id: {message.from_user.id}')
         bot.send_message(
             chat_id=message.from_user.id,
-            text=f'该机器人仅供私人使用, 如需使用请自行部署：<a href="{PROJECT_ADDRESS}">项目地址</a>',
+            text=
+            f'该机器人仅供私人使用, 如需使用请自行部署：<a href="{common.PROJECT_ADDRESS}">项目地址</a>',
             parse_mode='HTML',
         )
         return
@@ -827,16 +832,12 @@ def handle_message(message):
     # 处理消息
     if msg == '/test':
         test()
-    elif msg == '/help':
+    elif msg == '/help' or msg.find('/start') != -1:
         help()
     elif msg == '/random':
-        try:
-            id = util_javbus.get_id_from_home()
-        except Exception as e:
-            handle_network_err(e)
-            return
-        if not id: send_msg('获取失败，请重试 =_=')
-        else: get_av_by_id(id=id, send_to_pikpak=False)
+        code, id = util_javbus.get_id_from_home()
+        if check_success(code):
+            get_av_by_id(id=id, send_to_pikpak=False)
     elif msg == '/stars':
         get_stars_record()
     elif msg == '/avs':
@@ -848,23 +849,15 @@ def handle_message(message):
     elif msg.find('/star') != -1:
         param = get_msg_param(msg)
         if param:
-            try:
-                send_msg(f'搜索演员：{param}')
-                id = util_javbus.get_id_by_star_name(star_name=param)
-            except Exception as e:
-                handle_network_err(e)
-                return
-            if not id: send_msg(f'妹找到{param}，请重试或用其它方式搜索 =_=')
-            else: get_av_by_id(id=id, send_to_pikpak=False)
+            send_msg(f'搜索演员：{param}')
+            code, id = util_javbus.get_id_by_star_name(star_name=param)
+            if check_success(code):
+                get_av_by_id(id=id, send_to_pikpak=False)
     elif msg.find('/av') != -1:
         param = get_msg_param(msg)
         if param:
-            try:
-                send_msg(f'搜索番号：{param}')
-                get_av_by_id(id=param)
-            except Exception as e:
-                handle_network_err(e)
-                return
+            send_msg(f'搜索番号：{param}')
+            get_av_by_id(id=param)
     else:
         # ids = re.compile(r'^[A-Za-z]+[-][0-9]+$').findall(msg)
         ids = re.compile(r'[A-Za-z]+[-][0-9]+').findall(msg)
@@ -878,11 +871,7 @@ def handle_message(message):
             ids_msg = ', '.join(ids)
             send_msg(f'检测到番号：{ids_msg}，开始搜索...')
             for id in ids:
-                get_av_by_id(
-                    id=id,
-                    send_to_pikpak=True,
-                    is_nice=True,
-                )
+                get_av_by_id(id=id)
 
 
 def test():
@@ -918,8 +907,8 @@ def set_command():
         'stars': '获取收藏的演员',
         'avs': '获取收藏的AV',
         'random': '随机获取一部AV',
+        'top100': '获取DMM女优排行榜前100位名单',
         'record': '获取收藏记录文件',
-        'top100': '获取DMM女优排行榜前100位名单'
     }
     cmds = []
     for cmd in tg_cmd_dict:
@@ -928,6 +917,5 @@ def set_command():
 
 
 if __name__ == '__main__':
-    LOG = common.LOG
     set_command()
     bot.infinity_polling()
