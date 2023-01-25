@@ -426,18 +426,17 @@ def get_star_detail_record(star_name: str, star_id: str):
             star_avs.append(av['id'])
     # 发送按钮消息
     extra_btn1 = InlineKeyboardButton(
-        text=f'随机获取一部该演员的 AV',
+        text=f'演员随机 AV',
         callback_data=f'{star_id}:{kEY_RANDOM_GET_AV_BY_STAR_ID}')
     extra_btn2 = InlineKeyboardButton(
-        text=f'获取该演员的最新 AV',
+        text=f'演员最新 AV',
         callback_data=f'{star_name}|{star_id}:{KEY_GET_NEW_AVS_BY_STAR_ID}')
     extra_btn3 = InlineKeyboardButton(
         text=f'取消收藏', callback_data=f'{star_id}:{KEY_UNDO_RECORD_STAR}')
     title = f'<code>{star_name}</code> | <a href="{common.BASE_URL_JAPAN_WIKI}/{star_name}">Wiki</a> | <a href="{util_javbus.BASE_URL_SEARCH_BY_STAR_ID}/{star_id}">Javbus</a>'
     if len(star_avs) == 0:  # 没有收藏记录
         markup = InlineKeyboardMarkup()
-        markup.row(extra_btn1)
-        markup.row(extra_btn2)
+        markup.row(extra_btn1, extra_btn2, extra_btn3)
         send_msg(msg=title, markup=markup)
         return
     send_msg_btns(max_btn_per_row=5,
@@ -445,7 +444,8 @@ def get_star_detail_record(star_name: str, star_id: str):
                   btn_type=1,
                   title=title,
                   objs=star_avs,
-                  extra_btns=[extra_btn1, extra_btn2])
+                  extra_btns_br=False,
+                  extra_btns=[extra_btn1, extra_btn2, extra_btn3])
 
 
 def get_avs_record(page=1):
@@ -745,11 +745,10 @@ def search_star(star_name: str):
         markup = InlineKeyboardMarkup()
         markup.row(
             InlineKeyboardButton(
-                text='获取该演员的最新 AV',
-                callback_data=f'{star_name}:{KEY_GET_NEW_AVS_BY_STAR_NAME}'))
-        markup.row(
+                text='演员最新 AV',
+                callback_data=f'{star_name}:{KEY_GET_NEW_AVS_BY_STAR_NAME}'),
             InlineKeyboardButton(
-                text='随机获取一部该演员的 AV',
+                text='演员随机 AV',
                 callback_data=f'{star_name}:{KEY_RANDOM_GET_AV_BY_STAR_NAME}'))
         send_msg(
             msg=
