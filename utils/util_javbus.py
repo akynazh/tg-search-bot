@@ -9,6 +9,10 @@ import common
 
 BASE_URL = 'https://www.javbus.com'
 # BASE_URL = 'https://www.seejav.me'
+BASE_URL_SEARCH_BY_STAR_NAME = f'{BASE_URL}/search'
+BASE_URL_SEARCH_BY_STAR_ID = f'{BASE_URL}/star'
+BASE_URL_SEARCH_STAR = f'{BASE_URL}/searchstar'
+BASE_URL_MAGNET = f'{BASE_URL}/ajax/uncledatoolsbyajax.php?lang=zh'
 HOME_MAX_PAGE = 100
 
 
@@ -33,12 +37,12 @@ def get_max_page(url: str) -> typing.Tuple[int, int]:
         return 404, None
 
 
-def get_id_from_page(base_page_url: str, page=-1) -> typing.Tuple[int, str]:
-    '''从 av 列表页面获取一个番号
+def get_ids_from_page(base_page_url: str, page=-1) -> typing.Tuple[int, list]:
+    '''从 av 列表页面获取该页面全部番号
 
     :param str base_page: 基础页地址，也是第一页地址
     :param int page: 用于指定爬取哪一页的数据，默认值为 -1，表示随机获取某一页
-    :return tuple[int, str]: 状态码和番号
+    :return tuple[int, str]: 状态码和番号列表
     '''
     # 准备 url 地址
     url = ''
@@ -64,11 +68,24 @@ def get_id_from_page(base_page_url: str, page=-1) -> typing.Tuple[int, str]:
             id = id_link[id_link.rfind('/') + 1:]
             ids.append(id)
         if ids != []:
-            return 200, random.choice(ids)
+            return 200, ids
         else:
             return 404, None
     except Exception:
         return 404, None
+
+
+def get_id_from_page(base_page_url: str, page=-1) -> typing.Tuple[int, str]:
+    '''从 av 列表页面获取一个番号
+
+    :param str base_page: 基础页地址，也是第一页地址
+    :param int page: 用于指定爬取哪一页的数据，默认值为 -1，表示随机获取某一页
+    :return tuple[int, str]: 状态码和番号
+    '''
+    code, ids = get_ids_from_page(base_page_url, page)
+    if code != 200:
+        return code, None
+    return 200, random.choice(ids)
 
 
 def get_id_from_home(page=-1) -> typing.Tuple[int, str]:
@@ -89,8 +106,22 @@ def get_id_by_star_name(star_name: str, page=-1) -> typing.Tuple[int, str]:
     :param int page: 用于指定爬取哪一页的数据，默认值为 -1，表示随机获取某一页
     :return tuple[int, str]: 状态码和番号
     '''
-    return get_id_from_page(base_page_url=f'{BASE_URL}/search/{star_name}',
-                            page=page)
+    return get_id_from_page(
+        base_page_url=f'{BASE_URL_SEARCH_BY_STAR_NAME}/{star_name}', page=page)
+
+
+def get_new_ids_by_star_name(star_name: str) -> typing.Tuple[int, list]:
+    '''根据演员名称获取最新番号 （小于等于5个）
+
+    :param str star_name: 演员名称
+    :return typing.Tuple[int, list]: 状态码和番号列表
+    '''
+    code, ids = get_ids_from_page(
+        base_page_url=f'{BASE_URL_SEARCH_BY_STAR_NAME}/{star_name}', page=1)
+    if code != 200:
+        return code, None
+    if len(ids) <= 5: return 200, ids
+    return 200, ids[:5]
 
 
 def get_id_by_star_id(star_id: str, page=-1) -> typing.Tuple[int, str]:
@@ -100,8 +131,22 @@ def get_id_by_star_id(star_id: str, page=-1) -> typing.Tuple[int, str]:
     :param int page: 用于指定爬取哪一页的数据，默认值为 -1，表示随机获取某一页
     :return tuple[int, str]: 状态码和番号
     '''
-    return get_id_from_page(base_page_url=f'{BASE_URL}/star/{star_id}',
-                            page=page)
+    return get_id_from_page(
+        base_page_url=f'{BASE_URL_SEARCH_BY_STAR_ID}/{star_id}', page=page)
+
+
+def get_new_ids_by_star_id(star_id: str) -> typing.Tuple[int, list]:
+    '''根据演员编号获取最新番号 （小于等于5个）
+
+    :param str star_id: 演员编号
+    :return tuple[int, list]: 状态码和番号列表
+    '''
+    code, ids = get_ids_from_page(
+        base_page_url=f'{BASE_URL_SEARCH_BY_STAR_ID}/{star_id}', page=1)
+    if code != 200:
+        return code, None
+    if len(ids) <= 5: return 200, ids
+    return 200, ids[:5]
 
 
 def get_samples_by_id(id: str) -> typing.Tuple[int, list]:
@@ -177,6 +222,16 @@ def sort_magnets(magnets: list) -> list:
     # 根据 size_no_unit 大小排序
     magnets = sorted(magnets, key=lambda m: m['size_no_unit'], reverse=True)
     return magnets
+
+
+def check_star_exists(star_name: str) -> int:
+    '''工具演员名称确认该演员在 javbus 是否存在
+
+    :param str star_name: 演员名称
+    :return int: 状态码
+    '''
+    code, _ = common.send_req(url=f'{BASE_URL_SEARCH_STAR}/{star_name}')
+    return code
 
 
 def get_av_by_id(id: str,
@@ -278,7 +333,7 @@ def get_av_by_id(id: str,
     if not uc and not gid:
         return 200, av
     # 得到磁链的ajax请求地址
-    url = f'{BASE_URL}/ajax/uncledatoolsbyajax.php?gid={gid}&lang=zh&uc={uc}'
+    url = f'{BASE_URL_MAGNET}&gid={gid}&uc={uc}'
     headers = {
         'user-agent': common.ua(),
         'referer': f'{BASE_URL}/{id}',
@@ -336,5 +391,6 @@ if __name__ == '__main__':
     # code, res = get_max_page('https://www.javbus.com/star/okq')
     # code, res = get_id_by_star_id('okq')
     # code, res = get_id_by_star_name('三上悠亜')
+    # code, res = get_new_ids_by_star_name('三上悠亜')
     # code, res = get_id_from_home()
     if code == 200: print(res)

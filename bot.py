@@ -19,23 +19,29 @@ if common.USE_PIKPAK:
     import utils.util_pikpak as util_pikpak
 
 # 定义回调按键值
-KEY_WATCH_PV_BY_ID = 0
-KEY_WATCH_FV_BY_ID = 1
-KEY_GET_SAMPLE_BY_ID = 2
-KEY_GET_MORE_MAGNETS_BY_ID = 3
-kEY_RANDOM_GET_AV_BY_STAR_ID = 4
-KEY_RECORD_STAR = 5
-KEY_RECORD_AV = 6
-KEY_GET_STARS_RECORD = 7
-KEY_GET_AVS_RECORD = 8
-KEY_GET_STAR_DETAIL_RECORD = 9
-KEY_GET_AV_BY_ID = 10
-KEY_RANDOM_GET_AV_JAVBUS = 11
-KEY_UNDO_RECORD_STAR = 12
-KEY_UNDO_RECORD_AV = 13
-KEY_GET_AV_DETAIL_RECORD = 14
-KEY_RANDOM_GET_AV_JAVLIBRARY_NICE = 15
-KEY_RANDOM_GET_AV_JAVLIBRARY_NEW = 16
+KEY_GET_SAMPLE_BY_ID = 'k0_0'
+KEY_GET_MORE_MAGNETS_BY_ID = 'k0_1'
+KEY_SEARCH_STAR = 'k0_2'
+
+KEY_WATCH_PV_BY_ID = 'k1_0'
+KEY_WATCH_FV_BY_ID = 'k1_1'
+
+KEY_GET_AV_BY_ID = 'k2_0'
+kEY_RANDOM_GET_AV_BY_STAR_ID = 'k2_1'
+KEY_RANDOM_GET_AV_NICE = 'k2_2'
+KEY_RANDOM_GET_AV_NEW = 'k2_3'
+KEY_GET_NEW_AVS_BY_STAR_ID = 'k2_4'
+KEY_RANDOM_GET_AV_BY_STAR_NAME = 'k2_5'
+KEY_GET_NEW_AVS_BY_STAR_NAME = 'k2_6'
+
+KEY_RECORD_STAR = 'k3_0'
+KEY_RECORD_AV = 'k3_1'
+KEY_GET_STARS_RECORD = 'k3_2'
+KEY_GET_AVS_RECORD = 'k3_3'
+KEY_GET_STAR_DETAIL_RECORD = 'k3_4'
+KEY_GET_AV_DETAIL_RECORD = 'k3_5'
+KEY_UNDO_RECORD_STAR = 'k3_6'
+KEY_UNDO_RECORD_AV = 'k3_7'
 
 # 设置代理
 apihelper.proxy = common.PROXY
@@ -44,8 +50,10 @@ bot = telebot.TeleBot(common.TG_BOT_TOKEN)
 # 日志记录器
 LOG = common.LOG
 
+
 def send_action_typing():
     bot.send_chat_action(chat_id=common.TG_CHAT_ID, action='typing')
+
 
 def send_msg(msg, pv=False, markup=None):
     '''发送消息
@@ -245,7 +253,7 @@ def undo_record_id(id: str):
 def create_btn(btn_type: int, obj: dict):
     '''根据按钮种类创建按钮
 
-    :param int type: 按钮种类 0 演员 | 1 番号
+    :param int type: 按钮种类 0 演员 | 1 番号 | 2 搜索演员
     :param dict obj: 数据对象
     :return _type_: 按钮
     '''
@@ -257,6 +265,9 @@ def create_btn(btn_type: int, obj: dict):
     elif btn_type == 1:  # av
         return InlineKeyboardButton(
             text=obj, callback_data=f'{obj}:{KEY_GET_AV_DETAIL_RECORD}')
+    elif btn_type == 2:  # search star
+        return InlineKeyboardButton(text=obj,
+                                    callback_data=f'{obj}:{KEY_SEARCH_STAR}')
 
 
 def send_msg_btns(max_btn_per_row: int,
@@ -265,6 +276,7 @@ def send_msg_btns(max_btn_per_row: int,
                   title: str,
                   objs: list,
                   extra_btns=[],
+                  extra_btns_br=True,
                   page_btns=[]):
     '''发送按钮消息
 
@@ -274,6 +286,8 @@ def send_msg_btns(max_btn_per_row: int,
     :param str title: 消息标题
     :param dict objs: 数据对象数组
     :param list extra_btns: 附加按钮列表，每行一个按钮，附加在每条消息尾部，默认为空
+    :param bool extra_btns_br: 附加按钮列表是否换行，默认换行
+    :param list page_btns: 分页块
     '''
     # 初始化数据
     markup = InlineKeyboardMarkup()
@@ -289,8 +303,11 @@ def send_msg_btns(max_btn_per_row: int,
             btns = []
         # 若消息中行数达到 max_row_per_msg，则发送消息
         if row_count == max_row_per_msg:
-            for extra_btn in extra_btns:
-                markup.row(extra_btn)
+            if extra_btns_br:
+                for extra_btn in extra_btns:
+                    markup.row(extra_btn)
+            else:
+                markup.row(*extra_btns)
             if page_btns != []:
                 markup.row(*page_btns)
             send_msg(msg=title, markup=markup)
@@ -302,8 +319,11 @@ def send_msg_btns(max_btn_per_row: int,
         row_count += 1
     # 若当前行数不为 0，则发送消息
     if row_count != 0:
-        for extra_btn in extra_btns:
-            markup.row(extra_btn)
+        if extra_btns_br:
+            for extra_btn in extra_btns:
+                markup.row(extra_btn)
+        else:
+            markup.row(*extra_btns)
         if page_btns != []:
             markup.row(*page_btns)
         send_msg(msg=title, markup=markup)
@@ -406,12 +426,14 @@ def get_star_detail_record(star_name: str, star_id: str):
             star_avs.append(av['id'])
     # 发送按钮消息
     extra_btn1 = InlineKeyboardButton(
-        text=f'随机获取一部{star_name}的AV',
+        text=f'随机获取一部该演员的 AV',
         callback_data=f'{star_id}:{kEY_RANDOM_GET_AV_BY_STAR_ID}')
     extra_btn2 = InlineKeyboardButton(
-        text=f'取消收藏{star_name}',
-        callback_data=f'{star_id}:{KEY_UNDO_RECORD_STAR}')
-    title = f'<code>{star_name}</code> | <a href="{common.BASE_URL_JAPAN_WIKI}/{star_name}">Wiki</a> | <a href="{util_javbus.BASE_URL}/star/{star_id}">Javbus</a>'
+        text=f'获取该演员的最新 AV',
+        callback_data=f'{star_name}|{star_id}:{KEY_GET_NEW_AVS_BY_STAR_ID}')
+    extra_btn3 = InlineKeyboardButton(
+        text=f'取消收藏', callback_data=f'{star_id}:{KEY_UNDO_RECORD_STAR}')
+    title = f'<code>{star_name}</code> | <a href="{common.BASE_URL_JAPAN_WIKI}/{star_name}">Wiki</a> | <a href="{util_javbus.BASE_URL_SEARCH_BY_STAR_ID}/{star_id}">Javbus</a>'
     if len(star_avs) == 0:  # 没有收藏记录
         markup = InlineKeyboardMarkup()
         markup.row(extra_btn1)
@@ -439,14 +461,9 @@ def get_avs_record(page=1):
     avs = [av['id'] for av in record['avs']]
     # 发送按钮消息
     extra_btn1 = InlineKeyboardButton(
-        text='从 Javlibrary 高评分和最想要排行榜中随机获取一部 AV',
-        callback_data=f'0:{KEY_RANDOM_GET_AV_JAVLIBRARY_NICE}')
+        text='随机高分 AV', callback_data=f'0:{KEY_RANDOM_GET_AV_NICE}')
     extra_btn2 = InlineKeyboardButton(
-        text='从 Javlibrary 新发行和新加入排行榜中随机获取一部 AV',
-        callback_data=f'0:{KEY_RANDOM_GET_AV_JAVLIBRARY_NEW}')
-    extra_btn3 = InlineKeyboardButton(
-        text='从 JavBus 主页随机获取一部 AV',
-        callback_data=f'0:{KEY_RANDOM_GET_AV_JAVBUS}')
+        text='随机最新 AV', callback_data=f'0:{KEY_RANDOM_GET_AV_NEW}')
     col, row = 5, 10
     objs, page_btns, title = get_page_elements(objs=avs,
                                                page=page,
@@ -458,7 +475,8 @@ def get_avs_record(page=1):
                   btn_type=1,
                   title='收藏的番号：' + title,
                   objs=objs,
-                  extra_btns=[extra_btn1, extra_btn2, extra_btn3],
+                  extra_btns=[extra_btn1, extra_btn2],
+                  extra_btns_br=False,
                   page_btns=page_btns)
 
 
@@ -468,9 +486,9 @@ def get_av_detail_record(id: str):
     :param str id: 番号
     '''
     markup = InlineKeyboardMarkup()
-    btn1 = InlineKeyboardButton(text=f'获取 {id} 对应 AV',
+    btn1 = InlineKeyboardButton(text=f'获取对应 AV',
                                 callback_data=f'{id}:{KEY_GET_AV_BY_ID}')
-    btn2 = InlineKeyboardButton(text=f'取消收藏 {id}',
+    btn2 = InlineKeyboardButton(text=f'取消收藏',
                                 callback_data=f'{id}:{KEY_UNDO_RECORD_AV}')
     markup.row(btn1, btn2)
     send_msg(msg=f'<a href="{util_javbus.BASE_URL}/{id}">{id}</a>',
@@ -478,7 +496,7 @@ def get_av_detail_record(id: str):
 
 
 def get_av_by_id(id: str,
-                 send_to_pikpak=True,
+                 send_to_pikpak=False,
                  is_nice=True,
                  magnet_max_count=3,
                  not_send=False) -> dict:
@@ -494,7 +512,7 @@ def get_av_by_id(id: str,
     # 获取 AV
     av_score = None
     futures = {}
-    with concurrent.futures.ProcessPoolExecutor() as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
         if not not_send:
             futures[executor.submit(util_dmm.get_score_by_id,
                                     id)] = 0  # 获取 AV 评分
@@ -583,15 +601,11 @@ def get_av_by_id(id: str,
     more_btn = InlineKeyboardButton(
         text='更多磁链', callback_data=f'{av_id}:{KEY_GET_MORE_MAGNETS_BY_ID}')
     markup = InlineKeyboardMarkup().row(sample_btn, pv_btn, fv_btn, more_btn)
-    star_random_btn = None
     star_record_btn = None
     if len(av_stars) == 1:
         show_star_name = av_stars[0]['name']
         show_star_link = av_stars[0]['link']
         show_star_id = show_star_link[show_star_link.rfind('/') + 1:]
-        star_random_btn = InlineKeyboardButton(
-            text=f'演员随机 AV',
-            callback_data=f'{show_star_id}:{kEY_RANDOM_GET_AV_BY_STAR_ID}')
         star_record_btn = InlineKeyboardButton(
             text=f'收藏{show_star_name}',
             callback_data=f'{show_star_name}|{show_star_id}:{KEY_RECORD_STAR}')
@@ -606,8 +620,8 @@ def get_av_by_id(id: str,
     if star_ids != '': star_ids = star_ids[:len(star_ids) - 1]
     av_record_btn = InlineKeyboardButton(
         text=f'收藏番号', callback_data=f'{av_id}|{star_ids}:{KEY_RECORD_AV}')
-    if star_random_btn and star_record_btn:
-        markup.row(av_record_btn, star_record_btn, star_random_btn)
+    if star_record_btn:
+        markup.row(av_record_btn, star_record_btn)
     else:
         markup.row(av_record_btn)
     # 发送消息
@@ -679,7 +693,7 @@ def watch_av(id: str, type: str):
     '''
     if type == 0:
         futures = {}
-        with concurrent.futures.ProcessPoolExecutor() as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             futures[executor.submit(util_dmm.get_pv_by_id, id)] = 1
             futures[executor.submit(util_avgle.get_pv_by_id, id)] = 2
             for future in concurrent.futures.as_completed(futures):
@@ -717,11 +731,30 @@ def watch_av(id: str, type: str):
                     parse_mode='HTML')
             except Exception:
                 send_msg(
-                    f'通过 Avgle 搜索得到结果，但视频解析失败：<a href="{pv_avgle}">视频地址</a> Q_Q')
+                    f'通过 Avgle 搜索得到结果，但视频解析失败：<a href="{pv_avgle}">视频地址</a> Q_Q'
+                )
     elif type == 1:
         code, video = util_avgle.get_fv_by_id(id)
         if check_success(code):
             send_msg(f'Avgle 视频地址：{video}')
+
+
+def search_star(star_name: str):
+    code = util_javbus.check_star_exists(star_name)
+    if check_success(code):
+        markup = InlineKeyboardMarkup()
+        markup.row(
+            InlineKeyboardButton(
+                text='获取该演员的最新 AV',
+                callback_data=f'{star_name}:{KEY_GET_NEW_AVS_BY_STAR_NAME}'))
+        markup.row(
+            InlineKeyboardButton(
+                text='随机获取一部该演员的 AV',
+                callback_data=f'{star_name}:{KEY_RANDOM_GET_AV_BY_STAR_NAME}'))
+        send_msg(
+            msg=
+            f'<code>{star_name}</code> | <a href="{common.BASE_URL_JAPAN_WIKI}/{star_name}">Wiki</a> | <a href="{util_javbus.BASE_URL_SEARCH_BY_STAR_NAME}/{star_name}">Javbus</a>',
+            markup=markup)
 
 
 def get_top_stars():
@@ -730,12 +763,12 @@ def get_top_stars():
     code, stars = util_dmm.get_all_top_stars()
     if not check_success(code):
         return
-    msg = '''DMM TOP 100
-'''
-    for i, star in enumerate(stars):
-        msg += f'''{i+1} => <a href="{common.BASE_URL_JAPAN_WIKI}/{star}">{star}</a>
-'''
-    send_msg(msg)
+    title = 'DMM TOP 100'
+    send_msg_btns(max_btn_per_row=5,
+                  max_row_per_msg=10,
+                  btn_type=2,
+                  title=title,
+                  objs=stars)
 
 
 def get_msg_param(msg: str) -> str:
@@ -761,7 +794,7 @@ def listen_callback(call):
     # 提取回调内容
     idx = call.data.rfind(':')
     content = call.data[:idx]
-    key_type = int(call.data[idx + 1:])
+    key_type = call.data[idx + 1:]
     # 检查按键类型并处理
     if key_type == KEY_WATCH_PV_BY_ID:
         watch_av(id=content, type=0)
@@ -770,10 +803,7 @@ def listen_callback(call):
     elif key_type == KEY_GET_SAMPLE_BY_ID:
         get_sample_by_id(id=content)
     elif key_type == KEY_GET_MORE_MAGNETS_BY_ID:
-        av = get_av_by_id(id=content,
-                          send_to_pikpak=False,
-                          is_nice=False,
-                          not_send=True)
+        av = get_av_by_id(id=content, is_nice=False, not_send=True)
         if not av:
             return
         msg = ''
@@ -788,7 +818,20 @@ def listen_callback(call):
     elif key_type == kEY_RANDOM_GET_AV_BY_STAR_ID:
         code, id = util_javbus.get_id_by_star_id(star_id=content)
         if check_success(code):
-            get_av_by_id(id=id, send_to_pikpak=False)
+            get_av_by_id(id=id)
+    elif key_type == KEY_GET_NEW_AVS_BY_STAR_ID:
+        tmp = content.split('|')
+        star_name = tmp[0]
+        star_id = tmp[1]
+        code, ids = util_javbus.get_new_ids_by_star_id(star_id=star_id)
+        if check_success(code):
+
+            send_msg(msg=f'<code>{star_name}</code>最新 AV',
+                     markup=InlineKeyboardMarkup().row(*[
+                         InlineKeyboardButton(
+                             text=id, callback_data=f'{id}:{KEY_GET_AV_BY_ID}')
+                         for id in ids
+                     ]))
     elif key_type == KEY_RECORD_STAR:
         s = content.find('|')
         record_star(star_name=content[:s], star_id=content[s + 1:])
@@ -807,23 +850,34 @@ def listen_callback(call):
     elif key_type == KEY_GET_AV_DETAIL_RECORD:
         get_av_detail_record(id=content)
     elif key_type == KEY_GET_AV_BY_ID:
-        get_av_by_id(id=content, send_to_pikpak=False)
-    elif key_type == KEY_RANDOM_GET_AV_JAVBUS:
-        code, id = util_javbus.get_id_from_home()
-        if check_success(code):
-            get_av_by_id(id=id, send_to_pikpak=False)
-    elif key_type == KEY_RANDOM_GET_AV_JAVLIBRARY_NICE:
+        get_av_by_id(id=content)
+    elif key_type == KEY_RANDOM_GET_AV_NICE:
         code, id = util_javlibrary.get_random_id(0)
         if check_success(code):
-            get_av_by_id(id=id, send_to_pikpak=False)
-    elif key_type == KEY_RANDOM_GET_AV_JAVLIBRARY_NEW:
+            get_av_by_id(id=id)
+    elif key_type == KEY_RANDOM_GET_AV_NEW:
         code, id = util_javlibrary.get_random_id(1)
         if check_success(code):
-            get_av_by_id(id=id, send_to_pikpak=False)
+            get_av_by_id(id=id)
     elif key_type == KEY_UNDO_RECORD_AV:
         undo_record_id(id=content)
     elif key_type == KEY_UNDO_RECORD_STAR:
         undo_record_star(star_id=content)
+    elif key_type == KEY_RANDOM_GET_AV_BY_STAR_NAME:
+        code, id = util_javbus.get_id_by_star_name(star_name=content)
+        if check_success(code):
+            get_av_by_id(id)
+    elif key_type == KEY_GET_NEW_AVS_BY_STAR_NAME:
+        code, ids = util_javbus.get_new_ids_by_star_name(star_name=content)
+        if check_success(code):
+            send_msg(msg=f'<code>{content}</code>最新 AV',
+                     markup=InlineKeyboardMarkup().row(*[
+                         InlineKeyboardButton(
+                             text=id, callback_data=f'{id}:{KEY_GET_AV_BY_ID}')
+                         for id in ids
+                     ]))
+    elif key_type == KEY_SEARCH_STAR:
+        search_star(content)
 
 
 @bot.message_handler(content_types=['text', 'photo', 'animation', 'video'])
@@ -857,18 +911,14 @@ def handle_message(message):
         test()
     elif msg == '/help' or msg.find('/start') != -1:
         help()
-    elif msg == '/jlib_nice':
+    elif msg == '/nice':
         code, id = util_javlibrary.get_random_id(0)
         if check_success(code):
-            get_av_by_id(id=id, send_to_pikpak=False)
-    elif msg == '/jlib_new':
+            get_av_by_id(id=id)
+    elif msg == '/new':
         code, id = util_javlibrary.get_random_id(1)
         if check_success(code):
-            get_av_by_id(id=id, send_to_pikpak=False)
-    elif msg == '/jbus':
-        code, id = util_javbus.get_id_from_home()
-        if check_success(code):
-            get_av_by_id(id=id, send_to_pikpak=False)
+            get_av_by_id(id=id)
     elif msg == '/stars':
         get_stars_record()
     elif msg == '/avs':
@@ -880,15 +930,13 @@ def handle_message(message):
     elif msg.find('/star') != -1:
         param = get_msg_param(msg)
         if param:
-            send_msg(f'搜索演员：{param}')
-            code, id = util_javbus.get_id_by_star_name(star_name=param)
-            if check_success(code):
-                get_av_by_id(id=id, send_to_pikpak=False)
+            send_msg(f'搜索演员：{param} ......')
+            search_star(param)
     elif msg.find('/av') != -1:
         param = get_msg_param(msg)
         if param:
             send_msg(f'搜索番号：{param}')
-            get_av_by_id(id=param)
+            get_av_by_id(id=param, send_to_pikpak=True)
     else:
         # ids = re.compile(r'^[A-Za-z]+[-][0-9]+$').findall(msg)
         ids = re.compile(r'[A-Za-z]+[-][0-9]+').findall(msg)
@@ -900,9 +948,9 @@ def handle_message(message):
             ids = [id.lower() for id in ids]
             ids = set(ids)
             ids_msg = ', '.join(ids)
-            send_msg(f'检测到番号：{ids_msg}，开始搜索...')
+            send_msg(f'检测到番号：{ids_msg}，开始搜索......')
             for id in ids:
-                get_av_by_id(id=id)
+                get_av_by_id(id=id, send_to_pikpak=True)
 
 
 def test():
@@ -920,17 +968,15 @@ def help():
 
 /avs  获取收藏的番号
 
-/jlib_nice  从 Javlibrary 高评分和最想要排行榜中随机获取一部 AV
+/nice  随机获取一部高分 AV
 
-/jlib_new  从 Javlibrary 新发行和新加入排行榜中随机获取一部 AV
-
-/jbus  从 JavBus 主页随机获取一部 AV
+/new  随机获取一部最新 AV
 
 /top100  获取 DMM 女优排行榜前 100 位名单
 
 /record  获取收藏记录文件
 
-<code>/star</code>  后接演员名称（日语）可随机获取一部该演员的影片
+<code>/star</code>  后接演员名称（日语）可搜索该演员
 
 <code>/av</code>  后接番号可搜索该番号
 '''
@@ -943,9 +989,8 @@ def set_command():
         'help': '查看指令帮助',
         'stars': '获取收藏的演员',
         'avs': '获取收藏的 AV',
-        'jlib_nice': '从 Javlibrary 高评分和最想要排行榜中随机获取一部 AV',
-        'jlib_new': '从 Javlibrary 新发行和新加入排行榜中随机获取一部 AV',
-        'jbus': '从 JavBus 主页随机获取一部 AV',
+        'nice': '随机获取一部高分 AV',
+        'new': '随机获取一部最新 AV',
         'top100': '获取 DMM 女优排行榜前 100 位名单',
         'record': '获取收藏记录文件',
     }

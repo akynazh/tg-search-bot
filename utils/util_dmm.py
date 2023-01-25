@@ -109,7 +109,7 @@ def get_all_top_stars() -> typing.Tuple[int, list]:
 
     :return tuple[int, list]: 状态码和女优名称列表
     '''
-    with concurrent.futures.ProcessPoolExecutor() as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
         # 爬取第一到第五页数据
         futures = {
             executor.submit(get_top_stars, page): page
