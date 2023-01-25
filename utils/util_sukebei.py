@@ -1,5 +1,4 @@
 # -*- coding: UTF-8 -*-
-from bs4 import BeautifulSoup
 import sys
 import typing
 
@@ -73,7 +72,7 @@ def get_av_by_id(id: str,
     if code != 200:
         return code, None
     # 获取soup
-    soup = BeautifulSoup(resp.text, 'lxml')
+    soup = common.get_soup(resp)
     torrent_list = soup.find(class_='torrent-list')
     if not torrent_list:
         return 404, None
@@ -81,30 +80,33 @@ def get_av_by_id(id: str,
     trs = torrent_list.tbody.find_all('tr')
     if not trs:
         return 404, None
-    for i, tr in enumerate(trs):
-        tds = tr.find_all('td')
-        magnet = {
-            'link': '',  # 链接
-            'size': '',  # 大小
-            'hd': '0',  # 是否高清 0 否 | 1 是
-            'zm': '0'  # 是否有字幕 0 否 | 1 是
-        }
-        for j, td in enumerate(tds):
-            if j == 1:  # 获取标题
-                title = td.a.text
-                if i == 0: av['title'] = title
-            if j == 2:  # 获取磁链
-                magnet['link'] = td.find_all('a')[-1]['href']
-            if j == 3:  # 获取大小
-                magnet['size'] = td.text
-        av['magnets'].append(magnet)
-    # 过滤番号
-    if is_nice:
-        magnets = av['magnets']
-        if len(magnets) > magnet_max_count:
-            magnets = magnets[0:magnet_max_count]
-        magnets = sort_magnets(magnets)
-        av['magnets'] = magnets
+    try:
+        for i, tr in enumerate(trs):
+            tds = tr.find_all('td')
+            magnet = {
+                'link': '',  # 链接
+                'size': '',  # 大小
+                'hd': '0',  # 是否高清 0 否 | 1 是
+                'zm': '0'  # 是否有字幕 0 否 | 1 是
+            }
+            for j, td in enumerate(tds):
+                if j == 1:  # 获取标题
+                    title = td.a.text
+                    if i == 0: av['title'] = title
+                if j == 2:  # 获取磁链
+                    magnet['link'] = td.find_all('a')[-1]['href']
+                if j == 3:  # 获取大小
+                    magnet['size'] = td.text
+            av['magnets'].append(magnet)
+        # 过滤番号
+        if is_nice:
+            magnets = av['magnets']
+            if len(magnets) > magnet_max_count:
+                magnets = magnets[0:magnet_max_count]
+            magnets = sort_magnets(magnets)
+            av['magnets'] = magnets
+    except Exception:
+        return 404, av
     return 200, av
 
 

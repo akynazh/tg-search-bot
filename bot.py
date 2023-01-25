@@ -10,11 +10,13 @@ import typing
 import string
 import common
 import concurrent.futures
-import utils.util_pikpak as util_pikpak
 import utils.util_javbus as util_javbus
 import utils.util_avgle as util_avgle
 import utils.util_sukebei as util_sukebei
 import utils.util_dmm as util_dmm
+import utils.util_javlibrary as util_javlibrary
+if common.USE_PIKPAK:
+    import utils.util_pikpak as util_pikpak
 
 # 定义回调按键值
 KEY_WATCH_PV_BY_ID = 0
@@ -28,10 +30,12 @@ KEY_GET_STARS_RECORD = 7
 KEY_GET_AVS_RECORD = 8
 KEY_GET_STAR_DETAIL_RECORD = 9
 KEY_GET_AV_BY_ID = 10
-KEY_RANDOM_GET_AV = 11
+KEY_RANDOM_GET_AV_JAVBUS = 11
 KEY_UNDO_RECORD_STAR = 12
 KEY_UNDO_RECORD_AV = 13
 KEY_GET_AV_DETAIL_RECORD = 14
+KEY_RANDOM_GET_AV_JAVLIBRARY_NICE = 15
+KEY_RANDOM_GET_AV_JAVLIBRARY_NEW = 16
 
 # 设置代理
 apihelper.proxy = common.PROXY
@@ -40,6 +44,8 @@ bot = telebot.TeleBot(common.TG_BOT_TOKEN)
 # 日志记录器
 LOG = common.LOG
 
+def send_action_typing():
+    bot.send_chat_action(chat_id=common.TG_CHAT_ID, action='typing')
 
 def send_msg(msg, pv=False, markup=None):
     '''发送消息
@@ -432,8 +438,15 @@ def get_avs_record(page=1):
         return
     avs = [av['id'] for av in record['avs']]
     # 发送按钮消息
-    extra_btn = InlineKeyboardButton(text='随机获取一部 AV',
-                                     callback_data=f'0:{KEY_RANDOM_GET_AV}')
+    extra_btn1 = InlineKeyboardButton(
+        text='从 Javlibrary 高评分和最想要排行榜中随机获取一部 AV',
+        callback_data=f'0:{KEY_RANDOM_GET_AV_JAVLIBRARY_NICE}')
+    extra_btn2 = InlineKeyboardButton(
+        text='从 Javlibrary 新发行和新加入排行榜中随机获取一部 AV',
+        callback_data=f'0:{KEY_RANDOM_GET_AV_JAVLIBRARY_NEW}')
+    extra_btn3 = InlineKeyboardButton(
+        text='从 JavBus 主页随机获取一部 AV',
+        callback_data=f'0:{KEY_RANDOM_GET_AV_JAVBUS}')
     col, row = 5, 10
     objs, page_btns, title = get_page_elements(objs=avs,
                                                page=page,
@@ -445,7 +458,7 @@ def get_avs_record(page=1):
                   btn_type=1,
                   title='收藏的番号：' + title,
                   objs=objs,
-                  extra_btns=[extra_btn],
+                  extra_btns=[extra_btn1, extra_btn2, extra_btn3],
                   page_btns=page_btns)
 
 
@@ -683,28 +696,28 @@ def watch_av(id: str, type: str):
         if code_dmm == 200:
             try:
                 # 获取更清晰的视频
-                video_nice = util_dmm.get_nice_pv_by_src(video)
+                pv_dmm_nice = util_dmm.get_nice_pv_by_src(pv_dmm)
                 # 发送普通视频，附带更清晰的视频链接
                 bot.send_video(
                     chat_id=common.TG_CHAT_ID,
-                    video=video,
+                    video=pv_dmm,
                     caption=
-                    f'通过 DMM 搜索得到结果，<a href="{video_nice}">在这里观看更清晰的版本</a>',
+                    f'通过 DMM 搜索得到结果，<a href="{pv_dmm_nice}">在这里观看更清晰的版本</a>',
                     parse_mode='HTML')
             except Exception:
                 send_msg(
-                    f'通过 DMM 搜索得到结果，但视频解析失败：<a href="{video_nice}">视频地址</a> Q_Q'
+                    f'通过 DMM 搜索得到结果，但视频解析失败：<a href="{pv_dmm_nice}">视频地址</a> Q_Q'
                 )
         elif code_avgle == 200:
             try:
                 bot.send_video(
                     chat_id=common.TG_CHAT_ID,
-                    video=video,
-                    caption=f'通过 Avgle 搜索得到结果：<a href="{video}">视频地址</a>',
+                    video=pv_avgle,
+                    caption=f'通过 Avgle 搜索得到结果：<a href="{pv_avgle}">视频地址</a>',
                     parse_mode='HTML')
             except Exception:
                 send_msg(
-                    f'通过 Avgle 搜索得到结果，但视频解析失败：<a href="{video}">视频地址</a> Q_Q')
+                    f'通过 Avgle 搜索得到结果，但视频解析失败：<a href="{pv_avgle}">视频地址</a> Q_Q')
     elif type == 1:
         code, video = util_avgle.get_fv_by_id(id)
         if check_success(code):
@@ -744,6 +757,7 @@ def listen_callback(call):
 
     :param _type_ call: 触发回调的消息内容
     '''
+    send_action_typing()
     # 提取回调内容
     idx = call.data.rfind(':')
     content = call.data[:idx]
@@ -794,8 +808,16 @@ def listen_callback(call):
         get_av_detail_record(id=content)
     elif key_type == KEY_GET_AV_BY_ID:
         get_av_by_id(id=content, send_to_pikpak=False)
-    elif key_type == KEY_RANDOM_GET_AV:
+    elif key_type == KEY_RANDOM_GET_AV_JAVBUS:
         code, id = util_javbus.get_id_from_home()
+        if check_success(code):
+            get_av_by_id(id=id, send_to_pikpak=False)
+    elif key_type == KEY_RANDOM_GET_AV_JAVLIBRARY_NICE:
+        code, id = util_javlibrary.get_random_id(0)
+        if check_success(code):
+            get_av_by_id(id=id, send_to_pikpak=False)
+    elif key_type == KEY_RANDOM_GET_AV_JAVLIBRARY_NEW:
+        code, id = util_javlibrary.get_random_id(1)
         if check_success(code):
             get_av_by_id(id=id, send_to_pikpak=False)
     elif key_type == KEY_UNDO_RECORD_AV:
@@ -810,6 +832,7 @@ def handle_message(message):
 
     :param _type_ message: 消息
     '''
+    send_action_typing()
     # 拦截请求，检查消息来源
     if str(message.from_user.id) != common.TG_CHAT_ID:
         LOG.info(f'拦截到非目标用户请求，id: {message.from_user.id}')
@@ -834,7 +857,15 @@ def handle_message(message):
         test()
     elif msg == '/help' or msg.find('/start') != -1:
         help()
-    elif msg == '/random':
+    elif msg == '/jlib_nice':
+        code, id = util_javlibrary.get_random_id(0)
+        if check_success(code):
+            get_av_by_id(id=id, send_to_pikpak=False)
+    elif msg == '/jlib_new':
+        code, id = util_javlibrary.get_random_id(1)
+        if check_success(code):
+            get_av_by_id(id=id, send_to_pikpak=False)
+    elif msg == '/jbus':
         code, id = util_javbus.get_id_from_home()
         if check_success(code):
             get_av_by_id(id=id, send_to_pikpak=False)
@@ -882,18 +913,24 @@ def test():
 def help():
     '''发送指令帮助消息'''
     msg = '''发送给机器人一条含有番号的消息，机器人会匹配并搜索消息中所有符合<b>“字母-数字”</b>格式的番号，其它格式的番号可通过<code>/av</code>命令查找。
-    
+
 /help  查看指令帮助
 
 /stars  获取收藏的演员
 
 /avs  获取收藏的番号
 
-/random  随机获取一部AV
+/jlib_nice  从 Javlibrary 高评分和最想要排行榜中随机获取一部 AV
+
+/jlib_new  从 Javlibrary 新发行和新加入排行榜中随机获取一部 AV
+
+/jbus  从 JavBus 主页随机获取一部 AV
+
+/top100  获取 DMM 女优排行榜前 100 位名单
 
 /record  获取收藏记录文件
 
-<code>/star</code>  后接演员名称（日语）可随机获取一部该演员的AV
+<code>/star</code>  后接演员名称（日语）可随机获取一部该演员的影片
 
 <code>/av</code>  后接番号可搜索该番号
 '''
@@ -905,9 +942,11 @@ def set_command():
     tg_cmd_dict = {
         'help': '查看指令帮助',
         'stars': '获取收藏的演员',
-        'avs': '获取收藏的AV',
-        'random': '随机获取一部AV',
-        'top100': '获取DMM女优排行榜前100位名单',
+        'avs': '获取收藏的 AV',
+        'jlib_nice': '从 Javlibrary 高评分和最想要排行榜中随机获取一部 AV',
+        'jlib_new': '从 Javlibrary 新发行和新加入排行榜中随机获取一部 AV',
+        'jbus': '从 JavBus 主页随机获取一部 AV',
+        'top100': '获取 DMM 女优排行榜前 100 位名单',
         'record': '获取收藏记录文件',
     }
     cmds = []

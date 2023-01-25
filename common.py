@@ -4,6 +4,7 @@ import random
 import requests
 import typing
 import logging
+from bs4 import BeautifulSoup
 from anti_useragent import UserAgent
 import cfg
 
@@ -71,8 +72,11 @@ class Logger:
         file_handler.setFormatter(
             logging.Formatter('[%(asctime)s] %(levelname)s: %(message)s'))
         return file_handler
+
+
 # 初始化日志记录器
 LOG = Logger(log_level=logging.INFO).logger
+
 
 def ua_mobile() -> str:
     '''返回手机端 UserAgent
@@ -84,6 +88,7 @@ def ua_mobile() -> str:
         return UserAgent().android
     else:
         return UserAgent().iphone
+
 
 def ua_desktop() -> str:
     '''返回桌面端 UserAgent
@@ -104,7 +109,8 @@ def ua() -> str:
     '''
     return UserAgent().random
 
-def write_html(resp:requests.Response, file='t.html'):
+
+def write_html(resp: requests.Response, file='t.html'):
     '''将 requests.Response.text 写入文件
 
     :param requests.Response resp
@@ -113,9 +119,11 @@ def write_html(resp:requests.Response, file='t.html'):
     with open(file, 'w') as f:
         f.write(resp.text)
 
-def send_req(url,
-             proxies=PROXY,
-             headers={'user-agent': ua()}) -> typing.Tuple[int, requests.Response]:
+
+def send_req(
+        url,
+        proxies=PROXY,
+        headers={'user-agent': ua()}) -> typing.Tuple[int, requests.Response]:
     '''发送请求
 
     :param _type_ url: 地址
@@ -135,6 +143,15 @@ def send_req(url,
     except Exception as e:
         LOG.error(e)
         return 502, None
+
+
+def get_soup(resp: requests.Response) -> BeautifulSoup:
+    '''从请求结果得到 soup
+
+    :param requests.Response resp: 请求结果
+    :return BeautifulSoup
+    '''
+    return BeautifulSoup(resp.text, 'lxml')
 
 
 if __name__ == '__main__':

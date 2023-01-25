@@ -1,7 +1,6 @@
 # -*- coding: UTF-8 -*-
 import re
 import random
-from bs4 import BeautifulSoup
 import sys
 import typing
 
@@ -22,13 +21,16 @@ def get_max_page(url: str) -> typing.Tuple[int, int]:
     code, resp = common.send_req(url)
     if code != 200:
         return code, None
-    soup = BeautifulSoup(resp.text, 'lxml')
+    soup = common.get_soup(resp)
     tag_pagination = soup.find(class_='pagination pagination-lg')
     # 如果没有分页块则只有第一页
     if not tag_pagination:
         return 200, 1
-    tags_li = tag_pagination.find_all('li')
-    return 200, int(tags_li[len(tags_li) - 2].a.text)
+    try:
+        tags_li = tag_pagination.find_all('li')
+        return 200, int(tags_li[len(tags_li) - 2].a.text)
+    except Exception:
+        return 404, None
 
 
 def get_id_from_page(base_page_url: str, page=-1) -> typing.Tuple[int, str]:
@@ -52,17 +54,20 @@ def get_id_from_page(base_page_url: str, page=-1) -> typing.Tuple[int, str]:
     if code != 200:
         return code, None
     ids = []
-    soup = BeautifulSoup(resp.text, 'lxml')
+    soup = common.get_soup(resp)
     tags = soup.find_all(class_='movie-box')
     if not tags:
         return 404, None
-    for tag in tags:
-        id_link = tag['href']
-        id = id_link[id_link.rfind('/') + 1:]
-        ids.append(id)
-    if ids != []:
-        return 200, random.choice(ids)
-    else:
+    try:
+        for tag in tags:
+            id_link = tag['href']
+            id = id_link[id_link.rfind('/') + 1:]
+            ids.append(id)
+        if ids != []:
+            return 200, random.choice(ids)
+        else:
+            return 404, None
+    except Exception:
         return 404, None
 
 
@@ -112,19 +117,22 @@ def get_samples_by_id(id: str) -> typing.Tuple[int, list]:
     if code != 200:
         return code, None
     # 获取soup
-    soup = BeautifulSoup(resp.text, 'lxml')
+    soup = common.get_soup(resp)
     # 获取截图
     sample_tags = soup.find_all(class_='sample-box')
     if not sample_tags:
         return 404, None
-    for tag in sample_tags:
-        sample_link = tag['href']
-        if sample_link.find('https') == -1:
-            sample_link = BASE_URL + sample_link
-        samples.append(sample_link)
-    if samples == []:
+    try:
+        for tag in sample_tags:
+            sample_link = tag['href']
+            if sample_link.find('https') == -1:
+                sample_link = BASE_URL + sample_link
+            samples.append(sample_link)
+        if samples == []:
+            return 404, None
+        return 200, samples
+    except Exception:
         return 404, None
-    return 200, samples
 
 
 def get_nice_magnets(magnets: list, prop: str, expect_val: any) -> list:
@@ -220,7 +228,7 @@ def get_av_by_id(id: str,
     if code != 200:
         return code, None
     # 获取soup和html
-    soup = BeautifulSoup(resp.text, 'lxml')
+    soup = common.get_soup(resp)
     html = soup.prettify()
     # 获取封面和标题
     big_image = soup.find(class_='bigImage')
@@ -231,26 +239,29 @@ def get_av_by_id(id: str,
             av['img'] = BASE_URL + img
             av['title'] = big_image.img['title']
     # 提取更多信息
-    paras = soup.find(class_='col-md-3 info').find_all('p')
-    for i, p in enumerate(paras):
-        # 获取发行日期
-        if p.text.find('發行日期:') != -1:
-            av['date'] = ''.join(
-                p.text.replace('發行日期:', '').replace('"', '').split())
-        # 获取标签
-        elif p.text.find('類別:') != -1:
-            tags = paras[i + 1].find_all('a')
-            for tag in tags:
-                av['tags'] += ''.join(tag.text.split()) + ' '
-            av['tags'] = av['tags'].strip()
-        # 获取演员
-        elif i == len(paras) - 1:
-            tags = p.find_all('a')
-            for tag in tags:
-                star = {'name': '', 'link': ''}
-                star['name'] = ''.join(tag.text.split())
-                star['link'] = tag['href']
-                av['stars'].append(star)
+    try:
+        paras = soup.find(class_='col-md-3 info').find_all('p')
+        for i, p in enumerate(paras):
+            # 获取发行日期
+            if p.text.find('發行日期:') != -1:
+                av['date'] = ''.join(
+                    p.text.replace('發行日期:', '').replace('"', '').split())
+            # 获取标签
+            elif p.text.find('類別:') != -1:
+                tags = paras[i + 1].find_all('a')
+                for tag in tags:
+                    av['tags'] += ''.join(tag.text.split()) + ' '
+                av['tags'] = av['tags'].strip()
+            # 获取演员
+            elif i == len(paras) - 1:
+                tags = p.find_all('a')
+                for tag in tags:
+                    star = {'name': '', 'link': ''}
+                    star['name'] = ''.join(tag.text.split())
+                    star['link'] = tag['href']
+                    av['stars'].append(star)
+    except Exception:
+        pass
     # 获取uc
     uc_pattern = re.compile(r'var uc = .*?;')
     match = uc_pattern.findall(html)
@@ -277,42 +288,48 @@ def get_av_by_id(id: str,
     # 如果不存在磁链或请求失败则直接返回
     if code != 200:
         return 200, av
-    soup = BeautifulSoup(resp.text, 'lxml')
+    soup = common.get_soup(resp)
+    trs = soup.find_all('tr')
+    if not trs:
+        return 200, av
     # 解析页面获取磁链
-    for tr in soup.find_all('tr'):
-        i = 0
-        magnet = {'link': '', 'hd': '0', 'zm': '0'}
-        for td in tr:
-            if td.string:
-                continue
-            i += 1
-            magnet['link'] = td.a['href']
-            if i % 3 == 1:
-                links = td.find_all('a')
-                for link in links:
-                    text = link.text.strip()
-                    if text == '高清':
-                        magnet['hd'] = '1'
-                    elif text == '字幕':
-                        magnet['zm'] = '1'
-            if i % 3 == 2:
-                magnet['size'] = td.a.text.strip()
-        if magnet['link'] != '':
-            av['magnets'].append(magnet)
-    if is_nice:
-        magnets = av['magnets']
-        magnets = get_nice_magnets(magnets, 'hd', expect_val='1')  # 过滤高清
-        magnets = get_nice_magnets(magnets, 'zm', expect_val='1')  # 过滤有字幕
-        magnets = sort_magnets(magnets)  # 从大到小排序
-        if len(magnets) > magnet_max_count:
-            magnets = magnets[0:magnet_max_count]
-        av['magnets'] = magnets
+    try:
+        for tr in trs:
+            i = 0
+            magnet = {'link': '', 'hd': '0', 'zm': '0'}
+            for td in tr:
+                if td.string:
+                    continue
+                i += 1
+                magnet['link'] = td.a['href']
+                if i % 3 == 1:
+                    links = td.find_all('a')
+                    for link in links:
+                        text = link.text.strip()
+                        if text == '高清':
+                            magnet['hd'] = '1'
+                        elif text == '字幕':
+                            magnet['zm'] = '1'
+                if i % 3 == 2:
+                    magnet['size'] = td.a.text.strip()
+            if magnet['link'] != '':
+                av['magnets'].append(magnet)
+        if is_nice:
+            magnets = av['magnets']
+            magnets = get_nice_magnets(magnets, 'hd', expect_val='1')  # 过滤高清
+            magnets = get_nice_magnets(magnets, 'zm', expect_val='1')  # 过滤有字幕
+            magnets = sort_magnets(magnets)  # 从大到小排序
+            if len(magnets) > magnet_max_count:
+                magnets = magnets[0:magnet_max_count]
+            av['magnets'] = magnets
+    except Exception:
+        pass
     return 200, av
 
 
 if __name__ == '__main__':
-    # code, res = get_av_by_id(id='GTJ-111', is_nice=True, magnet_max_count=3)
-    code, res = get_av_by_id(id='ipx-811', is_nice=False)
+    code, res = get_av_by_id(id='GTJ-111', is_nice=True, magnet_max_count=3)
+    # code, res = get_av_by_id(id='ipx-811', is_nice=False)
     # code, res = get_samples_by_id('ssni-497')
     # code, res = get_id_by_star_id('okq', 2)
     # code, res = get_id_by_star_name('白夜みくる')

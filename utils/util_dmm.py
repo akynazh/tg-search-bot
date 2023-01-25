@@ -1,5 +1,4 @@
 # -*- coding: UTF-8 -*-
-from bs4 import BeautifulSoup
 import sys
 import typing
 import concurrent.futures
@@ -29,11 +28,14 @@ def get_pv_by_id(id: str) -> typing.Tuple[int, str]:
                                  proxies=common.PROXY_DMM)
     if code != 200:
         return code, None
-    soup = BeautifulSoup(resp.text, 'lxml')
+    soup = common.get_soup(resp)
     # 获取预览视频地址
     res = soup.find(class_='btn')
     if res:
-        return 200, res.a['href']
+        try:
+            return 200, res.a['href']
+        except Exception:
+            return 404, None
     else:
         return 404, None
 
@@ -55,10 +57,13 @@ def get_score_by_id(id: str) -> typing.Tuple[int, str]:
                                  proxies=common.PROXY_DMM)
     if code != 200:
         return code, resp
-    soup = BeautifulSoup(resp.text, 'lxml')
+    soup = common.get_soup(resp)
     res = soup.find(class_='rate')
     if res:
-        return 200, res.span.span.text
+        try:
+            return 200, res.span.span.text
+        except Exception:
+            return 404, None
     else:
         return 404, None
 
@@ -88,10 +93,13 @@ def get_top_stars(page=1) -> typing.Tuple[int, list]:
                                  proxies=common.PROXY_DMM)
     if code != 200:
         return code, None
-    soup = BeautifulSoup(resp.text, 'lxml')
+    soup = common.get_soup(resp)
     res = soup.find_all(class_='data')
     if res:
-        return 200, [obj.p.a.text for obj in res]
+        try:
+            return 200, [obj.p.a.text for obj in res]
+        except Exception:
+            return 404, None
     else:
         return 404, None
 
