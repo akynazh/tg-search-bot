@@ -65,7 +65,7 @@ TG_BOT_TOKEN = ''
 
 # 是否使用代理 1 是 | 0 否
 USE_PROXY = 0
-# 访问 DMM 是否使用代理 1 是 | 0 否 （该字段的值由自己决定，与 USE_PROXY 无关）
+# 访问 Dmm 是否使用代理 1 是 | 0 否 （该字段的值由自己决定，与 USE_PROXY 无关）
 USE_PROXY_DMM = 0
 # 如果不使用代理，以下三个字段不用管
 # 代理类型 http | socks5 | socks4
