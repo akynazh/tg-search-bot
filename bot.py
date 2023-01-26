@@ -470,8 +470,10 @@ def get_av_by_id(id: str,
         show_star_id = show_star_link[show_star_link.rfind('/') + 1:]
         if recorder.check_star_exists(star_id=show_star_id):
             star_record_btn = InlineKeyboardButton(
-                text=f'取消收藏{show_star_name}',
-                callback_data=f'{show_star_id}:{KEY_UNDO_RECORD_STAR}')
+                text=f'管理演员收藏信息',
+                callback_data=
+                f'{show_star_name}|{show_star_id}:{KEY_GET_STAR_DETAIL_RECORD_BY_STAR_NAME_ID}'
+            )
         else:
             star_record_btn = InlineKeyboardButton(
                 text=f'收藏{show_star_name}',
@@ -488,10 +490,12 @@ def get_av_by_id(id: str,
     if star_ids != '': star_ids = star_ids[:len(star_ids) - 1]
     if recorder.check_id_exists(id=av_id):
         av_record_btn = InlineKeyboardButton(
-            text=f'取消收藏 {av_id}', callback_data=f'{av_id}:{KEY_UNDO_RECORD_AV}')
+            text=f'管理番号收藏信息',
+            callback_data=f'{av_id}:{KEY_GET_AV_DETAIL_RECORD_BY_ID}')
     else:
         av_record_btn = InlineKeyboardButton(
-            text=f'收藏 {av_id}', callback_data=f'{av_id}|{star_ids}:{KEY_RECORD_AV}')
+            text=f'收藏 {av_id}',
+            callback_data=f'{av_id}|{star_ids}:{KEY_RECORD_AV}')
     if star_record_btn:
         markup.row(av_record_btn, star_record_btn)
     else:
