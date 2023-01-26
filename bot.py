@@ -3,12 +3,12 @@ import telebot
 from telebot import types, apihelper
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto
 import math
-import json
 import os
 import re
 import typing
 import string
 import common
+import recorder
 import concurrent.futures
 import utils.util_javbus as util_javbus
 import utils.util_avgle as util_avgle
@@ -22,6 +22,7 @@ if common.USE_PIKPAK:
 KEY_GET_SAMPLE_BY_ID = 'k0_0'
 KEY_GET_MORE_MAGNETS_BY_ID = 'k0_1'
 KEY_SEARCH_STAR = 'k0_2'
+KEY_GET_TOP_STARS = 'k0_3'
 
 KEY_WATCH_PV_BY_ID = 'k1_0'
 KEY_WATCH_FV_BY_ID = 'k1_1'
@@ -31,8 +32,6 @@ kEY_RANDOM_GET_AV_BY_STAR_ID = 'k2_1'
 KEY_RANDOM_GET_AV_NICE = 'k2_2'
 KEY_RANDOM_GET_AV_NEW = 'k2_3'
 KEY_GET_NEW_AVS_BY_STAR_ID = 'k2_4'
-KEY_RANDOM_GET_AV_BY_STAR_NAME = 'k2_5'
-KEY_GET_NEW_AVS_BY_STAR_NAME = 'k2_6'
 
 KEY_RECORD_STAR = 'k3_0'
 KEY_RECORD_AV = 'k3_1'
@@ -52,6 +51,8 @@ LOG = common.LOG
 
 
 def send_action_typing():
+    '''显示机器人正在处理消息
+    '''
     bot.send_chat_action(chat_id=common.TG_CHAT_ID, action='typing')
 
 
@@ -69,210 +70,63 @@ def send_msg(msg, pv=False, markup=None):
                      reply_markup=markup)
 
 
-def send_msg_404():
-    '''处理 404 错误
+def send_msg_code(code: int, msg=''):
+    '''根据状态码发送消息
     '''
-    send_msg('未查找到结果 Q_Q')
+    if code == 200:
+        send_msg('操作成功 ^_^')
+    elif code == 404:
+        send_msg('未查找到结果 Q_Q')
+    elif code == 500:
+        send_msg('操作失败，请重试 =_=')
+    elif code == 502:
+        send_msg('网络请求失败，请重试 Q_Q')
 
 
-def send_msg_502():
-    '''处理 502 错误
-    '''
-    send_msg('网络请求失败，请重试 Q_Q')
-
-
-def check_success(code: int) -> bool:
+def check_success(code: int, m_500='', m_404='', m_502='') -> bool:
     '''检查状态码，确认请求是否成功
 
     :param int code: 状态码
+    :param str m_404: 自己指定 404 时要发送的消息
+    :param str m_500: 自己指定 500 时要发送的消息
+    :param str m_502: 自己指定 502 时要发送的消息
     :return bool: 请求成功与否
     '''
     if code == 200:
         return True
     elif code == 404:
-        send_msg_404()
+        send_msg_code(code=404, msg=m_404)
         return False
+    elif code == 500:
+        send_msg_code(code=500, msg=m_500)
     elif code == 502:
-        send_msg_502()
+        send_msg_code(code=502, msg=m_502)
         return False
 
 
-def check_has_record() -> typing.Tuple[dict, bool, bool]:
-    '''检查是否有收藏记录，如果有则返回记录
-
-    :return tuple[dict, bool, bool]: 收藏记录, 演员记录是否存在, 番号记录是否存在
-    '''
-    # 初始化数据
-    record = {}
-    # 加载记录
-    if os.path.exists(common.PATH_RECORD_FILE):
-        try:
-            with open(common.PATH_RECORD_FILE, 'r') as f:
-                record = json.load(f)
-        except Exception as e:
-            LOG.error(f'文件提取出错： {e}')
-            return None, False, False
-    # 尚无记录
-    if not record or record == {}:
-        return None, False, False
-    # 检查并返回记录
-    is_stars_exists = False
-    is_avs_exists = False
-    if 'stars' in record.keys() and record['stars'] != [] and len(
-            record['stars']) > 0:
-        is_stars_exists = True
-    if 'avs' in record.keys() and record['avs'] != [] and len(
-            record['avs']) > 0:
-        is_avs_exists = True
-    return record, is_stars_exists, is_avs_exists
-
-
-def get_record_json():
-    '''发送收藏记录文件
-    '''
-    if os.path.exists(common.PATH_RECORD_FILE):
-        bot.send_document(chat_id=common.TG_CHAT_ID,
-                          document=types.InputFile(common.PATH_RECORD_FILE))
-    else:
-        send_msg('尚无记录 =_=')
-
-
-def renew_record(record: dict):
-    '''更新记录
-
-    :param dict record: 新的记录
-    '''
-    with open(common.PATH_RECORD_FILE, 'w') as f:
-        json.dump(record,
-                  f,
-                  separators=(',', ': '),
-                  indent=4,
-                  ensure_ascii=False)
-
-
-def record_star(star_name: str, star_id: str):
-    '''记录演员
-
-    :param str star_name: 演员名称
-    :param str star_id: 演员编号
-    '''
-    # 加载记录
-    record, is_stars_exists, _ = check_has_record()
-    if not record:
-        record, stars = {}, []
-    else:
-        if not is_stars_exists:
-            stars = []
-        else:
-            stars = record['stars']
-    # 检查记录是否存在
-    exists = False
-    for star in stars:
-        if star['id'].lower() == star_id.lower():
-            exists = True
-            break
-    # 如果记录需要更新则写回记录
-    if not exists:
-        stars.append({'name': star_name, 'id': star_id.lower()})
-        record['stars'] = stars
-        renew_record(record)
-        send_msg(f'成功收藏<code>{star_name}</code> ^-^')
-    else:
-        send_msg(f'已经收藏过<code>{star_name}</code>了 =_=')
-
-
-def record_id(id: str, stars: list):
-    '''记录番号
-
-    :param str id: 番号
-    :param list stars: 演员编号列表
-    '''
-    # 加载记录
-    record, _, is_avs_exists = check_has_record()
-    if not record:
-        record, avs = {}, []
-    else:
-        if not is_avs_exists: avs = []
-        else: avs = record['avs']
-    # 检查记录是否存在
-    exists = False
-    for av in avs:
-        if av['id'].lower() == id.lower():
-            exists = True
-            break
-    # 如果记录需要更新则写回记录
-    if not exists:
-        avs.append({'id': id.lower(), 'stars': stars})
-        record['avs'] = avs
-        renew_record(record)
-        send_msg(f'成功收藏 <code>{id}</code> ^-^')
-    else:
-        send_msg(f'已经收藏过 <code>{id}</code> 了 =_=')
-
-
-def undo_record_star(star_id: str):
-    '''取消收藏演员
-
-    :param str star_id: 演员id
-    '''
-    # 加载记录
-    record, _, _ = check_has_record()
-    stars = record['stars']
-    star_name = ''
-    # 删除记录
-    for i, star in enumerate(stars):
-        if star['id'] == star_id:
-            star_name = star['name']
-            del stars[i]
-            break
-    # 更新记录
-    record['stars'] = stars
-    renew_record(record)
-    send_msg(msg=f'成功删除<code>{star_name}</code>')
-
-
-def undo_record_id(id: str):
-    '''取消收藏番号
-
-    :param str id: 番号
-    '''
-    # 加载记录
-    record, _, _ = check_has_record()
-    avs = record['avs']
-    # 删除记录
-    for i, av in enumerate(avs):
-        if av['id'] == id:
-            del avs[i]
-            break
-    # 更新记录
-    record['avs'] = avs
-    renew_record(record)
-    send_msg(msg=f'成功删除 <code>{id}</code>')
-
-
-def create_btn(btn_type: int, obj: dict):
+def create_btn(key_type: str, obj: dict) -> InlineKeyboardButton:
     '''根据按钮种类创建按钮
 
-    :param int type: 按钮种类 0 演员 | 1 番号 | 2 搜索演员
+    :param str key_type: 按钮种类
     :param dict obj: 数据对象
-    :return _type_: 按钮
+    :return InlineKeyboardButton: 按钮对象
     '''
-    if btn_type == 0:  # star
+    if key_type == KEY_GET_STAR_DETAIL_RECORD:
         return InlineKeyboardButton(
             text=obj['name'],
             callback_data=
             f'{obj["name"]}|{obj["id"]}:{KEY_GET_STAR_DETAIL_RECORD}')
-    elif btn_type == 1:  # av
+    elif key_type == KEY_GET_AV_DETAIL_RECORD:
         return InlineKeyboardButton(
             text=obj, callback_data=f'{obj}:{KEY_GET_AV_DETAIL_RECORD}')
-    elif btn_type == 2:  # search star
+    elif key_type == KEY_SEARCH_STAR:
         return InlineKeyboardButton(text=obj,
                                     callback_data=f'{obj}:{KEY_SEARCH_STAR}')
 
 
 def send_msg_btns(max_btn_per_row: int,
                   max_row_per_msg: int,
-                  btn_type: int,
+                  key_type: str,
                   title: str,
                   objs: list,
                   extra_btns=[],
@@ -282,7 +136,7 @@ def send_msg_btns(max_btn_per_row: int,
 
     :param int max_btn_per_row: 每行最大按钮数量
     :param int max_row_per_msg: 每条消息最多行数
-    :param int btn_type: 按钮种类 0 演员 | 1 番号
+    :param str key_type: 按钮种类
     :param str title: 消息标题
     :param dict objs: 数据对象数组
     :param list extra_btns: 附加按钮列表，每行一个按钮，附加在每条消息尾部，默认为空
@@ -295,7 +149,7 @@ def send_msg_btns(max_btn_per_row: int,
     btns = []
     # 开始生成按钮和发送消息
     for obj in objs:
-        btns.append(create_btn(btn_type, obj))
+        btns.append(create_btn(key_type, obj))
         # 若一行按钮的数量达到 max_btn_per_row，则加入行
         if len(btns) == max_btn_per_row:
             markup.row(*btns)
@@ -330,14 +184,14 @@ def send_msg_btns(max_btn_per_row: int,
 
 
 def get_page_elements(objs: dict, page: int, col: int, row: int,
-                      key_type: int) -> typing.Tuple[dict, list, str]:
+                      key_type: str) -> typing.Tuple[dict, list, str]:
     '''获取当前页对象字典，分页按钮列表，数量标题
 
     :param dict objs: 对象字典
     :param int page: 当前页
     :param int col: 当前页列数
     :param int row: 当前页行数
-    :param int key_type: 按键类型
+    :param str key_type: 按键类型
     :return tuple[dict, list, str]: 当前页对象字典，分页按钮列表，数量标题
     '''
     # 记录总数
@@ -387,9 +241,9 @@ def get_stars_record(page=1):
     :param int page: 第几页，默认第一页
     '''
     # 初始化数据
-    record, is_star_exists, _ = check_has_record()
+    record, is_star_exists, _ = recorder.check_has_record()
     if not record or not is_star_exists:
-        send_msg('尚无收藏记录 =_=')
+        send_msg('尚无演员收藏记录 =_=')
         return
     stars = record['stars']
     col, row = 4, 5
@@ -401,7 +255,7 @@ def get_stars_record(page=1):
     # 发送按钮消息
     send_msg_btns(max_btn_per_row=col,
                   max_row_per_msg=row,
-                  btn_type=0,
+                  key_type=KEY_GET_STAR_DETAIL_RECORD,
                   title='收藏的演员：' + title,
                   objs=objs,
                   page_btns=page_btns)
@@ -414,16 +268,18 @@ def get_star_detail_record(star_name: str, star_id: str):
     :param str star_id: 演员编号
     '''
     # 初始化数据
-    record, _, is_avs_exists = check_has_record()
-    if not record or not is_avs_exists:
+    record, _, is_avs_exists = recorder.check_has_record()
+    if not record:
         send_msg('尚无收藏记录 =_=')
         return
-    avs = record['avs']
+    avs = []
     star_avs = []
-    for av in avs:
-        # 如果演员编号在该 AV 的演员编号列表中
-        if star_id in av['stars']:
-            star_avs.append(av['id'])
+    if is_avs_exists:
+        avs = record['avs']
+        for av in avs:
+            # 如果演员编号在该 AV 的演员编号列表中
+            if star_id in av['stars']:
+                star_avs.append(av['id'])
     # 发送按钮消息
     extra_btn1 = InlineKeyboardButton(
         text=f'演员随机 AV',
@@ -434,14 +290,14 @@ def get_star_detail_record(star_name: str, star_id: str):
     extra_btn3 = InlineKeyboardButton(
         text=f'取消收藏', callback_data=f'{star_id}:{KEY_UNDO_RECORD_STAR}')
     title = f'<code>{star_name}</code> | <a href="{common.BASE_URL_JAPAN_WIKI}/{star_name}">Wiki</a> | <a href="{util_javbus.BASE_URL_SEARCH_BY_STAR_ID}/{star_id}">Javbus</a>'
-    if len(star_avs) == 0:  # 没有收藏记录
+    if len(star_avs) == 0:  # 没有该演员对应 AV 收藏记录
         markup = InlineKeyboardMarkup()
         markup.row(extra_btn1, extra_btn2, extra_btn3)
         send_msg(msg=title, markup=markup)
         return
-    send_msg_btns(max_btn_per_row=5,
-                  max_row_per_msg=20,
-                  btn_type=1,
+    send_msg_btns(max_btn_per_row=4,
+                  max_row_per_msg=10,
+                  key_type=KEY_GET_AV_DETAIL_RECORD,
                   title=title,
                   objs=star_avs,
                   extra_btns_br=False,
@@ -454,9 +310,9 @@ def get_avs_record(page=1):
     :param int page: 第几页，默认第一页
     '''
     # 初始化数据
-    record, _, is_avs_exists = check_has_record()
+    record, _, is_avs_exists = recorder.check_has_record()
     if not record or not is_avs_exists:
-        send_msg('尚无收藏记录 =_=')
+        send_msg('尚无 AV 收藏记录 =_=')
         return
     avs = [av['id'] for av in record['avs']]
     # 发送按钮消息
@@ -464,7 +320,7 @@ def get_avs_record(page=1):
         text='随机高分 AV', callback_data=f'0:{KEY_RANDOM_GET_AV_NICE}')
     extra_btn2 = InlineKeyboardButton(
         text='随机最新 AV', callback_data=f'0:{KEY_RANDOM_GET_AV_NEW}')
-    col, row = 5, 10
+    col, row = 4, 10
     objs, page_btns, title = get_page_elements(objs=avs,
                                                page=page,
                                                col=col,
@@ -472,7 +328,7 @@ def get_avs_record(page=1):
                                                key_type=KEY_GET_AVS_RECORD)
     send_msg_btns(max_btn_per_row=col,
                   max_row_per_msg=row,
-                  btn_type=1,
+                  key_type=KEY_GET_AV_DETAIL_RECORD,
                   title='收藏的番号：' + title,
                   objs=objs,
                   extra_btns=[extra_btn1, extra_btn2],
@@ -491,7 +347,7 @@ def get_av_detail_record(id: str):
     btn2 = InlineKeyboardButton(text=f'取消收藏',
                                 callback_data=f'{id}:{KEY_UNDO_RECORD_AV}')
     markup.row(btn1, btn2)
-    send_msg(msg=f'<a href="{util_javbus.BASE_URL}/{id}">{id}</a>',
+    send_msg(msg=f'<code>{id}</code>',
              markup=markup)
 
 
@@ -529,10 +385,10 @@ def get_av_by_id(id: str,
             elif future_type == 2:
                 code_sukebei, av_sukebei = future.result()
     if code_javbus == 502 and code_sukebei == 502:
-        send_msg_502()
+        send_msg_code(502)
         return
     if code_javbus == 404 and code_sukebei == 404:
-        send_msg_404()
+        send_msg_code(404)
         return
     if code_javbus == 200:  # 优先选择 javbus
         av = av_javbus
@@ -702,10 +558,10 @@ def watch_av(id: str, type: str):
                 elif futures[future] == 2:
                     code_avgle, pv_avgle = future.result()
         if code_dmm == 502 and code_avgle == 502:
-            send_msg_502()
+            send_msg_code(502)
             return
         if code_dmm == 404 and code_avgle == 404:
-            send_msg_404()
+            send_msg_code(404)
             return
         if code_dmm == 200:
             try:
@@ -740,34 +596,51 @@ def watch_av(id: str, type: str):
 
 
 def search_star(star_name: str):
-    code = util_javbus.check_star_exists(star_name)
+    code, star_id = util_javbus.check_star_exists(star_name)
     if check_success(code):
+        record, exists, _ = recorder.check_has_record()
+        if exists:
+            stars = record['stars']
+            for star in stars:
+                if star['id'] == star_id: # 如果本地存在该演员收藏记录，直接返回该记录
+                    get_star_detail_record(star_name=star_name,
+                                           star_id=star_id)
+                    return
         markup = InlineKeyboardMarkup()
         markup.row(
             InlineKeyboardButton(
                 text='演员最新 AV',
-                callback_data=f'{star_name}:{KEY_GET_NEW_AVS_BY_STAR_NAME}'),
+                callback_data=f'{star_name}|{star_id}:{KEY_GET_NEW_AVS_BY_STAR_ID}'),
             InlineKeyboardButton(
                 text='演员随机 AV',
-                callback_data=f'{star_name}:{KEY_RANDOM_GET_AV_BY_STAR_NAME}'))
+                callback_data=f'{star_id}:{kEY_RANDOM_GET_AV_BY_STAR_ID}'))
+        print('test')
         send_msg(
             msg=
             f'<code>{star_name}</code> | <a href="{common.BASE_URL_JAPAN_WIKI}/{star_name}">Wiki</a> | <a href="{util_javbus.BASE_URL_SEARCH_BY_STAR_NAME}/{star_name}">Javbus</a>',
             markup=markup)
 
 
-def get_top_stars():
-    '''获取 DMM 排行榜前 100 名女优
+def get_top_stars(page=1):
+    '''获取 DMM 排行榜前 100 名女优，每页 20 位女优
+    
+    :param int page: 第几页，默认第一页
     '''
     code, stars = util_dmm.get_all_top_stars()
     if not check_success(code):
         return
-    title = 'DMM TOP 100'
-    send_msg_btns(max_btn_per_row=5,
-                  max_row_per_msg=10,
-                  btn_type=2,
-                  title=title,
-                  objs=stars)
+    col, row = 4, 5
+    objs, page_btns, title = get_page_elements(objs=stars,
+                                               page=page,
+                                               col=4,
+                                               row=5,
+                                               key_type=KEY_GET_TOP_STARS)
+    send_msg_btns(max_btn_per_row=col,
+                  max_row_per_msg=row,
+                  key_type=KEY_SEARCH_STAR,
+                  title='DMM 女优排行榜前 100 位：' + title,
+                  objs=objs,
+                  page_btns=page_btns)
 
 
 def get_msg_param(msg: str) -> str:
@@ -782,6 +655,37 @@ def get_msg_param(msg: str) -> str:
         if param != '':
             return param
 
+
+def get_more_magnets_by_id(id: str):
+    '''根据番号获取更多磁链
+    
+    :param id: 番号
+    '''
+    av = get_av_by_id(id=id, is_nice=False, not_send=True)
+    if not av:
+        return
+    msg = ''
+    for magnet in av['magnets']:
+        msg += f'''【{magnet["size"]}】<code>{magnet["link"]}</code>
+'''
+        if len(msg) > 2000:
+            send_msg(msg)
+            msg = ''
+    if msg != '':
+        send_msg(msg)
+
+def get_new_avs_by_star_id(star_name:str, star_id:str):
+    code, ids = util_javbus.get_new_ids_by_star_id(star_id=star_id)
+    title = f'<code>{star_name}</code> 最新 AV'
+    if check_success(code):
+        btns = [InlineKeyboardButton(text=id,callback_data=f'{id}:{KEY_GET_AV_BY_ID}') for id in ids]
+        if len(btns) <= 4:
+            send_msg(msg=title, markup=InlineKeyboardMarkup().row(*btns))
+        else:
+            markup = InlineKeyboardMarkup()
+            markup.row(*btns[:4])
+            markup.row(*btns[4:])
+            send_msg(msg=title, markup=markup)
 
 @bot.callback_query_handler(func=lambda call: True)
 def listen_callback(call):
@@ -802,18 +706,7 @@ def listen_callback(call):
     elif key_type == KEY_GET_SAMPLE_BY_ID:
         get_sample_by_id(id=content)
     elif key_type == KEY_GET_MORE_MAGNETS_BY_ID:
-        av = get_av_by_id(id=content, is_nice=False, not_send=True)
-        if not av:
-            return
-        msg = ''
-        for magnet in av['magnets']:
-            msg += f'''【{magnet["size"]}】<code>{magnet["link"]}</code>
-'''
-            if len(msg) > 2000:
-                send_msg(msg)
-                msg = ''
-        if msg != '':
-            send_msg(msg)
+        get_more_magnets_by_id(id=content)
     elif key_type == kEY_RANDOM_GET_AV_BY_STAR_ID:
         code, id = util_javbus.get_id_by_star_id(star_id=content)
         if check_success(code):
@@ -822,23 +715,22 @@ def listen_callback(call):
         tmp = content.split('|')
         star_name = tmp[0]
         star_id = tmp[1]
-        code, ids = util_javbus.get_new_ids_by_star_id(star_id=star_id)
-        if check_success(code):
-
-            send_msg(msg=f'<code>{star_name}</code>最新 AV',
-                     markup=InlineKeyboardMarkup().row(*[
-                         InlineKeyboardButton(
-                             text=id, callback_data=f'{id}:{KEY_GET_AV_BY_ID}')
-                         for id in ids
-                     ]))
+        get_new_avs_by_star_id(star_name=star_name, star_id=star_id)
     elif key_type == KEY_RECORD_STAR:
         s = content.find('|')
-        record_star(star_name=content[:s], star_id=content[s + 1:])
+        if recorder.record_star(star_name=content[:s],
+                                star_id=content[s + 1:]):
+            send_msg_code(200)
+        else:
+            send_msg_code(500)
     elif key_type == KEY_RECORD_AV:
         res = content.split('|')
         id = res[0]
         stars = [s for s in res[1:]]
-        record_id(id=id, stars=stars)
+        if recorder.record_id(id=id, stars=stars):
+            send_msg_code(200)
+        else:
+            send_msg_code(500)
     elif key_type == KEY_GET_STARS_RECORD:
         get_stars_record(page=int(content))
     elif key_type == KEY_GET_AVS_RECORD:
@@ -859,24 +751,19 @@ def listen_callback(call):
         if check_success(code):
             get_av_by_id(id=id)
     elif key_type == KEY_UNDO_RECORD_AV:
-        undo_record_id(id=content)
+        if recorder.undo_record_id(id=content):
+            send_msg_code(200)
+        else:
+            send_msg_code(500)
     elif key_type == KEY_UNDO_RECORD_STAR:
-        undo_record_star(star_id=content)
-    elif key_type == KEY_RANDOM_GET_AV_BY_STAR_NAME:
-        code, id = util_javbus.get_id_by_star_name(star_name=content)
-        if check_success(code):
-            get_av_by_id(id)
-    elif key_type == KEY_GET_NEW_AVS_BY_STAR_NAME:
-        code, ids = util_javbus.get_new_ids_by_star_name(star_name=content)
-        if check_success(code):
-            send_msg(msg=f'<code>{content}</code>最新 AV',
-                     markup=InlineKeyboardMarkup().row(*[
-                         InlineKeyboardButton(
-                             text=id, callback_data=f'{id}:{KEY_GET_AV_BY_ID}')
-                         for id in ids
-                     ]))
+        if recorder.undo_record_star(star_id=content):
+            send_msg_code(200)
+        else:
+            send_msg_code(500)
     elif key_type == KEY_SEARCH_STAR:
         search_star(content)
+    elif key_type == KEY_GET_TOP_STARS:
+        get_top_stars(page=int(content))
 
 
 @bot.message_handler(content_types=['text', 'photo', 'animation', 'video'])
@@ -923,9 +810,14 @@ def handle_message(message):
     elif msg == '/avs':
         get_avs_record()
     elif msg == '/record':
-        get_record_json()
+        if os.path.exists(common.PATH_RECORD_FILE):
+            bot.send_document(chat_id=common.TG_CHAT_ID,
+                              document=types.InputFile(
+                                  common.PATH_RECORD_FILE))
+        else:
+            send_msg('尚无收藏记录 =_=')
     elif msg == '/top100':
-        get_top_stars()
+        get_top_stars(1)
     elif msg.find('/star') != -1:
         param = get_msg_param(msg)
         if param:
@@ -934,7 +826,7 @@ def handle_message(message):
     elif msg.find('/av') != -1:
         param = get_msg_param(msg)
         if param:
-            send_msg(f'搜索番号：{param}')
+            send_msg(f'搜索番号：{param} ......')
             get_av_by_id(id=param, send_to_pikpak=True)
     else:
         # ids = re.compile(r'^[A-Za-z]+[-][0-9]+$').findall(msg)

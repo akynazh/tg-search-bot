@@ -13,7 +13,8 @@ BASE_URL_SEARCH_BY_STAR_NAME = f'{BASE_URL}/search'
 BASE_URL_SEARCH_BY_STAR_ID = f'{BASE_URL}/star'
 BASE_URL_SEARCH_STAR = f'{BASE_URL}/searchstar'
 BASE_URL_MAGNET = f'{BASE_URL}/ajax/uncledatoolsbyajax.php?lang=zh'
-HOME_MAX_PAGE = 100
+MAX_HOME_PAGE_COUNT = 100
+MAX_NEW_AVS_COUNT = 8
 
 
 def get_max_page(url: str) -> typing.Tuple[int, int]:
@@ -95,7 +96,7 @@ def get_id_from_home(page=-1) -> typing.Tuple[int, str]:
     :return tuple[int, str]: 状态码和番号
     '''
     if page == -1:
-        page = random.randint(1, HOME_MAX_PAGE)
+        page = random.randint(1, MAX_HOME_PAGE_COUNT)
     return get_id_from_page(base_page_url=BASE_URL + '/page', page=page)
 
 
@@ -111,7 +112,7 @@ def get_id_by_star_name(star_name: str, page=-1) -> typing.Tuple[int, str]:
 
 
 def get_new_ids_by_star_name(star_name: str) -> typing.Tuple[int, list]:
-    '''根据演员名称获取最新番号 （小于等于5个）
+    '''根据演员名称获取最新番号
 
     :param str star_name: 演员名称
     :return typing.Tuple[int, list]: 状态码和番号列表
@@ -120,8 +121,8 @@ def get_new_ids_by_star_name(star_name: str) -> typing.Tuple[int, list]:
         base_page_url=f'{BASE_URL_SEARCH_BY_STAR_NAME}/{star_name}', page=1)
     if code != 200:
         return code, None
-    if len(ids) <= 5: return 200, ids
-    return 200, ids[:5]
+    if len(ids) <= MAX_NEW_AVS_COUNT: return 200, ids
+    return 200, ids[:MAX_NEW_AVS_COUNT]
 
 
 def get_id_by_star_id(star_id: str, page=-1) -> typing.Tuple[int, str]:
@@ -136,7 +137,7 @@ def get_id_by_star_id(star_id: str, page=-1) -> typing.Tuple[int, str]:
 
 
 def get_new_ids_by_star_id(star_id: str) -> typing.Tuple[int, list]:
-    '''根据演员编号获取最新番号 （小于等于5个）
+    '''根据演员编号获取最新番号
 
     :param str star_id: 演员编号
     :return tuple[int, list]: 状态码和番号列表
@@ -145,8 +146,8 @@ def get_new_ids_by_star_id(star_id: str) -> typing.Tuple[int, list]:
         base_page_url=f'{BASE_URL_SEARCH_BY_STAR_ID}/{star_id}', page=1)
     if code != 200:
         return code, None
-    if len(ids) <= 5: return 200, ids
-    return 200, ids[:5]
+    if len(ids) <= MAX_NEW_AVS_COUNT: return 200, ids
+    return 200, ids[:MAX_NEW_AVS_COUNT]
 
 
 def get_samples_by_id(id: str) -> typing.Tuple[int, list]:
@@ -224,14 +225,20 @@ def sort_magnets(magnets: list) -> list:
     return magnets
 
 
-def check_star_exists(star_name: str) -> int:
-    '''工具演员名称确认该演员在 javbus 是否存在
+def check_star_exists(star_name: str) -> typing.Tuple[int, str]:
+    '''根据演员名称确认该演员在 javbus 是否存在，如果存在则返回演员 id
 
     :param str star_name: 演员名称
-    :return int: 状态码
+    :return tuple[int, str]: 状态码和演员 id
     '''
-    code, _ = common.send_req(url=f'{BASE_URL_SEARCH_STAR}/{star_name}')
-    return code
+    code, resp = common.send_req(url=f'{BASE_URL_SEARCH_STAR}/{star_name}')
+    if code != 200:
+        return code, None
+    soup = common.get_soup(resp)
+    star = soup.find(class_='avatar-box text-center')
+    if not star:
+        return 404, None
+    return 200, star['href'].split('star/')[1]
 
 
 def get_av_by_id(id: str,
@@ -383,7 +390,7 @@ def get_av_by_id(id: str,
 
 
 if __name__ == '__main__':
-    code, res = get_av_by_id(id='GTJ-111', is_nice=True, magnet_max_count=3)
+    # code, res = get_av_by_id(id='GTJ-111', is_nice=True, magnet_max_count=3)
     # code, res = get_av_by_id(id='ipx-811', is_nice=False)
     # code, res = get_samples_by_id('ssni-497')
     # code, res = get_id_by_star_id('okq', 2)
@@ -393,4 +400,5 @@ if __name__ == '__main__':
     # code, res = get_id_by_star_name('三上悠亜')
     # code, res = get_new_ids_by_star_name('三上悠亜')
     # code, res = get_id_from_home()
+    code, res = check_star_exists('白桃はな')
     if code == 200: print(res)
