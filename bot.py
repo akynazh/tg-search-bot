@@ -757,7 +757,7 @@ def listen_callback(call):
         id = res[0]
         stars = [s for s in res[1:]]
         if recorder.record_id(id=id, stars=stars):
-            send_msg_code(f'成功收藏 <code>{id}</code> ^_^')
+            send_msg(f'成功收藏 <code>{id}</code> ^_^')
         else:
             send_msg_code(500)
     elif key_type == KEY_GET_STARS_RECORD:
