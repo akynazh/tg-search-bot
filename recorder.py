@@ -36,6 +36,36 @@ def check_has_record() -> typing.Tuple[dict, bool, bool]:
     return record, is_stars_exists, is_avs_exists
 
 
+def check_star_exists(star_id: str) -> bool:
+    '''根据演员 id 确认收藏记录中演员是否存在
+
+    :param str star_id: 演员 id
+    :return bool: 是否存在
+    '''
+    record, exists, _ = check_has_record()
+    if not record or not exists:
+        return False
+    stars = record['stars']
+    for star in stars:
+        if star['id'].lower() == star_id.lower():
+            return True
+
+
+def check_id_exists(id: str) -> bool:
+    '''根据番号确认收藏记录中番号是否存在
+
+    :param str id: 番号
+    :return bool: 是否存在
+    '''
+    record, _, exists = check_has_record()
+    if not record or not exists:
+        return False
+    avs = record['avs']
+    for av in avs:
+        if av['id'].lower() == id.lower():
+            return True
+
+
 def renew_record(record: dict) -> bool:
     '''更新记录
 
@@ -72,17 +102,13 @@ def record_star(star_name: str, star_id: str) -> bool:
         else:
             stars = record['stars']
     # 检查记录是否存在
-    exists = False
     for star in stars:
         if star['id'].lower() == star_id.lower():
-            exists = True
-            break
+            return True
     # 如果记录需要更新则写回记录
-    if not exists:
-        stars.append({'name': star_name, 'id': star_id.lower()})
-        record['stars'] = stars
-        return renew_record(record)
-    return True
+    stars.append({'name': star_name, 'id': star_id.lower()})
+    record['stars'] = stars
+    return renew_record(record)
 
 
 def record_id(id: str, stars: list) -> bool:
@@ -100,17 +126,13 @@ def record_id(id: str, stars: list) -> bool:
         if not is_avs_exists: avs = []
         else: avs = record['avs']
     # 检查记录是否存在
-    exists = False
     for av in avs:
         if av['id'].lower() == id.lower():
-            exists = True
-            break
+            return True
     # 如果记录需要更新则写回记录
-    if not exists:
-        avs.append({'id': id.lower(), 'stars': stars})
-        record['avs'] = avs
-        return renew_record(record)
-    return True
+    avs.append({'id': id.lower(), 'stars': stars})
+    record['avs'] = avs
+    return renew_record(record)
 
 
 def undo_record_star(star_id: str) -> bool:
@@ -120,7 +142,9 @@ def undo_record_star(star_id: str) -> bool:
     :return bool: 是否取消收藏成功
     '''
     # 加载记录
-    record, _, _ = check_has_record()
+    record, exists, _ = check_has_record()
+    if not record or not exists:
+        return False
     stars = record['stars']
     exists = False
     # 删除记录
@@ -143,7 +167,9 @@ def undo_record_id(id: str) -> bool:
     :return bool: 是否取消收藏成功
     '''
     # 加载记录
-    record, _, _ = check_has_record()
+    record, _, exists = check_has_record()
+    if not record or not exists:
+        return False
     avs = record['avs']
     exists = False
     # 删除记录
