@@ -1,6 +1,6 @@
 # tg-jav-bot
 
-**一个基于 Javbus, Sukebei, Avgle, Dmm，Javlibrary 并集成了 Pikpak 的万能 Telegram 番号查询机器人。**
+**一个基于 Javbus，Sukebei，Avgle，Dmm，Javlibrary 并集成了 Pikpak 的万能 Telegram 番号查询机器人。**
 
 该项目持续更新，如果发现代码存在问题（特别是爬虫失效了）或者需要其他新的功能，欢迎提 issue 或者参与到本项目中 ~
 

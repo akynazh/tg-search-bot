@@ -247,6 +247,7 @@ def get_stars_record(page=1):
         send_msg('尚无演员收藏记录 =_=')
         return
     stars = record['stars']
+    stars.reverse()
     col, row = 4, 5
     objs, page_btns, title = get_page_elements(objs=stars,
                                                page=page,
@@ -257,7 +258,7 @@ def get_stars_record(page=1):
     send_msg_btns(max_btn_per_row=col,
                   max_row_per_msg=row,
                   key_type=KEY_GET_STAR_DETAIL_RECORD_BY_STAR_NAME_ID,
-                  title='收藏的演员：' + title,
+                  title='<b>收藏的演员：</b>' + title,
                   objs=objs,
                   page_btns=page_btns)
 
@@ -277,6 +278,7 @@ def get_star_detail_record(star_name: str, star_id: str):
     star_avs = []
     if is_avs_exists:
         avs = record['avs']
+        avs.reverse()
         for av in avs:
             # 如果演员编号在该 AV 的演员编号列表中
             if star_id in av['stars']:
@@ -317,6 +319,7 @@ def get_avs_record(page=1):
         send_msg('尚无 AV 收藏记录 =_=')
         return
     avs = [av['id'] for av in record['avs']]
+    avs.reverse()
     # 发送按钮消息
     extra_btn1 = InlineKeyboardButton(
         text='随机高分 AV', callback_data=f'0:{KEY_RANDOM_GET_AV_NICE}')
@@ -331,7 +334,7 @@ def get_avs_record(page=1):
     send_msg_btns(max_btn_per_row=col,
                   max_row_per_msg=row,
                   key_type=KEY_GET_AV_DETAIL_RECORD_BY_ID,
-                  title='收藏的番号：' + title,
+                  title='<b>收藏的番号：</b>' + title,
                   objs=objs,
                   extra_btns=[extra_btn1, extra_btn2],
                   extra_btns_br=False,
@@ -418,7 +421,7 @@ def get_av_by_id(id: str,
         msg += f'''【日期】{av_date}
 '''
     if av_score:
-        msg += f'''【评分】{av_score}
+        msg += f'''【评分】{av_score} / 5
 '''
     # 加上演员消息
     if av_stars == []:
@@ -485,10 +488,10 @@ def get_av_by_id(id: str,
     if star_ids != '': star_ids = star_ids[:len(star_ids) - 1]
     if recorder.check_id_exists(id=av_id):
         av_record_btn = InlineKeyboardButton(
-            text=f'取消收藏番号', callback_data=f'{av_id}:{KEY_UNDO_RECORD_AV}')
+            text=f'取消收藏 {av_id}', callback_data=f'{av_id}:{KEY_UNDO_RECORD_AV}')
     else:
         av_record_btn = InlineKeyboardButton(
-            text=f'收藏番号', callback_data=f'{av_id}|{star_ids}:{KEY_RECORD_AV}')
+            text=f'收藏 {av_id}', callback_data=f'{av_id}|{star_ids}:{KEY_RECORD_AV}')
     if star_record_btn:
         markup.row(av_record_btn, star_record_btn)
     else:
@@ -634,7 +637,7 @@ def search_star(star_name: str):
 
 
 def get_top_stars(page=1):
-    '''获取 DMM 排行榜前 100 名女优，每页 20 位女优
+    '''获取 DMM 女优排行榜，每页 20 位女优
     
     :param int page: 第几页，默认第一页
     '''
@@ -650,7 +653,7 @@ def get_top_stars(page=1):
     send_msg_btns(max_btn_per_row=col,
                   max_row_per_msg=row,
                   key_type=KEY_SEARCH_STAR_BY_NAME,
-                  title='DMM 女优排行榜前 100 位：' + title,
+                  title='<b>DMM 女优排行榜：</b>' + title,
                   objs=objs,
                   page_btns=page_btns)
 
@@ -842,7 +845,7 @@ def handle_message(message):
                                   common.PATH_RECORD_FILE))
         else:
             send_msg('尚无收藏记录 =_=')
-    elif msg == '/top100':
+    elif msg == '/rank':
         get_top_stars(1)
     elif msg.find('/star') != -1:
         param = get_msg_param(msg)
@@ -881,15 +884,15 @@ def help():
 
 /help  查看指令帮助
 
-/stars  获取收藏的演员
+/stars  查看收藏的演员
 
-/avs  获取收藏的番号
+/avs  查看收藏的番号
 
 /nice  随机获取一部高分 AV
 
 /new  随机获取一部最新 AV
 
-/top100  获取 DMM 女优排行榜前 100 位名单
+/rank  获取 DMM 女优排行榜
 
 /record  获取收藏记录文件
 
@@ -904,11 +907,11 @@ def set_command():
     '''设置机器人命令'''
     tg_cmd_dict = {
         'help': '查看指令帮助',
-        'stars': '获取收藏的演员',
-        'avs': '获取收藏的 AV',
+        'stars': '查看收藏的演员',
+        'avs': '查看收藏的番号',
         'nice': '随机获取一部高分 AV',
         'new': '随机获取一部最新 AV',
-        'top100': '获取 DMM 女优排行榜前 100 位名单',
+        'rank': '获取 DMM 女优排行榜',
         'record': '获取收藏记录文件',
     }
     cmds = []
