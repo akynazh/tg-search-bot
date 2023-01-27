@@ -633,7 +633,12 @@ def search_star(star_name: str):
             f'{star_name}|{star_id}:{KEY_GET_NEW_AVS_BY_STAR_NAME_ID}'),
         InlineKeyboardButton(
             text='演员随机 AV',
-            callback_data=f'{star_id}:{kEY_RANDOM_GET_AV_BY_STAR_ID}'))
+            callback_data=f'{star_id}:{kEY_RANDOM_GET_AV_BY_STAR_ID}'),\
+        InlineKeyboardButton(
+                text=f'收藏{star_name}',
+                callback_data=
+                f'{star_name}|{star_id}:{KEY_RECORD_STAR}')
+        )
     send_msg(
         msg=
         f'<code>{star_name}</code> | <a href="{common.BASE_URL_JAPAN_WIKI}/{star_name}">Wiki</a> | <a href="{util_javbus.BASE_URL_SEARCH_BY_STAR_NAME}/{star_name}">Javbus</a>',
