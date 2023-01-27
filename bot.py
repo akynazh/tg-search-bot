@@ -421,7 +421,7 @@ def get_av_by_id(id: str,
         msg += f'''【日期】{av_date}
 '''
     if av_score:
-        msg += f'''【评分】{av_score} / 5
+        msg += f'''【评分】{av_score}
 '''
     # 加上演员消息
     if av_stars == []:
