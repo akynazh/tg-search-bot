@@ -724,12 +724,30 @@ def get_star_new_avs(star_name: str, star_id: str):
             send_msg(msg=title, markup=markup)
 
 
+def intercept(chat_id:str) -> bool:
+    '''拦截消息
+
+    :param str chat_id: 对话 id
+    :return bool: 是否通过
+    '''
+    if chat_id == common.TG_CHAT_ID:
+        return True
+    LOG.info(f'拦截到非目标用户请求，id: {chat_id}')
+    bot.send_message(
+        chat_id=chat_id,
+        text=
+        f'该机器人仅供私人使用, 如需使用请自行部署：<a href="{common.PROJECT_ADDRESS}">项目地址</a>',
+        parse_mode='HTML',
+    )
+    return False
+
 @bot.callback_query_handler(func=lambda call: True)
 def listen_callback(call):
     '''消息回调处理器
 
     :param _type_ call: 触发回调的消息内容
     '''
+    # 回显 typing...
     send_action_typing()
     # 提取回调内容
     s = call.data.rfind(':')
@@ -810,26 +828,25 @@ def handle_message(message):
 
     :param _type_ message: 消息
     '''
-    send_action_typing()
-    # 拦截请求，检查消息来源
-    if str(message.from_user.id) != common.TG_CHAT_ID:
-        LOG.info(f'拦截到非目标用户请求，id: {message.from_user.id}')
-        bot.send_message(
-            chat_id=message.from_user.id,
-            text=
-            f'该机器人仅供私人使用, 如需使用请自行部署：<a href="{common.PROJECT_ADDRESS}">项目地址</a>',
-            parse_mode='HTML',
-        )
+    # 拦截请求
+    if not intercept(str(message.chat.id)):
         return
+    # 回显 typing...
+    send_action_typing()
     # 获取消息文本内容
     if message.content_type != 'text':
-        msg = message.caption
+        msg_origin = message.caption
     else:
-        msg = message.text
-    if not msg or msg.strip() == '':
+        msg_origin = message.text
+    if not msg_origin:
         return
-    msg = msg.strip()
-    LOG.info(f'收到消息：{msg}')
+    LOG.info(f'收到消息："{msg_origin}"')
+    # 如果是 inline 形式的消息，则提取 @ 前的字符串
+    inline_idx = msg_origin.find('@')
+    if inline_idx != -1:
+        msg = msg_origin[:inline_idx]
+    else:
+        msg = msg_origin
     # 处理消息
     if msg == '/test':
         test()
@@ -856,19 +873,19 @@ def handle_message(message):
             send_msg('尚无收藏记录 =_=')
     elif msg == '/rank':
         get_top_stars(1)
-    elif msg.find('/star') != -1:
-        param = get_msg_param(msg)
+    elif msg_origin.find('/star') != -1:
+        param = get_msg_param(msg_origin)
         if param:
             send_msg(f'搜索演员：{param} ......')
             search_star(param)
-    elif msg.find('/av') != -1:
-        param = get_msg_param(msg)
+    elif msg_origin.find('/av') != -1:
+        param = get_msg_param(msg_origin)
         if param:
             send_msg(f'搜索番号：{param} ......')
             get_av_by_id(id=param, send_to_pikpak=True)
     else:
         # ids = re.compile(r'^[A-Za-z]+[-][0-9]+$').findall(msg)
-        ids = re.compile(r'[A-Za-z]+[-][0-9]+').findall(msg)
+        ids = re.compile(r'[A-Za-z]+[-][0-9]+').findall(msg_origin)
         if not ids:
             send_msg(
                 '消息似乎不存在符合<b>“字母-数字”</b>格式的番号，请重试或使用“<code>/av</code> 番号”进行查找 =_='
