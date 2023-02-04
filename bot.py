@@ -646,13 +646,16 @@ def search_star(star_name: str):
 
 
 def get_top_stars(page=1):
-    '''获取 DMM 女优排行榜，每页 20 位女优
+    '''根据页数获取 DMM 女优排行榜，每页 20 位女优
     
     :param int page: 第几页，默认第一页
     '''
-    code, stars = util_dmm.get_all_top_stars()
+    code, stars = util_dmm.get_top_stars(page)
     if not check_success(code):
         return
+    stars_tmp = [None] * 80
+    stars = stars_tmp[:((page - 1) * 20)] + stars + stars_tmp[(
+        (page - 1) * 20):]
     col, row = 4, 5
     objs, page_btns, title = get_page_elements(objs=stars,
                                                page=page,
@@ -724,7 +727,7 @@ def get_star_new_avs(star_name: str, star_id: str):
             send_msg(msg=title, markup=markup)
 
 
-def intercept(chat_id:str) -> bool:
+def intercept(chat_id: str) -> bool:
     '''拦截消息
 
     :param str chat_id: 对话 id
@@ -740,6 +743,7 @@ def intercept(chat_id:str) -> bool:
         parse_mode='HTML',
     )
     return False
+
 
 @bot.callback_query_handler(func=lambda call: True)
 def listen_callback(call):
