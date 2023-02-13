@@ -92,7 +92,7 @@ TG_API_ID = ''
 TG_API_HASH = ''
 ```
 
-如需使用 Pikpak 自动发送功能，需要先生成 `my_account.session` 文件，运行如下命令：
+如需使用 Pikpak 自动发送功能，需要先手动授权 Pikpak 官方机器人：[PikPak6_Bot](https://t.me/PikPak6_Bot)，接着，需要生成 `my_account.session` 文件，运行如下命令：
 
 ```
 python3 util_pikpak.py
