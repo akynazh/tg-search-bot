@@ -10,13 +10,7 @@ import string
 import common
 import recorder
 import concurrent.futures
-import utils.util_javbus as util_javbus
-import utils.util_avgle as util_avgle
-import utils.util_sukebei as util_sukebei
-import utils.util_dmm as util_dmm
-import utils.util_javlibrary as util_javlibrary
-if common.USE_PIKPAK:
-    import utils.util_pikpak as util_pikpak
+from utils import *
 
 # 定义回调按键值
 KEY_GET_SAMPLE_BY_ID = 'k0_0'
