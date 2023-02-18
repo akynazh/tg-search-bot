@@ -11,6 +11,7 @@ import common
 import recorder
 import concurrent.futures
 from utils import *
+from spiders import *
 
 # 定义回调按键值
 KEY_GET_SAMPLE_BY_ID = 'k0_0'
@@ -287,7 +288,7 @@ def get_star_detail_record(star_name: str, star_id: str):
     )
     extra_btn3 = InlineKeyboardButton(
         text=f'取消收藏', callback_data=f'{star_id}:{KEY_UNDO_RECORD_STAR}')
-    title = f'<code>{star_name}</code> | <a href="{common.BASE_URL_JAPAN_WIKI}/{star_name}">Wiki</a> | <a href="{util_javbus.BASE_URL_SEARCH_BY_STAR_ID}/{star_id}">Javbus</a>'
+    title = f'<code>{star_name}</code> | <a href="{common.BASE_URL_JAPAN_WIKI}/{star_name}">Wiki</a> | <a href="{sp_javbus.BASE_URL_SEARCH_BY_STAR_ID}/{star_id}">Javbus</a>'
     if len(star_avs) == 0:  # 没有该演员对应 AV 收藏记录
         markup = InlineKeyboardMarkup()
         markup.row(extra_btn1, extra_btn2, extra_btn3)
@@ -368,11 +369,11 @@ def get_av_by_id(id: str,
     futures = {}
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
         if not not_send:
-            futures[executor.submit(util_dmm.get_score_by_id,
+            futures[executor.submit(sp_dmm.get_score_by_id,
                                     id)] = 0  # 获取 AV 评分
-        futures[executor.submit(util_javbus.get_av_by_id, id, is_nice,
+        futures[executor.submit(sp_javbus.get_av_by_id, id, is_nice,
                                 magnet_max_count)] = 1  # 通过 javbus 获取 AV
-        futures[executor.submit(util_sukebei.get_av_by_id, id, is_nice,
+        futures[executor.submit(sp_sukebei.get_av_by_id, id, is_nice,
                                 magnet_max_count)] = 2  # 通过 sukebei 获取 AV
         for future in concurrent.futures.as_completed(futures):
             future_type = futures[future]
@@ -390,10 +391,10 @@ def get_av_by_id(id: str,
         return
     if code_javbus == 200:  # 优先选择 javbus
         av = av_javbus
-        av_url = f'{util_javbus.BASE_URL}/{id}'
+        av_url = f'{sp_javbus.BASE_URL}/{id}'
     elif code_sukebei == 200:
         av = av_sukebei
-        av_url = f'{util_sukebei.BASE_URL}?q={id}'
+        av_url = f'{sp_sukebei.BASE_URL}?q={id}'
     if not_send:
         return av
     # 提取数据
@@ -407,6 +408,9 @@ def get_av_by_id(id: str,
     # 拼接消息
     msg = ''
     if av_title != '':
+        av_title_ch = util_translator.trans(text=av_title, from_lang='ja', to_lang='zh-CN')
+        if av_title_ch:
+            av_title = av_title_ch
         msg += f'''【标题】<a href="{av_url}">{av_title}</a>
 '''
     msg += f'''【番号】<code>{av_id}</code>
@@ -422,14 +426,29 @@ def get_av_by_id(id: str,
         msg += f'''【演员】未知
 '''
     for i, star in enumerate(av_stars):
-        if i > 5:
+        if i > 2:
             msg += f'''【演员】<a href="{av_url}">查看更多...</a>
 '''
             break
         name = star['name']
         link = star['link']
+        other_name_start = name.find('（')
+        if other_name_start != -1:
+            name = name[:other_name_start]
+        if i == 0:
+            show_star_name = name
+            show_star_link = link
+            show_star_id = link[link.rfind('/') + 1:]
         wiki = f'{common.BASE_URL_JAPAN_WIKI}/{name}'
-        msg += f'''【演员】<code>{name}</code> | <a href="{wiki}">Wiki</a> | <a href="{link}">Javbus</a>
+        # get chinese wiki from japanese wiki
+        wiki_json = util_wiki.get_chinese_wiki_page(topic=name, lang='ja')
+        if wiki_json and wiki_json['lang'] == 'zh':
+            name_zh = wiki_json['title']
+            wiki_zh = wiki_json['url']
+            msg += f'''【演员】<code>{name}</code>（<code>{name_zh}</code>） | <a href="{wiki_zh}">Wiki</a> | <a href="{link}">Javbus</a>
+'''
+        else:
+            msg += f'''【演员】<code>{name}</code> | <a href="{wiki}">Wiki</a> | <a href="{link}">Javbus</a>
 '''
     if av_tags != '':
         msg += f'''【标签】{av_tags}
@@ -459,9 +478,6 @@ def get_av_by_id(id: str,
     markup = InlineKeyboardMarkup().row(sample_btn, pv_btn, fv_btn, more_btn)
     star_record_btn = None
     if len(av_stars) == 1:
-        show_star_name = av_stars[0]['name']
-        show_star_link = av_stars[0]['link']
-        show_star_id = show_star_link[show_star_link.rfind('/') + 1:]
         if recorder.check_star_exists(star_id=show_star_id):
             star_record_btn = InlineKeyboardButton(
                 text=f'管理演员收藏信息',
@@ -531,7 +547,7 @@ def get_sample(id: str):
     :param str id: 番号
     '''
     # 获取截图
-    code, samples = util_javbus.get_samples_by_id(id)
+    code, samples = sp_javbus.get_samples_by_id(id)
     if not check_success(code):
         return
     # 发送图片列表
@@ -564,7 +580,7 @@ def watch_av(id: str, type: str):
     if type == 0:
         futures = {}
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            futures[executor.submit(util_dmm.get_pv_by_id, id)] = 1
+            futures[executor.submit(sp_dmm.get_pv_by_id, id)] = 1
             futures[executor.submit(util_avgle.get_pv_by_id, id)] = 2
             for future in concurrent.futures.as_completed(futures):
                 if futures[future] == 1:
@@ -579,7 +595,7 @@ def watch_av(id: str, type: str):
         if code_dmm == 200:  # 优先 dmm
             try:
                 # 获取更清晰的视频
-                pv_dmm_nice = util_dmm.get_nice_pv_by_src(pv_dmm)
+                pv_dmm_nice = sp_dmm.get_nice_pv_by_src(pv_dmm)
                 # 发送普通视频，附带更清晰的视频链接
                 bot.send_video(
                     chat_id=common.TG_CHAT_ID,
@@ -613,7 +629,7 @@ def search_star(star_name: str):
 
     :param str star_name: 演员名称
     '''
-    code, star_id = util_javbus.check_star_exists(star_name)
+    code, star_id = sp_javbus.check_star_exists(star_name)
     if not check_success(code):
         return
     if recorder.check_star_exists(star_id):
@@ -635,7 +651,7 @@ def search_star(star_name: str):
         )
     send_msg(
         msg=
-        f'<code>{star_name}</code> | <a href="{common.BASE_URL_JAPAN_WIKI}/{star_name}">Wiki</a> | <a href="{util_javbus.BASE_URL_SEARCH_BY_STAR_NAME}/{star_name}">Javbus</a>',
+        f'<code>{star_name}</code> | <a href="{common.BASE_URL_JAPAN_WIKI}/{star_name}">Wiki</a> | <a href="{sp_javbus.BASE_URL_SEARCH_BY_STAR_NAME}/{star_name}">Javbus</a>',
         markup=markup)
 
 
@@ -644,7 +660,7 @@ def get_top_stars(page=1):
     
     :param int page: 第几页，默认第一页
     '''
-    code, stars = util_dmm.get_top_stars(page)
+    code, stars = sp_dmm.get_top_stars(page)
     if not check_success(code):
         return
     stars_tmp = [None] * 80
@@ -704,7 +720,7 @@ def get_star_new_avs(star_name: str, star_id: str):
     :param str star_name: 演员名称
     :param str star_id: 演员 id
     '''
-    code, ids = util_javbus.get_new_ids_by_star_id(star_id=star_id)
+    code, ids = sp_javbus.get_new_ids_by_star_id(star_id=star_id)
     title = f'<code>{star_name}</code> 最新 AV'
     if check_success(code):
         btns = [
@@ -761,7 +777,7 @@ def listen_callback(call):
     elif key_type == KEY_GET_MORE_MAGNETS_BY_ID:
         get_more_magnets(id=content)
     elif key_type == kEY_RANDOM_GET_AV_BY_STAR_ID:
-        code, id = util_javbus.get_id_by_star_id(star_id=content)
+        code, id = sp_javbus.get_id_by_star_id(star_id=content)
         if check_success(code):
             get_av_by_id(id=id)
     elif key_type == KEY_GET_NEW_AVS_BY_STAR_NAME_ID:
@@ -797,11 +813,11 @@ def listen_callback(call):
     elif key_type == KEY_GET_AV_BY_ID:
         get_av_by_id(id=content)
     elif key_type == KEY_RANDOM_GET_AV_NICE:
-        code, id = util_javlibrary.get_random_id(0)
+        code, id = sp_javlibrary.get_random_id(0)
         if check_success(code):
             get_av_by_id(id=id)
     elif key_type == KEY_RANDOM_GET_AV_NEW:
-        code, id = util_javlibrary.get_random_id(1)
+        code, id = sp_javlibrary.get_random_id(1)
         if check_success(code):
             get_av_by_id(id=id)
     elif key_type == KEY_UNDO_RECORD_AV:
@@ -851,11 +867,11 @@ def handle_message(message):
     elif msg == '/help' or msg.find('/start') != -1:
         help()
     elif msg == '/nice':
-        code, id = util_javlibrary.get_random_id(0)
+        code, id = sp_javlibrary.get_random_id(0)
         if check_success(code):
             get_av_by_id(id=id)
     elif msg == '/new':
-        code, id = util_javlibrary.get_random_id(1)
+        code, id = sp_javlibrary.get_random_id(1)
         if check_success(code):
             get_av_by_id(id=id)
     elif msg == '/stars':
