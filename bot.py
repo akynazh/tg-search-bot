@@ -9,6 +9,7 @@ import typing
 import string
 import common
 import recorder
+import langdetect
 import concurrent.futures
 from utils import *
 from spiders import *
@@ -408,7 +409,9 @@ def get_av_by_id(id: str,
     # 拼接消息
     msg = ''
     if av_title != '':
-        av_title_ch = util_translator.trans(text=av_title, from_lang='ja', to_lang='zh-CN')
+        av_title_ch = util_translator.trans(text=av_title,
+                                            from_lang='ja',
+                                            to_lang='zh-CN')
         if av_title_ch:
             av_title = av_title_ch
         msg += f'''【标题】<a href="{av_url}">{av_title}</a>
@@ -437,15 +440,16 @@ def get_av_by_id(id: str,
             name = name[:other_name_start]
         if i == 0:
             show_star_name = name
-            show_star_link = link
             show_star_id = link[link.rfind('/') + 1:]
         wiki = f'{common.BASE_URL_JAPAN_WIKI}/{name}'
         # get chinese wiki from japanese wiki
-        wiki_json = util_wiki.get_chinese_wiki_page(topic=name, lang='ja')
+        wiki_json = util_wiki.get_wiki_page_by_lang(topic=name,
+                                                    from_lang='ja',
+                                                    to_lang='zh')
         if wiki_json and wiki_json['lang'] == 'zh':
             name_zh = wiki_json['title']
             wiki_zh = wiki_json['url']
-            msg += f'''【演员】<code>{name}</code>（<code>{name_zh}</code>） | <a href="{wiki_zh}">Wiki</a> | <a href="{link}">Javbus</a>
+            msg += f'''【演员】<code>{name}</code> / <code>{name_zh}</code> | <a href="{wiki_zh}">Wiki</a> | <a href="{link}">Javbus</a>
 '''
         else:
             msg += f'''【演员】<code>{name}</code> | <a href="{wiki}">Wiki</a> | <a href="{link}">Javbus</a>
@@ -454,7 +458,7 @@ def get_av_by_id(id: str,
         msg += f'''【标签】{av_tags}
 '''
     # 加上其它消息
-    msg += f'''【其它】<a href="https://t.me/{common.PIKPAK_BOT_NAME}">@{common.PIKPAK_BOT_NAME}</a> | <a href="{common.PROJECT_ADDRESS}">项目地址</a>
+    msg += f'''【其它】<a href="https://t.me/{common.PIKPAK_BOT_NAME}">@{common.PIKPAK_BOT_NAME}</a> | <a href="{common.PROJECT_ADDRESS}">项目地址</a> | <a href="{common.CONTACT_AUTHOR}">联系作者</a>
 '''
     # 加上磁链消息
     magnet_send_to_pikpak = ''
@@ -629,6 +633,17 @@ def search_star(star_name: str):
 
     :param str star_name: 演员名称
     '''
+    lang = langdetect.detect(star_name)
+    lang_break = lang.find('-')
+    if lang_break != -1:
+        lang = lang[:lang_break]
+    if langdetect.detect(star_name) != 'ja':
+        # 通过 wiki 获取日文名
+        wiki_json = util_wiki.get_wiki_page_by_lang(topic=star_name,
+                                                    from_lang=lang,
+                                                    to_lang='ja')
+        if wiki_json and wiki_json['lang'] == 'ja':
+            star_name = wiki_json['title']
     code, star_id = sp_javbus.check_star_exists(star_name)
     if not check_success(code):
         return
@@ -936,7 +951,7 @@ def help():
 
 /record  获取收藏记录文件
 
-<code>/star</code>  后接演员名称（日语）可搜索该演员
+<code>/star</code>  后接演员名称可搜索该演员
 
 <code>/av</code>  后接番号可搜索该番号
 '''

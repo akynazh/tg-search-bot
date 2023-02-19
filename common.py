@@ -51,6 +51,8 @@ PROJECT_ADDRESS = 'https://github.com/akynazh/tg-jav-bot'
 PIKPAK_BOT_NAME = 'PikPak6_Bot'
 # Japan Wiki
 BASE_URL_JAPAN_WIKI = 'https://ja.wikipedia.org/wiki'
+# 联系作者
+CONTACT_AUTHOR = 'https://t.me/jackbryant286'
 
 
 class Logger:
