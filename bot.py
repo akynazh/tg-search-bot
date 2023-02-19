@@ -428,32 +428,49 @@ def get_av_by_id(id: str,
     if av_stars == []:
         msg += f'''【演员】未知
 '''
-    for i, star in enumerate(av_stars):
-        if i > 2:
-            msg += f'''【演员】<a href="{av_url}">查看更多...</a>
+    futures = {}
+    more_star_msg = ''
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        for i, star in enumerate(av_stars):
+            # 如果个数大于 5 则退出
+            if i >= 5:
+                more_star_msg = f'''【演员】<a href="{av_url}">查看更多......</a>
 '''
-            break
-        name = star['name']
-        link = star['link']
-        other_name_start = name.find('（')
-        if other_name_start != -1:
-            name = name[:other_name_start]
-        if i == 0:
-            show_star_name = name
-            show_star_id = link[link.rfind('/') + 1:]
-        wiki = f'{common.BASE_URL_JAPAN_WIKI}/{name}'
-        # get chinese wiki from japanese wiki
-        wiki_json = util_wiki.get_wiki_page_by_lang(topic=name,
-                                                    from_lang='ja',
-                                                    to_lang='zh')
-        if wiki_json and wiki_json['lang'] == 'zh':
-            name_zh = wiki_json['title']
-            wiki_zh = wiki_json['url']
-            msg += f'''【演员】<code>{name}</code> / <code>{name_zh}</code> | <a href="{wiki_zh}">Wiki</a> | <a href="{link}">Javbus</a>
+                break
+            # 获取搜索名
+            name = star['name']
+            other_name_start = name.find('（')  # 删除别名
+            if other_name_start != -1:
+                name = name[:other_name_start]
+                star['name'] = name
+            # 如果 i == 0，则为收藏对象
+            if i == 0:
+                show_star_name = star['name']
+                show_star_id = star['link'][star['link'].rfind('/') + 1:]
+            # 从日文维基获取中文维基
+            futures[executor.submit(util_wiki.get_wiki_page_by_lang, name,
+                                    'ja', 'zh')] = i
+        for future in concurrent.futures.as_completed(futures):
+            future_type = futures[future]
+            wiki_json = future.result()
+            wiki = f'{common.BASE_URL_JAPAN_WIKI}/{name}'
+            name = av_stars[future_type]['name']
+            link = av_stars[future_type]['link']
+            if wiki_json and wiki_json['lang'] == 'zh':
+                name_zh = wiki_json['title']
+                wiki_zh = wiki_json['url']
+                if name_zh != name:
+                    msg += f'''【演员】<code>{name}</code> / <code>{name_zh}</code> | <a href="{wiki_zh}">Wiki</a> | <a href="{link}">Javbus</a>
 '''
-        else:
-            msg += f'''【演员】<code>{name}</code> | <a href="{wiki}">Wiki</a> | <a href="{link}">Javbus</a>
+                else:
+                    msg += f'''【演员】<code>{name}</code> | <a href="{wiki_zh}">Wiki</a> | <a href="{link}">Javbus</a>
 '''
+            else:
+                msg += f'''【演员】<code>{name}</code> | <a href="{wiki}">Wiki</a> | <a href="{link}">Javbus</a>
+'''
+    if more_star_msg != '':
+        msg += more_star_msg
+    # 加上标签消息
     if av_tags != '':
         msg += f'''【标签】{av_tags}
 '''
