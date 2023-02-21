@@ -650,14 +650,10 @@ def search_star(star_name: str):
 
     :param str star_name: 演员名称
     '''
-    lang = langdetect.detect(star_name)
-    lang_break = lang.find('-')
-    if lang_break != -1:
-        lang = lang[:lang_break]
-    if langdetect.detect(star_name) != 'ja':
+    if langdetect.detect(star_name) != 'ja': # zh
         # 通过 wiki 获取日文名
         wiki_json = util_wiki.get_wiki_page_by_lang(topic=star_name,
-                                                    from_lang=lang,
+                                                    from_lang='zh',
                                                     to_lang='ja')
         if wiki_json and wiki_json['lang'] == 'ja':
             star_name = wiki_json['title']
