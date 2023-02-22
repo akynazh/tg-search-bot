@@ -53,6 +53,8 @@ PIKPAK_BOT_NAME = 'PikPak6_Bot'
 BASE_URL_JAPAN_WIKI = 'https://ja.wikipedia.org/wiki'
 # 联系作者
 CONTACT_AUTHOR = 'https://t.me/jackbryant286'
+# 请求超时时间
+TIMEOUT_SECONDS = 3
 
 
 class Logger:
@@ -138,7 +140,7 @@ def send_req(
     502：网络问题
     '''
     try:
-        resp = requests.get(url, proxies=proxies, headers=headers)
+        resp = requests.get(url, proxies=proxies, headers=headers, timeout=TIMEOUT_SECONDS)
         if resp.status_code != 200:
             return 404, None
         return 200, resp
