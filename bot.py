@@ -354,13 +354,15 @@ def get_av_detail_record(id: str):
 def get_av_by_id(id: str,
                  send_to_pikpak=False,
                  is_nice=True,
+                 is_uncensored=True,
                  magnet_max_count=3,
                  not_send=False) -> dict:
     '''根据番号获取 av
 
     :param str id: 番号
     :param bool send_to_pikpak: 是否发给 pikpak，默认是
-    :param bool is_nice: 是否过滤磁链，默认是
+    :param bool is_nice: 是否过滤出高清，有字幕磁链，默认是
+    :param bool is_uncensored: 是否过滤出无码磁链，默认是
     :param int magnet_max_count: 过滤后磁链的最大数目，默认为 3
     :param not_send: 是否不发送 AV 结果，默认发送
     :return dict: 当不发送 AV 结果时，返回得到的 AV（如果有）
@@ -373,8 +375,10 @@ def get_av_by_id(id: str,
             futures[executor.submit(sp_dmm.get_score_by_id,
                                     id)] = 0  # 获取 AV 评分
         futures[executor.submit(sp_javbus.get_av_by_id, id, is_nice,
+                                is_uncensored,
                                 magnet_max_count)] = 1  # 通过 javbus 获取 AV
         futures[executor.submit(sp_sukebei.get_av_by_id, id, is_nice,
+                                is_uncensored,
                                 magnet_max_count)] = 2  # 通过 sukebei 获取 AV
         for future in concurrent.futures.as_completed(futures):
             future_type = futures[future]
@@ -408,6 +412,7 @@ def get_av_by_id(id: str,
     av_magnets = av['magnets']
     # 拼接消息
     msg = ''
+    # 标题
     if av_title != '':
         av_title_ch = util_translator.trans(text=av_title,
                                             from_lang='ja',
@@ -416,78 +421,89 @@ def get_av_by_id(id: str,
             av_title = av_title_ch
         msg += f'''【标题】<a href="{av_url}">{av_title}</a>
 '''
+    # 番号
     msg += f'''【番号】<code>{av_id}</code>
 '''
+    # 日期
     if av_date != '':
         msg += f'''【日期】{av_date}
 '''
+    # 评分
     if av_score:
         msg += f'''【评分】{av_score}
 '''
-    # 加上演员消息
-    if av_stars == []:
-        msg += f'''【演员】未知
+    # 演员
+    if av_stars != []:
+        futures = {}
+        more_star_msg = ''
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+            for i, star in enumerate(av_stars):
+                # 如果个数大于 5 则退出
+                if i >= 5:
+                    more_star_msg = f'''【演员】<a href="{av_url}">查看更多......</a>
 '''
-    futures = {}
-    more_star_msg = ''
-    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-        for i, star in enumerate(av_stars):
-            # 如果个数大于 5 则退出
-            if i >= 5:
-                more_star_msg = f'''【演员】<a href="{av_url}">查看更多......</a>
+                    break
+                # 获取搜索名
+                name = star['name']
+                other_name_start = name.find('（')  # 删除别名
+                if other_name_start != -1:
+                    name = name[:other_name_start]
+                    star['name'] = name
+                # 如果 i == 0，则为收藏对象
+                if i == 0:
+                    show_star_name = star['name']
+                    show_star_id = star['link'][star['link'].rfind('/') + 1:]
+                # 从日文维基获取中文维基
+                futures[executor.submit(util_wiki.get_wiki_page_by_lang, name,
+                                        'ja', 'zh')] = i
+            for future in concurrent.futures.as_completed(futures):
+                future_type = futures[future]
+                wiki_json = future.result()
+                wiki = f'{common.BASE_URL_JAPAN_WIKI}/{name}'
+                name = av_stars[future_type]['name']
+                link = av_stars[future_type]['link']
+                if wiki_json and wiki_json['lang'] == 'zh':
+                    name_zh = wiki_json['title']
+                    wiki_zh = wiki_json['url']
+                    if name_zh != name:
+                        msg += f'''【演员】<code>{name}</code> / <code>{name_zh}</code> | <a href="{wiki_zh}">Wiki</a> | <a href="{link}">Javbus</a>
 '''
-                break
-            # 获取搜索名
-            name = star['name']
-            other_name_start = name.find('（')  # 删除别名
-            if other_name_start != -1:
-                name = name[:other_name_start]
-                star['name'] = name
-            # 如果 i == 0，则为收藏对象
-            if i == 0:
-                show_star_name = star['name']
-                show_star_id = star['link'][star['link'].rfind('/') + 1:]
-            # 从日文维基获取中文维基
-            futures[executor.submit(util_wiki.get_wiki_page_by_lang, name,
-                                    'ja', 'zh')] = i
-        for future in concurrent.futures.as_completed(futures):
-            future_type = futures[future]
-            wiki_json = future.result()
-            wiki = f'{common.BASE_URL_JAPAN_WIKI}/{name}'
-            name = av_stars[future_type]['name']
-            link = av_stars[future_type]['link']
-            if wiki_json and wiki_json['lang'] == 'zh':
-                name_zh = wiki_json['title']
-                wiki_zh = wiki_json['url']
-                if name_zh != name:
-                    msg += f'''【演员】<code>{name}</code> / <code>{name_zh}</code> | <a href="{wiki_zh}">Wiki</a> | <a href="{link}">Javbus</a>
+                    else:
+                        msg += f'''【演员】<code>{name}</code> | <a href="{wiki_zh}">Wiki</a> | <a href="{link}">Javbus</a>
 '''
                 else:
-                    msg += f'''【演员】<code>{name}</code> | <a href="{wiki_zh}">Wiki</a> | <a href="{link}">Javbus</a>
+                    msg += f'''【演员】<code>{name}</code> | <a href="{wiki}">Wiki</a> | <a href="{link}">Javbus</a>
 '''
-            else:
-                msg += f'''【演员】<code>{name}</code> | <a href="{wiki}">Wiki</a> | <a href="{link}">Javbus</a>
-'''
-    if more_star_msg != '':
-        msg += more_star_msg
-    # 加上标签消息
+        if more_star_msg != '':
+            msg += more_star_msg
+    # 标签
     if av_tags != '':
         msg += f'''【标签】{av_tags}
 '''
-    # 加上其它消息
+    # 其它
     msg += f'''【其它】<a href="https://t.me/{common.PIKPAK_BOT_NAME}">@{common.PIKPAK_BOT_NAME}</a> | <a href="{common.PROJECT_ADDRESS}">项目地址</a> | <a href="{common.CONTACT_AUTHOR}">联系作者</a>
 '''
-    # 加上磁链消息
+    # 磁链
     magnet_send_to_pikpak = ''
     for i, magnet in enumerate(av_magnets):
         if i == 0:
             magnet_send_to_pikpak = magnet['link']
-        msg_tmp = f'''【{string.ascii_letters[i].upper()}. {magnet["size"]}】<code>{magnet["link"]}</code>
+        magnet_tags = ''
+        if magnet['uc'] == '1':
+            magnet_tags += '无码'
+        else:
+            magnet_tags += '有码'
+        if magnet['hd'] == '1':
+            magnet_tags += '高清'
+        if magnet['zm'] == '1':
+            magnet_tags += '含字幕'
+        msg_tmp = f'''【{magnet_tags}磁链{string.ascii_letters[i].upper()} ({magnet["size"]})】<code>{magnet["link"]}</code>
 '''
         if len(msg + msg_tmp) >= 2000:
             break
         msg += msg_tmp
     # 生成回调按钮
+    # 第一排按钮
     pv_btn = InlineKeyboardButton(
         text='预览', callback_data=f'{av_id}:{KEY_WATCH_PV_BY_ID}')
     fv_btn = InlineKeyboardButton(
@@ -497,6 +513,8 @@ def get_av_by_id(id: str,
     more_btn = InlineKeyboardButton(
         text='更多磁链', callback_data=f'{av_id}:{KEY_GET_MORE_MAGNETS_BY_ID}')
     markup = InlineKeyboardMarkup().row(sample_btn, pv_btn, fv_btn, more_btn)
+    # 第二排按钮
+    # 收藏演员按钮
     star_record_btn = None
     if len(av_stars) == 1:
         if recorder.check_star_exists(star_id=show_star_id):
@@ -519,6 +537,7 @@ def get_av_by_id(id: str,
             star_ids += '...|'
             break
     if star_ids != '': star_ids = star_ids[:len(star_ids) - 1]
+    # 收藏番号按钮
     if recorder.check_id_exists(id=av_id):
         av_record_btn = InlineKeyboardButton(
             text=f'管理番号收藏信息',
@@ -650,7 +669,7 @@ def search_star(star_name: str):
 
     :param str star_name: 演员名称
     '''
-    if langdetect.detect(star_name) != 'ja': # zh
+    if langdetect.detect(star_name) != 'ja':  # zh
         # 通过 wiki 获取日文名
         wiki_json = util_wiki.get_wiki_page_by_lang(topic=star_name,
                                                     from_lang='zh',
@@ -726,12 +745,21 @@ def get_more_magnets(id: str):
     
     :param id: 番号
     '''
-    av = get_av_by_id(id=id, is_nice=False, not_send=True)
+    av = get_av_by_id(id=id, is_nice=False, is_uncensored=False, not_send=True)
     if not av:
         return
     msg = ''
     for magnet in av['magnets']:
-        msg_tmp = f'''【{magnet["size"]}】<code>{magnet["link"]}</code>
+        magnet_tags = ''
+        if magnet['uc'] == '1':
+            magnet_tags += '无码'
+        else:
+            magnet_tags += '有码'
+        if magnet['hd'] == '1':
+            magnet_tags += '高清'
+        if magnet['zm'] == '1':
+            magnet_tags += '含字幕'
+        msg_tmp = f'''【{magnet_tags}磁链 ({magnet["size"]})】<code>{magnet["link"]}</code>
 '''
         if len(msg + msg_tmp) >= 4000:
             send_msg(msg)

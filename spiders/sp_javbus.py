@@ -243,11 +243,13 @@ def check_star_exists(star_name: str) -> typing.Tuple[int, str]:
 
 def get_av_by_id(id: str,
                  is_nice: bool,
+                 is_uncensored: bool,
                  magnet_max_count=100) -> typing.Tuple[int, dict]:
     '''通过 javbus 获取番号对应 av
 
     :param str id: 番号
-    :param bool is_nice: 是否过滤磁链
+    :param bool is_nice: 是否过滤出高清，有字幕磁链
+    :param bool is_uncensored: 是否过滤出无码磁链
     :param int magnet_max_count: 过滤后磁链的最大数目
     :return tuple[int, dict]: 状态码和 av
     av格式:
@@ -265,7 +267,8 @@ def get_av_by_id(id: str,
         'link': '', # 链接
         'size': '', # 大小
         'hd': '0',  # 是否高清 0 否 | 1 是
-        'zm': '0',   # 是否有字幕 0 否 | 1 是
+        'zm': '0',  # 是否有字幕 0 否 | 1 是
+        'uc': '0',  # 是否未经审查 0 否 | 1 是
         'size_no_unit': 浮点值 # 去除单位后的大小值，用于排序，当要求过滤磁链时会存在该字段
     }
     演员格式:
@@ -357,14 +360,14 @@ def get_av_by_id(id: str,
     # 解析页面获取磁链
     try:
         for tr in trs:
-            i = 0
-            magnet = {'link': '', 'hd': '0', 'zm': '0'}
-            for td in tr:
-                if td.string:
-                    continue
-                i += 1
-                magnet['link'] = td.a['href']
-                if i % 3 == 1:
+            magnet = {'link': '', 'hd': '0', 'zm': '0', 'uc': '0'}
+            tds = tr.find_all('td')
+            for i, td in enumerate(tds):
+                if i == 0:
+                    magnet['link'] = td.a['href']
+                    magnet_title = td.a.text.strip().lower()
+                    if 'uncensor' in magnet_title or '無修正' in magnet_title or '无修正' in magnet_title or '无码' in magnet_title:
+                        magnet['uc'] = '1'
                     links = td.find_all('a')
                     for link in links:
                         text = link.text.strip()
@@ -372,10 +375,14 @@ def get_av_by_id(id: str,
                             magnet['hd'] = '1'
                         elif text == '字幕':
                             magnet['zm'] = '1'
-                if i % 3 == 2:
+                if i == 1:
                     magnet['size'] = td.a.text.strip()
             if magnet['link'] != '':
                 av['magnets'].append(magnet)
+        if is_uncensored:
+            av['magnets'] = get_nice_magnets(av['magnets'],
+                                             'uc',
+                                             expect_val='1')
         if is_nice:
             magnets = av['magnets']
             magnets = get_nice_magnets(magnets, 'hd', expect_val='1')  # 过滤高清
@@ -390,8 +397,12 @@ def get_av_by_id(id: str,
 
 
 if __name__ == '__main__':
-    # code, res = get_av_by_id(id='GTJ-111', is_nice=True, magnet_max_count=3)
-    # code, res = get_av_by_id(id='ipx-811', is_nice=False)
+    code, res = get_av_by_id(id='GTJ-111',
+                             is_nice=True,
+                             is_uncensored=True,
+                             magnet_max_count=3)
+    # code, res = get_av_by_id(id='stars-080', is_nice=True, is_uncensored=True, magnet_max_count=3)
+    # code, res = get_av_by_id(id='stars-080', is_nice=False, is_uncensored=True)
     # code, res = get_samples_by_id('ssni-497')
     # code, res = get_id_by_star_id('okq', 2)
     # code, res = get_id_by_star_name('白夜みくる')
@@ -400,5 +411,6 @@ if __name__ == '__main__':
     # code, res = get_id_by_star_name('三上悠亜')
     # code, res = get_new_ids_by_star_name('三上悠亜')
     # code, res = get_id_from_home()
-    code, res = check_star_exists('白桃はな')
-    if code == 200: print(res)
+    # code, res = check_star_exists('白桃はな')
+    if code == 200:
+        print(res)

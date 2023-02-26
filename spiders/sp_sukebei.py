@@ -23,13 +23,39 @@ def sort_magnets(magnets: list) -> list:
     return magnets
 
 
+def get_nice_magnets(magnets: list, prop: str, expect_val: any) -> list:
+    '''过滤磁链列表
+
+    :param list magnets: 要过滤的磁链列表
+    :param str prop: 过滤属性
+    :param any expect_val: 过滤属性的期望值
+    :return list: 过滤后的磁链列表
+    '''
+    # 已经无法再过滤
+    if len(magnets) == 0:
+        return []
+    if len(magnets) == 1:
+        return magnets
+    # 开始过滤
+    magnets_nice = []
+    for magnet in magnets:
+        if magnet[prop] == expect_val:
+            magnets_nice.append(magnet)
+    # 如果过滤后已经没了，返回原来磁链列表
+    if len(magnets_nice) == 0:
+        return magnets
+    return magnets_nice
+
+
 def get_av_by_id(id: str,
                  is_nice: bool,
+                 is_uncensored: bool,
                  magnet_max_count=100) -> typing.Tuple[int, dict]:
     '''通过 sukebei 获取番号对应 av
 
     :param str id: 番号
-    :param bool is_nice: 是否过滤磁链
+    :param bool is_nice: 是否过滤出高清，有字幕磁链
+    :param bool is_uncensored: 是否过滤出无码磁链
     :param int magnet_max_count: 过滤后磁链的最大数目
     :return tuple[int, dict]: 状态码和 av
     av格式:
@@ -47,7 +73,8 @@ def get_av_by_id(id: str,
         'link': '', # 链接
         'size': '', # 大小
         'hd': '0',  # 是否高清 0 否 | 1 是 | sukebei 不支持
-        'zm': '0',   # 是否有字幕 0 否 | 1 是 | sukebei 不支持
+        'zm': '0',  # 是否有字幕 0 否 | 1 是 | sukebei 不支持
+        'uc': '0',  # 是否未经审查 0 否 | 1 是
         'size_no_unit': 浮点值 # 去除单位后的大小值，用于排序，当要求过滤磁链时会存在该字段
     }
     演员格式: | sukebei 不支持
@@ -87,11 +114,14 @@ def get_av_by_id(id: str,
                 'link': '',  # 链接
                 'size': '',  # 大小
                 'hd': '0',  # 是否高清 0 否 | 1 是
-                'zm': '0'  # 是否有字幕 0 否 | 1 是
+                'zm': '0',  # 是否有字幕 0 否 | 1 是
+                'uc': '0',  # 是否未经审查 0 否 | 1 是
             }
             for j, td in enumerate(tds):
                 if j == 1:  # 获取标题
                     title = td.a.text
+                    if 'uncensor' in title or '無修正' in title or '无修正' in title or '无码' in title:
+                        magnet['uc'] = '1'
                     if i == 0: av['title'] = title
                 if j == 2:  # 获取磁链
                     magnet['link'] = td.find_all('a')[-1]['href']
@@ -99,6 +129,10 @@ def get_av_by_id(id: str,
                     magnet['size'] = td.text
             av['magnets'].append(magnet)
         # 过滤番号
+        if is_uncensored:
+            av['magnets'] = get_nice_magnets(av['magnets'],
+                                             'uc',
+                                             expect_val='1')
         if is_nice:
             magnets = av['magnets']
             if len(magnets) > magnet_max_count:
@@ -111,7 +145,12 @@ def get_av_by_id(id: str,
 
 
 if __name__ == '__main__':
-    res = get_av_by_id(id='fc2-ppv-880652', is_nice=True, magnet_max_count=3)
+    # res = get_av_by_id(id='fc2-ppv-880652', is_nice=True, is_uncensored=False, magnet_max_count=3)
+    # res = get_av_by_id(id='stars-080', is_nice=True, is_uncensored=True, magnet_max_count=3)
+    res = get_av_by_id(id='ipx-369',
+                       is_nice=True,
+                       is_uncensored=True,
+                       magnet_max_count=3)
     # res = get_av_by_id(id='880652', is_nice=True, magnet_max_count=3)
     # res = get_av_by_id(id='siro-3352', is_nice=True, magnet_max_count=3)
     if res: print(res)
