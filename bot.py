@@ -419,6 +419,7 @@ def get_av_by_id(id: str,
                                             to_lang='zh-CN')
         if av_title_ch:
             av_title = av_title_ch
+        av_title = av_title.replace('<', '').replace('>', '')
         msg += f'''【标题】<a href="{av_url}">{av_title}</a>
 '''
     # 番号
@@ -474,6 +475,7 @@ def get_av_by_id(id: str,
             msg += more_star_msg
     # 标签
     if av_tags != '':
+        av_tags = av_tags.replace('<', '').replace('>', '')
         msg += f'''【标签】{av_tags}
 '''
     # 其它
