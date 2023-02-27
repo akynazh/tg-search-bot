@@ -481,7 +481,7 @@ def get_av_by_id(id: str,
         msg += f'''【标签】{av_tags}
 '''
     # 其它
-    msg += f'''【其它】<a href="https://t.me/{common.PIKPAK_BOT_NAME}">@{common.PIKPAK_BOT_NAME}</a> | <a href="{common.PROJECT_ADDRESS}">项目地址</a> | <a href="{common.CONTACT_AUTHOR}">联系作者</a>
+    msg += f'''【其它】<a href="https://t.me/{common.PIKPAK_BOT_NAME}">Pikpak</a> | <a href="{common.PROJECT_ADDRESS}">项目</a> | <a href="{common.CONTACT_AUTHOR}">作者</a>
 '''
     # 磁链
     magnet_send_to_pikpak = ''
@@ -491,13 +491,11 @@ def get_av_by_id(id: str,
         magnet_tags = ''
         if magnet['uc'] == '1':
             magnet_tags += '无码'
-        else:
-            magnet_tags += '有码'
         if magnet['hd'] == '1':
             magnet_tags += '高清'
         if magnet['zm'] == '1':
             magnet_tags += '含字幕'
-        msg_tmp = f'''【{magnet_tags}磁链{string.ascii_letters[i].upper()} ({magnet["size"]})】<code>{magnet["link"]}</code>
+        msg_tmp = f'''【{magnet_tags}磁链-{string.ascii_letters[i].upper()} ({magnet["size"]})】<code>{magnet["link"]}</code>
 '''
         if len(msg + msg_tmp) >= 2000:
             break
@@ -753,8 +751,6 @@ def get_more_magnets(id: str):
         magnet_tags = ''
         if magnet['uc'] == '1':
             magnet_tags += '无码'
-        else:
-            magnet_tags += '有码'
         if magnet['hd'] == '1':
             magnet_tags += '高清'
         if magnet['zm'] == '1':
