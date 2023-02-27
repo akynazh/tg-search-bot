@@ -465,11 +465,7 @@ def get_av_by_id(id: str,
                 if wiki_json and wiki_json['lang'] == 'zh':
                     name_zh = wiki_json['title']
                     wiki_zh = wiki_json['url']
-                    if name_zh != name:
-                        msg += f'''【演员】<code>{name}</code> / <code>{name_zh}</code> | <a href="{wiki_zh}">Wiki</a> | <a href="{link}">Javbus</a>
-'''
-                    else:
-                        msg += f'''【演员】<code>{name}</code> | <a href="{wiki_zh}">Wiki</a> | <a href="{link}">Javbus</a>
+                    msg += f'''【演员】<code>{name_zh}</code> | <a href="{wiki_zh}">Wiki</a> | <a href="{link}">Javbus</a>
 '''
                 else:
                     msg += f'''【演员】<code>{name}</code> | <a href="{wiki}">Wiki</a> | <a href="{link}">Javbus</a>
@@ -495,7 +491,7 @@ def get_av_by_id(id: str,
             magnet_tags += '高清'
         if magnet['zm'] == '1':
             magnet_tags += '含字幕'
-        msg_tmp = f'''【{magnet_tags}磁链-{string.ascii_letters[i].upper()} ({magnet["size"]})】<code>{magnet["link"]}</code>
+        msg_tmp = f'''【{magnet_tags}磁链-{string.ascii_letters[i].upper()} {magnet["size"]}】<code>{magnet["link"]}</code>
 '''
         if len(msg + msg_tmp) >= 2000:
             break
@@ -755,7 +751,7 @@ def get_more_magnets(id: str):
             magnet_tags += '高清'
         if magnet['zm'] == '1':
             magnet_tags += '含字幕'
-        msg_tmp = f'''【{magnet_tags}磁链 ({magnet["size"]})】<code>{magnet["link"]}</code>
+        msg_tmp = f'''【{magnet_tags}磁链 {magnet["size"]}】<code>{magnet["link"]}</code>
 '''
         if len(msg + msg_tmp) >= 4000:
             send_msg(msg)
