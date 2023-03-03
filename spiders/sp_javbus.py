@@ -328,13 +328,13 @@ def get_av_by_id(id: str,
     except Exception:
         pass
     # 获取uc
-    uc_pattern = re.compile(r'var uc = .*?;')
+    uc_pattern = re.compile(r'var uc = .+;')
     match = uc_pattern.findall(html)
     uc = None
     if match:
         uc = match[0].replace('var uc = ', '').replace(';', '')
     # 获取gid
-    gid_pattern = re.compile(r'var gid = .*?;')
+    gid_pattern = re.compile(r'var gid = .+;')
     match = gid_pattern.findall(html)
     gid = None
     if match:
@@ -397,12 +397,13 @@ def get_av_by_id(id: str,
 
 
 if __name__ == '__main__':
-    code, res = get_av_by_id(id='GTJ-111',
-                             is_nice=True,
-                             is_uncensored=True,
-                             magnet_max_count=3)
+    # code, res = get_av_by_id(id='GTJ-111',
+    #                          is_nice=True,
+    #                          is_uncensored=True,
+    #                          magnet_max_count=3)
     # code, res = get_av_by_id(id='stars-080', is_nice=True, is_uncensored=True, magnet_max_count=3)
     # code, res = get_av_by_id(id='stars-080', is_nice=False, is_uncensored=True)
+    code, res = get_av_by_id(id='ipx-368', is_nice=False, is_uncensored=False)
     # code, res = get_samples_by_id('ssni-497')
     # code, res = get_id_by_star_id('okq', 2)
     # code, res = get_id_by_star_name('白夜みくる')

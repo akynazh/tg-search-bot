@@ -1,5 +1,7 @@
 # -*- coding: UTF-8 -*-
+import re
 import sys
+import random
 import typing
 import concurrent.futures
 
@@ -8,6 +10,7 @@ import common
 
 BASE_URL = 'https://www.dmm.co.jp'
 BASE_URL_SEARCH_AV = BASE_URL + '/search/=/searchstr='
+BASE_URL_SEARCH_STAR = BASE_URL + '/digital/videoa/-/list/search/=/device=tv/sort=ranking/?searchstr='
 BASE_URL_TOP_STARS = BASE_URL + '/digital/videoa/-/ranking/=/type=actress'
 
 
@@ -37,6 +40,51 @@ def get_pv_by_id(id: str) -> typing.Tuple[int, str]:
         except Exception:
             return 404, None
     else:
+        return 404, None
+
+
+def get_nice_av_by_star_name(star_name: str) -> typing.Tuple[int, str]:
+    '''根据演员名字获取高分番号
+
+    :param str star_name: 演员名字
+    :return typing.Tuple[int, str]: 状态码和番号
+    '''
+    # 搜索演员
+    url = BASE_URL_SEARCH_STAR + star_name
+    headers = {
+        'cookie': 'age_check_done=1;',
+        'user-agent': common.ua_desktop(),  # 桌面端页面更方便爬取
+    }
+    code, resp = common.send_req(url=url,
+                                 headers=headers,
+                                 proxies=common.PROXY_DMM)
+    if code != 200:
+        return code, resp
+    soup = common.get_soup(resp)
+    try:
+        av_list = soup.find(id='list')
+        av_tags = av_list.find_all('li')
+        avs = []
+        for av in av_tags:
+            try:
+                rate = av.find(class_='rate').span.span.text
+                cid_pat = re.compile(r'/cid=.+/')
+                av_href = av.find(class_='sample').a['href']
+                match = cid_pat.findall(av_href)
+                cid = match[0].replace('/cid=', '').replace('/', '')
+                id_num = cid[-3:]
+                id_pre = re.sub('0*$', '', cid[:-3])
+                id = f'{id_pre}-{id_num}'
+                avs.append({'rate': float(rate), 'id': id})
+            except Exception:
+                pass
+        if avs == []:
+            return 404, None
+        avs = list(filter(lambda av: av['rate'] >= 4.0, avs))
+        if len(avs) == 0:
+            return 404, None
+        return 200, random.choice(avs)['id']
+    except Exception:
         return 404, None
 
 
@@ -129,8 +177,9 @@ def get_all_top_stars() -> typing.Tuple[int, list]:
 
 
 if __name__ == '__main__':
-    code, res = get_pv_by_id('ssni-369')
+    # code, res = get_pv_by_id('ssni-369')
     # code, res = get_score_by_id('ssni-369')
     # code, res = get_top_stars(3)
     # code, res = get_all_top_stars()
+    code, res = get_nice_av_by_star_name('小花のん')
     if code == 200: print(res)

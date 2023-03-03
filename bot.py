@@ -28,6 +28,7 @@ kEY_RANDOM_GET_AV_BY_STAR_ID = 'k2_1'
 KEY_RANDOM_GET_AV_NICE = 'k2_2'
 KEY_RANDOM_GET_AV_NEW = 'k2_3'
 KEY_GET_NEW_AVS_BY_STAR_NAME_ID = 'k2_4'
+KEY_GET_NICE_AV_BY_STAR_NAME = 'k2_5'
 
 KEY_RECORD_STAR = 'k3_0'
 KEY_RECORD_AV = 'k3_1'
@@ -281,18 +282,22 @@ def get_star_detail_record(star_name: str, star_id: str):
                 star_avs.append(av['id'])
     # 发送按钮消息
     extra_btn1 = InlineKeyboardButton(
-        text=f'演员随机 AV',
+        text=f'随机 AV',
         callback_data=f'{star_id}:{kEY_RANDOM_GET_AV_BY_STAR_ID}')
     extra_btn2 = InlineKeyboardButton(
-        text=f'演员最新 AV',
+        text=f'最新 AV',
         callback_data=f'{star_name}|{star_id}:{KEY_GET_NEW_AVS_BY_STAR_NAME_ID}'
     )
     extra_btn3 = InlineKeyboardButton(
-        text=f'取消收藏', callback_data=f'{star_id}:{KEY_UNDO_RECORD_STAR}')
+        text=f'高分 AV',
+        callback_data=f'{star_name}:{KEY_GET_NICE_AV_BY_STAR_NAME}')
+    extra_btn4 = InlineKeyboardButton(
+        text=f'取消收藏',
+        callback_data=f'{star_name}|{star_id}:{KEY_UNDO_RECORD_STAR}')
     title = f'<code>{star_name}</code> | <a href="{common.BASE_URL_JAPAN_WIKI}/{star_name}">Wiki</a> | <a href="{sp_javbus.BASE_URL_SEARCH_BY_STAR_ID}/{star_id}">Javbus</a>'
     if len(star_avs) == 0:  # 没有该演员对应 AV 收藏记录
         markup = InlineKeyboardMarkup()
-        markup.row(extra_btn1, extra_btn2, extra_btn3)
+        markup.row(extra_btn1, extra_btn2, extra_btn3, extra_btn4)
         send_msg(msg=title, markup=markup)
         return
     send_msg_btns(max_btn_per_row=4,
@@ -301,7 +306,7 @@ def get_star_detail_record(star_name: str, star_id: str):
                   title=title,
                   objs=star_avs,
                   extra_btns_br=False,
-                  extra_btns=[extra_btn1, extra_btn2, extra_btn3])
+                  extra_btns=[extra_btn1, extra_btn2, extra_btn3, extra_btn4])
 
 
 def get_avs_record(page=1):
@@ -840,7 +845,7 @@ def listen_callback(call):
         star_name = content[:s]
         star_id = content[s + 1:]
         if recorder.record_star(star_name=star_name, star_id=star_id):
-            send_msg(f'成功收藏<code>{star_name}</code> ^_^')
+            get_star_detail_record(star_name=star_name, star_id=star_id)
         else:
             send_msg_code(500)
     elif key_type == KEY_RECORD_AV:
@@ -848,7 +853,7 @@ def listen_callback(call):
         id = res[0]
         stars = [s for s in res[1:]]
         if recorder.record_id(id=id, stars=stars):
-            send_msg(f'成功收藏 <code>{id}</code> ^_^')
+            get_av_detail_record(id=id)
         else:
             send_msg_code(500)
     elif key_type == KEY_GET_STARS_RECORD:
@@ -872,18 +877,23 @@ def listen_callback(call):
             get_av_by_id(id=id)
     elif key_type == KEY_UNDO_RECORD_AV:
         if recorder.undo_record_id(id=content):
-            send_msg_code(200)
+            send_msg(f'成功取消收藏番号：<code>{content}</code>')
         else:
             send_msg_code(500)
     elif key_type == KEY_UNDO_RECORD_STAR:
-        if recorder.undo_record_star(star_id=content):
-            send_msg_code(200)
+        s = content.find('|')
+        if recorder.undo_record_star(star_id=content[s + 1:]):
+            send_msg(f'成功取消收藏演员：<code>{content[:s]}</code>')
         else:
             send_msg_code(500)
     elif key_type == KEY_SEARCH_STAR_BY_NAME:
         search_star(content)
     elif key_type == KEY_GET_TOP_STARS:
         get_top_stars(page=int(content))
+    elif key_type == KEY_GET_NICE_AV_BY_STAR_NAME:
+        code, id = sp_dmm.get_nice_av_by_star_name(star_name=content)
+        if check_success(code):
+            get_av_by_id(id)
 
 
 @bot.message_handler(content_types=['text', 'photo', 'animation', 'video'])
