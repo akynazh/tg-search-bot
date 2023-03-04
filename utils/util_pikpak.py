@@ -24,6 +24,7 @@ def send_msg(msg) -> int:
     try:
         return asyncio.run(main())
     except Exception as e:
+        common.LOG.error(e)
         return None
 
 

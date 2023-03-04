@@ -53,6 +53,6 @@ def get_random_id(list_type: int) -> typing.Tuple[int, str]:
 
 
 if __name__ == '__main__':
-    # code, res = get_random_id(0)
-    code, res = get_random_id(1)
+    code, res = get_random_id(0)
+    # code, res = get_random_id(1)
     if code == 200: print(res)

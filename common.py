@@ -125,13 +125,15 @@ def write_html(resp: requests.Response, file='t.html'):
 
 
 def send_req(
-        url,
+        url: str,
         proxies=PROXY,
+        timeout=TIMEOUT_SECONDS,
         headers={'user-agent': ua()}) -> typing.Tuple[int, requests.Response]:
     '''发送请求
 
-    :param _type_ url: 地址
-    :param _type_ proxies: 代理, 默认读取配置的全局代理
+    :param str url: 地址
+    :param dict proxies: 代理, 默认读取配置的全局代理
+    :param int timeout: 超时时间，默认为 TIMEOUT_SECONDS (3s)
     :param dict headers: 请求头, 默认使用随机请求头
     :return tuple[int, requests.Response] 状态码和请求返回值
     关于状态码：
@@ -140,7 +142,10 @@ def send_req(
     502：网络问题
     '''
     try:
-        resp = requests.get(url, proxies=proxies, headers=headers, timeout=TIMEOUT_SECONDS)
+        resp = requests.get(url,
+                            proxies=proxies,
+                            headers=headers,
+                            timeout=timeout)
         if resp.status_code != 200:
             return 404, None
         return 200, resp

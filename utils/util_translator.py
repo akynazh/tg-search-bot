@@ -18,7 +18,8 @@ def trans(text: str, from_lang='auto', to_lang='zh-CN') -> str:
         return GoogleTranslator(source=from_lang,
                                 target=to_lang,
                                 proxies=common.PROXY).translate(text)
-    except Exception:
+    except Exception as e:
+        common.LOG.error(e)
         return None
 
 

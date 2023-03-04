@@ -28,7 +28,7 @@ kEY_RANDOM_GET_AV_BY_STAR_ID = 'k2_1'
 KEY_RANDOM_GET_AV_NICE = 'k2_2'
 KEY_RANDOM_GET_AV_NEW = 'k2_3'
 KEY_GET_NEW_AVS_BY_STAR_NAME_ID = 'k2_4'
-KEY_GET_NICE_AV_BY_STAR_NAME = 'k2_5'
+KEY_GET_NICE_AVS_BY_STAR_NAME = 'k2_5'
 
 KEY_RECORD_STAR = 'k3_0'
 KEY_RECORD_AV = 'k3_1'
@@ -53,12 +53,12 @@ def send_action_typing():
     bot.send_chat_action(chat_id=common.TG_CHAT_ID, action='typing')
 
 
-def send_msg(msg, pv=False, markup=None):
+def send_msg(msg: str, pv=False, markup=None):
     '''发送消息
 
-    :param _type_ msg: 消息文本内容
+    :param str msg: 消息文本内容
     :param bool pv: 是否展现预览, 默认不展示
-    :param _type_ markup: 标记, 默认没有
+    :param InlineKeyboardMarkup markup: 标记, 默认没有
     '''
     bot.send_message(chat_id=common.TG_CHAT_ID,
                      text=msg,
@@ -67,38 +67,61 @@ def send_msg(msg, pv=False, markup=None):
                      reply_markup=markup)
 
 
-def send_msg_code(code: int, msg=''):
-    '''根据状态码发送消息
+def send_msg_code_op(code: int, op: str):
+    '''根据状态码和操作描述发送消息
+    
+    :param int code: 状态码
+    :param str op: 执行的操作描述
     '''
     if code == 200:
-        send_msg('操作成功 ^_^')
+        send_msg(f'''执行操作：{op}
+执行结果：成功 ^_^''')
     elif code == 404:
-        send_msg('未查找到结果 Q_Q')
+        send_msg(f'''执行操作：{op}
+执行结果：未查找到结果 Q_Q''')
     elif code == 500:
-        send_msg('操作失败，请重试 =_=')
+        send_msg(f'''执行操作：{op}
+执行结果：服务器出错，请重试或检查日志 Q_Q''')
     elif code == 502:
-        send_msg('网络请求失败，请重试 Q_Q')
+        send_msg(f'''执行操作：{op}
+执行结果：网络请求失败，请重试或检查网络 Q_Q''')
 
 
-def check_success(code: int, m_500='', m_404='', m_502='') -> bool:
+def send_msg_success_op(op: str):
+    '''根据操作描述发送执行成功的消息
+    
+    :param str op: 执行的操作描述
+    '''
+    send_msg(f'''执行操作：{op}
+执行结果：成功 ^_^''')
+
+
+def send_msg_fail_reason_op(reason: str, op: str):
+    '''根据失败原因和操作描述发送执行失败的消息
+    
+    :param str reason: 失败原因
+    :param str op: 执行的操作描述
+    '''
+    send_msg(f'''执行操作：{op}
+执行结果：失败，{reason} Q_Q''')
+
+
+def check_success(code: int, op: str) -> bool:
     '''检查状态码，确认请求是否成功
 
     :param int code: 状态码
-    :param str m_404: 自己指定 404 时要发送的消息
-    :param str m_500: 自己指定 500 时要发送的消息
-    :param str m_502: 自己指定 502 时要发送的消息
+    :param str op: 执行的操作描述
     :return bool: 请求成功与否
     '''
     if code == 200:
         return True
-    elif code == 404:
-        send_msg_code(code=404, msg=m_404)
-        return False
+    if code == 404:
+        send_msg_code_op(code=404, op=op)
     elif code == 500:
-        send_msg_code(code=500, msg=m_500)
+        send_msg_code_op(code=500, op=op)
     elif code == 502:
-        send_msg_code(code=502, msg=m_502)
-        return False
+        send_msg_code_op(code=502, op=op)
+    return False
 
 
 def create_btn(key_type: str, obj: dict) -> InlineKeyboardButton:
@@ -111,15 +134,16 @@ def create_btn(key_type: str, obj: dict) -> InlineKeyboardButton:
     if key_type == KEY_GET_STAR_DETAIL_RECORD_BY_STAR_NAME_ID:
         return InlineKeyboardButton(
             text=obj['name'],
-            callback_data=
-            f'{obj["name"]}|{obj["id"]}:{KEY_GET_STAR_DETAIL_RECORD_BY_STAR_NAME_ID}'
-        )
+            callback_data=f'{obj["name"]}|{obj["id"]}:{key_type}')
     elif key_type == KEY_GET_AV_DETAIL_RECORD_BY_ID:
-        return InlineKeyboardButton(
-            text=obj, callback_data=f'{obj}:{KEY_GET_AV_DETAIL_RECORD_BY_ID}')
+        return InlineKeyboardButton(text=obj,
+                                    callback_data=f'{obj}:{key_type}')
     elif key_type == KEY_SEARCH_STAR_BY_NAME:
-        return InlineKeyboardButton(
-            text=obj, callback_data=f'{obj}:{KEY_SEARCH_STAR_BY_NAME}')
+        return InlineKeyboardButton(text=obj,
+                                    callback_data=f'{obj}:{key_type}')
+    elif key_type == KEY_GET_AV_BY_ID:
+        return InlineKeyboardButton(text=f'{obj["id"]} | {obj["rate"]}',
+                                    callback_data=f'{obj["id"]}:{key_type}')
 
 
 def send_msg_btns(max_btn_per_row: int,
@@ -241,7 +265,7 @@ def get_stars_record(page=1):
     # 初始化数据
     record, is_star_exists, _ = recorder.check_has_record()
     if not record or not is_star_exists:
-        send_msg('尚无演员收藏记录 =_=')
+        send_msg_fail_reason_op(reason='尚无演员收藏记录', op='获取演员收藏记录')
         return
     stars = record['stars']
     stars.reverse()
@@ -269,7 +293,7 @@ def get_star_detail_record(star_name: str, star_id: str):
     # 初始化数据
     record, _, is_avs_exists = recorder.check_has_record()
     if not record:
-        send_msg('尚无收藏记录 =_=')
+        send_msg(reason='尚无该演员收藏记录', op=f'获取演员 <code>{star_name}</code> 的更多信息')
         return
     avs = []
     star_avs = []
@@ -277,25 +301,25 @@ def get_star_detail_record(star_name: str, star_id: str):
         avs = record['avs']
         avs.reverse()
         for av in avs:
-            # 如果演员编号在该 AV 的演员编号列表中
+            # 如果演员编号在该 av 的演员编号列表中
             if star_id in av['stars']:
                 star_avs.append(av['id'])
     # 发送按钮消息
     extra_btn1 = InlineKeyboardButton(
-        text=f'随机 AV',
-        callback_data=f'{star_id}:{kEY_RANDOM_GET_AV_BY_STAR_ID}')
+        text=f'随机 av',
+        callback_data=f'{star_name}|{star_id}:{kEY_RANDOM_GET_AV_BY_STAR_ID}')
     extra_btn2 = InlineKeyboardButton(
-        text=f'最新 AV',
+        text=f'最新 av',
         callback_data=f'{star_name}|{star_id}:{KEY_GET_NEW_AVS_BY_STAR_NAME_ID}'
     )
     extra_btn3 = InlineKeyboardButton(
-        text=f'高分 AV',
-        callback_data=f'{star_name}:{KEY_GET_NICE_AV_BY_STAR_NAME}')
+        text=f'高分 av',
+        callback_data=f'{star_name}:{KEY_GET_NICE_AVS_BY_STAR_NAME}')
     extra_btn4 = InlineKeyboardButton(
         text=f'取消收藏',
         callback_data=f'{star_name}|{star_id}:{KEY_UNDO_RECORD_STAR}')
     title = f'<code>{star_name}</code> | <a href="{common.BASE_URL_JAPAN_WIKI}/{star_name}">Wiki</a> | <a href="{sp_javbus.BASE_URL_SEARCH_BY_STAR_ID}/{star_id}">Javbus</a>'
-    if len(star_avs) == 0:  # 没有该演员对应 AV 收藏记录
+    if len(star_avs) == 0:  # 没有该演员对应 av 收藏记录
         markup = InlineKeyboardMarkup()
         markup.row(extra_btn1, extra_btn2, extra_btn3, extra_btn4)
         send_msg(msg=title, markup=markup)
@@ -317,15 +341,15 @@ def get_avs_record(page=1):
     # 初始化数据
     record, _, is_avs_exists = recorder.check_has_record()
     if not record or not is_avs_exists:
-        send_msg('尚无 AV 收藏记录 =_=')
+        send_msg_fail_reason_op(reason='尚无番号收藏记录', op='获取番号收藏记录')
         return
     avs = [av['id'] for av in record['avs']]
     avs.reverse()
     # 发送按钮消息
     extra_btn1 = InlineKeyboardButton(
-        text='随机高分 AV', callback_data=f'0:{KEY_RANDOM_GET_AV_NICE}')
+        text='随机高分 av', callback_data=f'0:{KEY_RANDOM_GET_AV_NICE}')
     extra_btn2 = InlineKeyboardButton(
-        text='随机最新 AV', callback_data=f'0:{KEY_RANDOM_GET_AV_NEW}')
+        text='随机最新 av', callback_data=f'0:{KEY_RANDOM_GET_AV_NEW}')
     col, row = 4, 10
     objs, page_btns, title = get_page_elements(objs=avs,
                                                page=page,
@@ -348,7 +372,7 @@ def get_av_detail_record(id: str):
     :param str id: 番号
     '''
     markup = InlineKeyboardMarkup()
-    btn1 = InlineKeyboardButton(text=f'获取对应 AV',
+    btn1 = InlineKeyboardButton(text=f'获取对应 av',
                                 callback_data=f'{id}:{KEY_GET_AV_BY_ID}')
     btn2 = InlineKeyboardButton(text=f'取消收藏',
                                 callback_data=f'{id}:{KEY_UNDO_RECORD_AV}')
@@ -369,22 +393,23 @@ def get_av_by_id(id: str,
     :param bool is_nice: 是否过滤出高清，有字幕磁链，默认是
     :param bool is_uncensored: 是否过滤出无码磁链，默认是
     :param int magnet_max_count: 过滤后磁链的最大数目，默认为 3
-    :param not_send: 是否不发送 AV 结果，默认发送
-    :return dict: 当不发送 AV 结果时，返回得到的 AV（如果有）
+    :param not_send: 是否不发送 av 结果，默认发送
+    :return dict: 当不发送 av 结果时，返回得到的 AV（如果有）
     '''
-    # 获取 AV
+    # 获取 av
+    op_get_av_by_id = f'搜索番号 <code>{id}</code>'
     av_score = None
     futures = {}
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
         if not not_send:
             futures[executor.submit(sp_dmm.get_score_by_id,
-                                    id)] = 0  # 获取 AV 评分
+                                    id)] = 0  # 获取 av 评分
         futures[executor.submit(sp_javbus.get_av_by_id, id, is_nice,
                                 is_uncensored,
-                                magnet_max_count)] = 1  # 通过 javbus 获取 AV
+                                magnet_max_count)] = 1  # 通过 javbus 获取 av
         futures[executor.submit(sp_sukebei.get_av_by_id, id, is_nice,
                                 is_uncensored,
-                                magnet_max_count)] = 2  # 通过 sukebei 获取 AV
+                                magnet_max_count)] = 2  # 通过 sukebei 获取 av
         for future in concurrent.futures.as_completed(futures):
             future_type = futures[future]
             if future_type == 0:
@@ -395,9 +420,9 @@ def get_av_by_id(id: str,
                 code_sukebei, av_sukebei = future.result()
     if code_javbus != 200 and code_sukebei != 200:
         if code_javbus == 502 or code_sukebei == 502:
-            send_msg_code(502)
+            send_msg_code_op(502, op_get_av_by_id)
         else:
-            send_msg_code(404)
+            send_msg_code_op(404, op_get_av_by_id)
         return
     if code_javbus == 200:  # 优先选择 javbus
         av = av_javbus
@@ -574,22 +599,23 @@ def send_magnet_to_pikpak(magnet: str):
     :param str magnet: 磁链
     '''
     name = common.PIKPAK_BOT_NAME
+    op_send_magnet_to_pikpak = f'发送磁链-A <code>{magnet}<code> 到 pikpak'
     if util_pikpak.send_msg(magnet):
-        send_msg(
-            f'已经将磁链 <b>A</b> 发送到 <a href="https://t.me/{name}">@{name}</a>')
+        send_msg_success_op(op_send_magnet_to_pikpak)
     else:
-        send_msg(
-            f'未能将磁链 <b>A</b> 发送到 <a href="https://t.me/{name}">@{name}</a>')
+        send_msg_fail_reason_op(reason='请自行检查网络或日志',
+                                op=op_send_magnet_to_pikpak)
 
 
 def get_sample(id: str):
-    '''根据番号获取av截图
+    '''根据番号获取 av 截图
 
     :param str id: 番号
     '''
+    op_get_sample = f'根据番号 <code>{id}<code> 获取 av 截图'
     # 获取截图
     code, samples = sp_javbus.get_samples_by_id(id)
-    if not check_success(code):
+    if not check_success(code, op_get_sample):
         return
     # 发送图片列表
     samples_imp = []
@@ -603,13 +629,13 @@ def get_sample(id: str):
                 samples_imp = []
             except Exception:
                 sample_error = True
-                send_msg('图片解析失败 Q_Q')
+                send_msg_fail_reason_op(reason='图片解析失败', op=op_get_sample)
                 break
     if samples_imp != [] and not sample_error:
         try:
             bot.send_media_group(chat_id=common.TG_CHAT_ID, media=samples_imp)
         except Exception:
-            send_msg('图片解析失败 Q_Q')
+            send_msg_fail_reason_op(reason='图片解析失败', op=op_get_sample)
 
 
 def watch_av(id: str, type: str):
@@ -619,6 +645,7 @@ def watch_av(id: str, type: str):
     :param str type: 0 预览视频 | 1 完整视频
     '''
     if type == 0:
+        op_watch_av = f'获取番号 <code>{id}</code> 对应 av 预览视频'
         futures = {}
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             futures[executor.submit(sp_dmm.get_pv_by_id, id)] = 1
@@ -630,9 +657,9 @@ def watch_av(id: str, type: str):
                     code_avgle, pv_avgle = future.result()
         if code_dmm != 200 and code_avgle != 200:
             if code_dmm == 502 or code_avgle == 502:
-                send_msg_code(502)
+                send_msg_code_op(502, op_watch_av)
             else:
-                send_msg_code(404)
+                send_msg_code_op(404, op_watch_av)
         if code_dmm == 200:  # 优先 dmm
             try:
                 # 获取更清晰的视频
@@ -660,8 +687,9 @@ def watch_av(id: str, type: str):
                     f'通过 Avgle 搜索得到结果，但视频解析失败：<a href="{pv_avgle}">视频地址</a> Q_Q'
                 )
     elif type == 1:
+        op_watch_av = f'获取番号 <code>{id}</code> 对应 av 完整视频'
         code, video = util_avgle.get_fv_by_id(id)
-        if check_success(code):
+        if check_success(code, op_watch_av):
             send_msg(f'Avgle 视频地址：{video}')
 
 
@@ -670,6 +698,7 @@ def search_star(star_name: str):
 
     :param str star_name: 演员名称
     '''
+    op_search_star = f'搜索演员 <code>{star_name}</code>'
     if langdetect.detect(star_name) != 'ja':  # zh
         # 通过 wiki 获取日文名
         wiki_json = util_wiki.get_wiki_page_by_lang(topic=star_name,
@@ -678,25 +707,28 @@ def search_star(star_name: str):
         if wiki_json and wiki_json['lang'] == 'ja':
             star_name = wiki_json['title']
     code, star_id = sp_javbus.check_star_exists(star_name)
-    if not check_success(code):
+    if not check_success(code, op_search_star):
         return
     if recorder.check_star_exists(star_id):
         get_star_detail_record(star_name=star_name, star_id=star_id)
         return
     markup = InlineKeyboardMarkup()
+
     markup.row(
         InlineKeyboardButton(
-            text='演员最新 AV',
+            text='随机 av',
+            callback_data=
+            f'{star_name}|{star_id}:{kEY_RANDOM_GET_AV_BY_STAR_ID}'),
+        InlineKeyboardButton(
+            text='最新 av',
             callback_data=
             f'{star_name}|{star_id}:{KEY_GET_NEW_AVS_BY_STAR_NAME_ID}'),
         InlineKeyboardButton(
-            text='演员随机 AV',
-            callback_data=f'{star_id}:{kEY_RANDOM_GET_AV_BY_STAR_ID}'),\
+            text=f'高分 av',
+            callback_data=f'{star_name}:{KEY_GET_NICE_AVS_BY_STAR_NAME}'),
         InlineKeyboardButton(
-                text=f'收藏{star_name}',
-                callback_data=
-                f'{star_name}|{star_id}:{KEY_RECORD_STAR}')
-        )
+            text=f'收藏 {star_name}',
+            callback_data=f'{star_name}|{star_id}:{KEY_RECORD_STAR}'))
     send_msg(
         msg=
         f'<code>{star_name}</code> | <a href="{common.BASE_URL_JAPAN_WIKI}/{star_name}">Wiki</a> | <a href="{sp_javbus.BASE_URL_SEARCH_BY_STAR_NAME}/{star_name}">Javbus</a>',
@@ -708,8 +740,9 @@ def get_top_stars(page=1):
     
     :param int page: 第几页，默认第一页
     '''
+    op_get_top_stars = f'获取 DMM 女优排行榜'
     code, stars = sp_dmm.get_top_stars(page)
-    if not check_success(code):
+    if not check_success(code, op_get_top_stars):
         return
     stars_tmp = [None] * 80
     stars = stars_tmp[:((page - 1) * 20)] + stars + stars_tmp[(
@@ -770,14 +803,15 @@ def get_more_magnets(id: str):
 
 
 def get_star_new_avs(star_name: str, star_id: str):
-    '''获取演员最新 AV
+    '''获取演员最新 av
 
     :param str star_name: 演员名称
     :param str star_id: 演员 id
     '''
+    op_get_star_new_avs = f'获取 <code>{star_name}</code> 最新 av'
     code, ids = sp_javbus.get_new_ids_by_star_id(star_id=star_id)
-    title = f'<code>{star_name}</code> 最新 AV'
-    if check_success(code):
+    title = f'<code>{star_name}</code> 最新 av'
+    if check_success(code, op_get_star_new_avs):
         btns = [
             InlineKeyboardButton(text=id,
                                  callback_data=f'{id}:{KEY_GET_AV_BY_ID}')
@@ -832,8 +866,11 @@ def listen_callback(call):
     elif key_type == KEY_GET_MORE_MAGNETS_BY_ID:
         get_more_magnets(id=content)
     elif key_type == kEY_RANDOM_GET_AV_BY_STAR_ID:
-        code, id = sp_javbus.get_id_by_star_id(star_id=content)
-        if check_success(code):
+        tmp = content.split('|')
+        star_name = tmp[0]
+        star_id = tmp[1]
+        code, id = sp_javbus.get_id_by_star_id(star_id=star_id)
+        if check_success(code, f'随机获取演员 <code>{star_name}</code> 的 av'):
             get_av_by_id(id=id)
     elif key_type == KEY_GET_NEW_AVS_BY_STAR_NAME_ID:
         tmp = content.split('|')
@@ -847,7 +884,7 @@ def listen_callback(call):
         if recorder.record_star(star_name=star_name, star_id=star_id):
             get_star_detail_record(star_name=star_name, star_id=star_id)
         else:
-            send_msg_code(500)
+            send_msg_code_op(500, f'收藏演员 <code>{star_name}</code>')
     elif key_type == KEY_RECORD_AV:
         res = content.split('|')
         id = res[0]
@@ -855,7 +892,7 @@ def listen_callback(call):
         if recorder.record_id(id=id, stars=stars):
             get_av_detail_record(id=id)
         else:
-            send_msg_code(500)
+            send_msg_code_op(500, f'收藏番号 <code>{id}</code>')
     elif key_type == KEY_GET_STARS_RECORD:
         get_stars_record(page=int(content))
     elif key_type == KEY_GET_AVS_RECORD:
@@ -869,31 +906,38 @@ def listen_callback(call):
         get_av_by_id(id=content)
     elif key_type == KEY_RANDOM_GET_AV_NICE:
         code, id = sp_javlibrary.get_random_id(0)
-        if check_success(code):
+        if check_success(code, '随机获取高分 av'):
             get_av_by_id(id=id)
     elif key_type == KEY_RANDOM_GET_AV_NEW:
         code, id = sp_javlibrary.get_random_id(1)
-        if check_success(code):
+        if check_success(code, '随机获取最新 av'):
             get_av_by_id(id=id)
     elif key_type == KEY_UNDO_RECORD_AV:
+        op_undo_record_av = f'取消收藏番号 <code>{content}</code>'
         if recorder.undo_record_id(id=content):
-            send_msg(f'成功取消收藏番号：<code>{content}</code>')
+            send_msg_success_op(op_undo_record_av)
         else:
-            send_msg_code(500)
+            send_msg_fail_reason_op(reason='文件解析出错', op=op_undo_record_av)
     elif key_type == KEY_UNDO_RECORD_STAR:
         s = content.find('|')
+        op_undo_record_star = f'取消收藏演员 <code>{content[:s]}</code>'
         if recorder.undo_record_star(star_id=content[s + 1:]):
-            send_msg(f'成功取消收藏演员：<code>{content[:s]}</code>')
+            send_msg_success_op(op_undo_record_star)
         else:
-            send_msg_code(500)
+            send_msg_fail_reason_op(reason='文件解析出错', op=op_undo_record_star)
     elif key_type == KEY_SEARCH_STAR_BY_NAME:
         search_star(content)
     elif key_type == KEY_GET_TOP_STARS:
         get_top_stars(page=int(content))
-    elif key_type == KEY_GET_NICE_AV_BY_STAR_NAME:
-        code, id = sp_dmm.get_nice_av_by_star_name(star_name=content)
-        if check_success(code):
-            get_av_by_id(id)
+    elif key_type == KEY_GET_NICE_AVS_BY_STAR_NAME:
+        code, avs = sp_dmm.get_nice_avs_by_star_name(star_name=content)
+        avs = avs[:60]
+        if check_success(code, f'获取演员 {content} 的高分 av'):
+            send_msg_btns(max_btn_per_row=3,
+                          max_row_per_msg=20,
+                          key_type=KEY_GET_AV_BY_ID,
+                          title=f'<b>演员 {content} 的高分 av</b>',
+                          objs=avs)
 
 
 @bot.message_handler(content_types=['text', 'photo', 'animation', 'video'])
@@ -928,11 +972,11 @@ def handle_message(message):
         help()
     elif msg == '/nice':
         code, id = sp_javlibrary.get_random_id(0)
-        if check_success(code):
+        if check_success(code, '随机获取高分 av'):
             get_av_by_id(id=id)
     elif msg == '/new':
         code, id = sp_javlibrary.get_random_id(1)
-        if check_success(code):
+        if check_success(code, '随机获取最新 av'):
             get_av_by_id(id=id)
     elif msg == '/stars':
         get_stars_record()
@@ -944,18 +988,18 @@ def handle_message(message):
                               document=types.InputFile(
                                   common.PATH_RECORD_FILE))
         else:
-            send_msg('尚无收藏记录 =_=')
+            send_msg_fail_reason_op(reason='尚无收藏记录', op='获取收藏记录文件')
     elif msg == '/rank':
         get_top_stars(1)
     elif msg_origin.find('/star') != -1:
         param = get_msg_param(msg_origin)
         if param:
-            send_msg(f'搜索演员：{param} ......')
+            send_msg(f'搜索演员：<code>{param}</code> ......')
             search_star(param)
     elif msg_origin.find('/av') != -1:
         param = get_msg_param(msg_origin)
         if param:
-            send_msg(f'搜索番号：{param} ......')
+            send_msg(f'搜索番号：<code>{param}</code> ......')
             get_av_by_id(id=param, send_to_pikpak=True)
     else:
         # ids = re.compile(r'^[A-Za-z]+[-][0-9]+$').findall(msg)
@@ -988,9 +1032,9 @@ def help():
 
 /avs  查看收藏的番号
 
-/nice  随机获取一部高分 AV
+/nice  随机获取一部高分 av
 
-/new  随机获取一部最新 AV
+/new  随机获取一部最新 av
 
 /rank  获取 DMM 女优排行榜
 
@@ -1009,8 +1053,8 @@ def set_command():
         'help': '查看指令帮助',
         'stars': '查看收藏的演员',
         'avs': '查看收藏的番号',
-        'nice': '随机获取一部高分 AV',
-        'new': '随机获取一部最新 AV',
+        'nice': '随机获取一部高分 av',
+        'new': '随机获取一部最新 av',
         'rank': '获取 DMM 女优排行榜',
         'record': '获取收藏记录文件',
     }

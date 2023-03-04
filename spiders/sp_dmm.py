@@ -37,17 +37,23 @@ def get_pv_by_id(id: str) -> typing.Tuple[int, str]:
     if res:
         try:
             return 200, res.a['href']
-        except Exception:
+        except Exception as e:
+            common.LOG.error(e)
             return 404, None
     else:
         return 404, None
 
 
-def get_nice_av_by_star_name(star_name: str) -> typing.Tuple[int, str]:
-    '''根据演员名字获取高分番号
+def get_nice_avs_by_star_name(star_name: str) -> typing.Tuple[int, list]:
+    '''根据演员名字获取高分番号列表
 
     :param str star_name: 演员名字
-    :return typing.Tuple[int, str]: 状态码和番号
+    :return typing.Tuple[int, list]: 状态码和番号列表
+    番号列表单个对象结构：
+    {
+        'rate': rate, # 评分
+        'id': id # 番号
+    }
     '''
     # 搜索演员
     url = BASE_URL_SEARCH_STAR + star_name
@@ -57,6 +63,7 @@ def get_nice_av_by_star_name(star_name: str) -> typing.Tuple[int, str]:
     }
     code, resp = common.send_req(url=url,
                                  headers=headers,
+                                 timeout=8,
                                  proxies=common.PROXY_DMM)
     if code != 200:
         return code, resp
@@ -65,13 +72,15 @@ def get_nice_av_by_star_name(star_name: str) -> typing.Tuple[int, str]:
         av_list = soup.find(id='list')
         av_tags = av_list.find_all('li')
         avs = []
+        cid_pat = re.compile(r'/cid=.+/')
+        cid_pat_real = re.compile(r'[A-Za-z]+0+[0-9]+')
         for av in av_tags:
             try:
                 rate = av.find(class_='rate').span.span.text
-                cid_pat = re.compile(r'/cid=.+/')
                 av_href = av.find(class_='sample').a['href']
                 match = cid_pat.findall(av_href)
                 cid = match[0].replace('/cid=', '').replace('/', '')
+                cid = cid_pat_real.findall(cid)[0]
                 id_num = cid[-3:]
                 id_pre = re.sub('0*$', '', cid[:-3])
                 id = f'{id_pre}-{id_num}'
@@ -83,8 +92,9 @@ def get_nice_av_by_star_name(star_name: str) -> typing.Tuple[int, str]:
         avs = list(filter(lambda av: av['rate'] >= 4.0, avs))
         if len(avs) == 0:
             return 404, None
-        return 200, random.choice(avs)['id']
-    except Exception:
+        return 200, avs
+    except Exception as e:
+        common.LOG.error(e)
         return 404, None
 
 
@@ -110,7 +120,8 @@ def get_score_by_id(id: str) -> typing.Tuple[int, str]:
     if res:
         try:
             return 200, res.span.span.text
-        except Exception:
+        except Exception as e:
+            common.LOG.error(e)
             return 404, None
     else:
         return 404, None
@@ -146,7 +157,8 @@ def get_top_stars(page=1) -> typing.Tuple[int, list]:
     if res:
         try:
             return 200, [obj.p.a.text for obj in res]
-        except Exception:
+        except Exception as e:
+            common.LOG.error(e)
             return 404, None
     else:
         return 404, None
@@ -181,5 +193,5 @@ if __name__ == '__main__':
     # code, res = get_score_by_id('ssni-369')
     # code, res = get_top_stars(3)
     # code, res = get_all_top_stars()
-    code, res = get_nice_av_by_star_name('小花のん')
+    code, res = get_nice_avs_by_star_name('小花のん')
     if code == 200: print(res)

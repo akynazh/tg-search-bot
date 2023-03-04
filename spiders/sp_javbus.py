@@ -34,7 +34,8 @@ def get_max_page(url: str) -> typing.Tuple[int, int]:
     try:
         tags_li = tag_pagination.find_all('li')
         return 200, int(tags_li[len(tags_li) - 2].a.text)
-    except Exception:
+    except Exception as e:
+        common.LOG.error(e)
         return 404, None
 
 
@@ -72,7 +73,8 @@ def get_ids_from_page(base_page_url: str, page=-1) -> typing.Tuple[int, list]:
             return 200, ids
         else:
             return 404, None
-    except Exception:
+    except Exception as e:
+        common.LOG.error(e)
         return 404, None
 
 
@@ -177,7 +179,8 @@ def get_samples_by_id(id: str) -> typing.Tuple[int, list]:
         if samples == []:
             return 404, None
         return 200, samples
-    except Exception:
+    except Exception as e:
+        common.LOG.error(e)
         return 404, None
 
 
