@@ -277,9 +277,10 @@ def get_av_by_id(id: str,
     演员格式:
     {
         'name': '', # 演员名称
-        'link': ''    # 演员链接
+        'id': ''    # 演员编号
     }
     '''
+    id = id.lower()  # 部分番号要小写才能在 javbus 查找成功
     # 初始化数据
     av = {
         'id': id,
@@ -324,9 +325,9 @@ def get_av_by_id(id: str,
             elif i == len(paras) - 1:
                 tags = p.find_all('a')
                 for tag in tags:
-                    star = {'name': '', 'link': ''}
+                    star = {'name': '', 'id': ''}
                     star['name'] = ''.join(tag.text.split())
-                    star['link'] = tag['href']
+                    star['id'] = tag['href'].split('star/')[1]
                     av['stars'].append(star)
     except Exception:
         pass
@@ -406,7 +407,10 @@ if __name__ == '__main__':
     #                          magnet_max_count=3)
     # code, res = get_av_by_id(id='stars-080', is_nice=True, is_uncensored=True, magnet_max_count=3)
     # code, res = get_av_by_id(id='stars-080', is_nice=False, is_uncensored=True)
-    code, res = get_av_by_id(id='ipx-368', is_nice=False, is_uncensored=False)
+    code, res = get_av_by_id(id='stars-226',
+                             is_nice=True,
+                             is_uncensored=False,
+                             magnet_max_count=1)
     # code, res = get_samples_by_id('ssni-497')
     # code, res = get_id_by_star_id('okq', 2)
     # code, res = get_id_by_star_name('白夜みくる')

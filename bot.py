@@ -483,7 +483,7 @@ def get_av_by_id(id: str,
                 # 如果 i == 0，则为收藏对象
                 if i == 0:
                     show_star_name = star['name']
-                    show_star_id = star['link'][star['link'].rfind('/') + 1:]
+                    show_star_id = star['id']
                 # 从日文维基获取中文维基
                 futures[executor.submit(util_wiki.get_wiki_page_by_lang, name,
                                         'ja', 'zh')] = i
@@ -492,7 +492,7 @@ def get_av_by_id(id: str,
                 wiki_json = future.result()
                 wiki = f'{common.BASE_URL_JAPAN_WIKI}/{name}'
                 name = av_stars[future_type]['name']
-                link = av_stars[future_type]['link']
+                link = f'{sp_javbus.BASE_URL_SEARCH_BY_STAR_ID}/{av_stars[future_type]["id"]}'
                 if wiki_json and wiki_json['lang'] == 'zh':
                     name_zh = wiki_json['title']
                     wiki_zh = wiki_json['url']
@@ -556,9 +556,7 @@ def get_av_by_id(id: str,
                 f'{show_star_name}|{show_star_id}:{KEY_RECORD_STAR}')
     star_ids = ''
     for i, star in enumerate(av_stars):
-        star_link = star['link']
-        star_id = star_link[star_link.rfind('/') + 1:]
-        star_ids += star_id + '|'
+        star_ids += star['id'] + '|'
         if i >= 5:
             star_ids += '...|'
             break
@@ -593,7 +591,7 @@ def get_av_by_id(id: str,
         send_magnet_to_pikpak(magnet_send_to_pikpak, av_id)
 
 
-def send_magnet_to_pikpak(magnet: str, id:str):
+def send_magnet_to_pikpak(magnet: str, id: str):
     '''发送磁链到pikpak
     
     :param str magnet: 磁链

@@ -80,7 +80,7 @@ def get_av_by_id(id: str,
     演员格式: | sukebei 不支持
     {
         'name': '', # 演员名称
-        'link': ''    # 演员链接
+        'id': ''    # 演员编号
     }
     '''
     # 初始化数据
