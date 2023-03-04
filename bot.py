@@ -590,16 +590,18 @@ def get_av_by_id(id: str,
             send_msg(msg=msg, markup=markup)
     # 发给pikpak
     if common.USE_PIKPAK == 1 and magnet_send_to_pikpak != '' and send_to_pikpak:
-        send_magnet_to_pikpak(magnet_send_to_pikpak)
+        send_magnet_to_pikpak(magnet_send_to_pikpak, av_id)
 
 
-def send_magnet_to_pikpak(magnet: str):
+def send_magnet_to_pikpak(magnet: str, id:str):
     '''发送磁链到pikpak
     
     :param str magnet: 磁链
+    :param str id: 磁链对应的番号
     '''
     name = common.PIKPAK_BOT_NAME
-    op_send_magnet_to_pikpak = f'发送磁链-A <code>{magnet}<code> 到 pikpak'
+    print(magnet)
+    op_send_magnet_to_pikpak = f'发送番号 {id} 的磁链 A 到 pikpak：<code>{magnet}</code>'
     if util_pikpak.send_msg(magnet):
         send_msg_success_op(op_send_magnet_to_pikpak)
     else:
