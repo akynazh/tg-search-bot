@@ -60,6 +60,7 @@ def send_msg(msg: str, pv=False, markup=None):
     :param bool pv: 是否展现预览, 默认不展示
     :param InlineKeyboardMarkup markup: 标记, 默认没有
     '''
+    print(msg)
     bot.send_message(chat_id=common.TG_CHAT_ID,
                      text=msg,
                      disable_web_page_preview=not pv,
@@ -612,7 +613,7 @@ def get_sample(id: str):
 
     :param str id: 番号
     '''
-    op_get_sample = f'根据番号 <code>{id}<code> 获取 av 截图'
+    op_get_sample = f'根据番号 <code>{id}</code> 获取 av 截图'
     # 获取截图
     code, samples = sp_javbus.get_samples_by_id(id)
     if not check_success(code, op_get_sample):
