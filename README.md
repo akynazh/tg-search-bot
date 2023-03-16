@@ -2,7 +2,9 @@
 
 **一个万能 Telegram 番号查询机器人。基于 Javbus，Sukebei，Avgle，Dmm，Javlibrary，维基百科，谷歌翻译等进行构建，集成了 Pikpak 作为磁链保存网盘。**
 
-该项目持续更新，如果发现代码有问题（特别是爬虫失效了）或者功能需要完善、需要其它新的功能等，欢迎提 issue 或者参与到本项目中~ 如果有其它问题，可以通过邮箱 [akynazh@qq.com](mailto://akynazh@qq.com) 或电报 [@jackbryant286](https://t.me/jackbryant286) 联系我。
+欢迎 issue / pr，如有其它问题，可通过邮箱 [akynazh@qq.com](mailto://akynazh@qq.com) 或电报 [@jackbryant286](https://t.me/jackbryant286) 联系我。
+
+关联项目： [jvav](https://github.com/akynazh/jvav)
 
 ## 功能简介
 
@@ -27,8 +29,9 @@
 - 支持通过谷歌翻译日文标题
 - 支持通过 Javbus 和维基百科以日文或中文搜索演员（演员名称需要和维基对应词条一致）
 - 支持通过 Dmm 随机获取女优高分 AV
+- 支持通过 Redis 进行缓存
 
-注：记录和日志等文件生成位置在 `~/.tg_jav_bot` 目录下。
+注：配置，记录和日志等文件存放在 `~/.tg_jav_bot` 目录下。
 
 **机器人指令：**
 
@@ -41,6 +44,7 @@
 - /new  随机获取一部最新 AV
 - /rank  获取 DMM 女优排行榜
 - /record  获取收藏记录文件
+- /clear  清空缓存
 
 **部分结果展示：**
 
@@ -50,9 +54,32 @@
 
 ### 配置机器人
 
-将 `cfg.pub.py` 重命名为 `cfg.py` 并根据文件中的提示编辑即可。
+编辑 `~/.tg-jav-bot/config.yaml`：
 
-如需使用 Pikpak 自动发送功能，需要先手动授权 [Pikpak 官方机器人](https://t.me/PikPak6_Bot)，然后通过命令 `python3 utils/util_pikpak.py` 完成登录操作即可（Python >= 3.7）。
+```
+# TG 对话 ID
+tg_chat_id: 
+# TG 机器人 Token
+tg_bot_token: 
+# 全局是否使用代理 1 是 | 0 否
+use_proxy: 
+# 访问 dmm 时是否使用代理，如果全局使用代理，则忽略该字段 1 是 | 0 否
+use_proxy_dmm: 
+# 代理服务器地址，如果不使用代理，则忽略该字段
+proxy_addr: 
+# 是否使用 Pikpak 自动发送功能 1 是 | 0 否
+use_pikpak: 
+# 配置 TG API，如果不使用 Pikpak 自动发送功能，则忽略以下两个字段，可在这里申请 API: https://my.telegram.org/apps
+tg_api_id: 
+tg_api_hash: 
+# 是否使用缓存 1 是 | 0 否
+use_cache: 
+# redis 地址，如果不使用缓存，则忽略以下两个字段
+redis_host: 
+redis_port: 
+```
+
+如需使用 Pikpak 自动发送功能，需要先手动授权 [Pikpak 官方机器人](https://t.me/PikPak6_Bot)，然后在初次运行机器人时进行登录操作。
 
 ### 运行机器人
 
@@ -65,6 +92,7 @@ docker-compose up -d
 **或通过普通方法运行：**
 
 ```
+# 如果使用缓存的话需先开启 redis 服务
 # Python >=3.7
 pip install -r requirements.txt
 python3 bot.py

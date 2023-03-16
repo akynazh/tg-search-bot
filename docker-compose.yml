@@ -1,8 +1,15 @@
 version: "3"
 services:
+  cache:
+    image: redis
+    command: redis-server /usr/local/etc/redis/redis.conf
+    ports:
+      - "6379:6379"
+    volumes:
+      - ~/.tg_jav_bot/redis/data:/data
+      - ~/.tg_jav_bot/redis/redis.conf:/usr/local/etc/redis/redis.conf
   tg_jav_bot:
     build: .
     volumes:
-      - ./cfg.py:/app/cfg.py
       - ~/.tg_jav_bot:/root/.tg_jav_bot
     network_mode: "host"
