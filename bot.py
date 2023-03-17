@@ -1034,7 +1034,14 @@ class BotUtils:
             renew_btn = InlineKeyboardButton(
                 text="重新获取", callback_data=f"{av_id}:{KEY_DEL_AV_CACHE}"
             )
-        markup.row(av_record_btn, star_record_btn, renew_btn)
+        if star_record_btn and renew_btn:
+            markup.row(av_record_btn, star_record_btn, renew_btn)
+        elif star_record_btn:
+            markup.row(av_record_btn, star_record_btn)
+        elif renew_btn:
+            markup.row(av_record_btn, renew_btn)
+        else:
+            markup.row(av_record_btn)
         # 发送消息
         if av_img == "":
             self.send_msg(msg=msg, markup=markup)
@@ -1592,7 +1599,7 @@ def handle_message(message):
 
 
 if __name__ == "__main__":
-    if BOT_CFG.use_pikpak and not os.path.exists(PATH_SESSION_FILE):
+    if BOT_CFG.use_pikpak == "1" and not os.path.exists(PATH_SESSION_FILE):
         BOT_UTILS.send_msg_to_pikpak("登录认证")
     BOT_UTILS.set_command()
     BOT.infinity_polling()
