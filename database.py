@@ -7,10 +7,6 @@ import logging
 LOG = logging.getLogger(__name__)
 
 
-class BotRelDb:
-    pass
-
-
 class BotFileDb:
     def __init__(self, path_record_file: str):
         """初始化
@@ -223,6 +219,10 @@ class BotCacheDb:
         "prefix": "fv-",
         "expire": 3600 * 24 * 15,
     }
+    CACHE_STARS_MSG = {
+        "prefix": "stars-msg-",
+        "expire": 3600 * 24 * 5,
+    }
 
     TYPE_AV = 1
     TYPE_STAR = 2
@@ -231,6 +231,7 @@ class BotCacheDb:
     TYPE_MAGNET = 5
     TYPE_PV = 6
     TYPE_FV = 7
+    TYPE_STARS_MSG = 8
 
     TYPE_MAP = {
         TYPE_AV: CACHE_AV,
@@ -240,6 +241,7 @@ class BotCacheDb:
         TYPE_MAGNET: CACHE_MAGNET,
         TYPE_PV: CACHE_PV,
         TYPE_FV: CACHE_FV,
+        TYPE_STARS_MSG: CACHE_STARS_MSG,
     }
 
     def __init__(self, host: str, port: int, use_cache: str):
@@ -264,10 +266,10 @@ class BotCacheDb:
     def remove_cache(self, key, type: int):
         if self.use_cache == "0" or not self.cache:
             return
-        LOG.info(f"清除缓存: {key}")
-        key = str(key)
-        key = key.lower()
-        self.cache.delete(f"{BotCacheDb.TYPE_MAP[type]['prefix']}{key}")
+        key = str(key).lower()
+        cache_key = f"{BotCacheDb.TYPE_MAP[type]['prefix']}{key}"
+        self.cache.delete(cache_key)
+        LOG.info(f"成功清除缓存: {cache_key}")
 
     def set_cache(self, key: str, value, type: int):
         """设置缓存
@@ -278,20 +280,19 @@ class BotCacheDb:
         """
         if self.use_cache == "0" or not self.cache:
             return
-        LOG.info(f"设置缓存: {key}")
-        key = str(key)
-        key = key.lower()
-        cache_info = BotCacheDb.TYPE_MAP[type]
-        expire = cache_info["expire"]
-        prefix = cache_info["prefix"]
+        key = str(key).lower()
+        expire = BotCacheDb.TYPE_MAP[type]["expire"]
+        prefix = BotCacheDb.TYPE_MAP[type]["prefix"]
+        cache_key = f"{prefix}{key}"
         if expire != 0:
             self.cache.set(
-                name=f"{prefix}{key}",
+                name=cache_key,
                 value=json.dumps({"data": value}),
                 ex=expire,
             )
         else:
-            self.cache.set(name=f"{prefix}{key}", value=json.dumps({"data": value}))
+            self.cache.set(name=cache_key, value=json.dumps({"data": value}))
+        LOG.info(f"成功设置缓存: {cache_key}")
 
     def get_cache(self, key, type: int) -> any:
         """获取缓存
@@ -302,11 +303,9 @@ class BotCacheDb:
         """
         if self.use_cache == "0" or not self.cache:
             return
-        key = str(key)
-        key = key.lower()
-        cache_info = BotCacheDb.TYPE_MAP[type]
-        prefix = cache_info["prefix"]
-        json_str = self.cache.get(f"{prefix}{key}")
+        key = str(key).lower()
+        cache_key = f"{BotCacheDb.TYPE_MAP[type]['prefix']}{key}"
+        json_str = self.cache.get(cache_key)
         if json_str:
-            LOG.info(f"从缓存中找到结果: {key}")
+            LOG.info(f"从缓存中找到结果: {cache_key}")
             return json.loads(json_str)["data"]

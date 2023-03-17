@@ -18,7 +18,7 @@ from telebot import apihelper, types
 from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
 
 from config import BotConfig
-from database import BotFileDb, BotCacheDb, BotRelDb
+from database import BotFileDb, BotCacheDb
 
 # 定义回调按键值
 KEY_GET_SAMPLE_BY_ID = "k0_0"
@@ -582,47 +582,54 @@ class BotUtils:
 """
         # 演员
         if av_stars != []:
-            futures = {}
-            more_star_msg = ""
-            with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-                for i, star in enumerate(av_stars):
-                    # 如果个数大于 5 则退出
-                    if i >= 5:
-                        more_star_msg = f"""【演员】<a href="{av_url}">查看更多......</a>
+            show_star_name = av_stars[0]["name"]
+            show_star_id = av_stars[0]["id"]
+            stars_msg = BOT_CACHE_DB.get_cache(
+                key=av_id, type=BotCacheDb.TYPE_STARS_MSG
+            )
+            if not stars_msg:
+                stars_msg = ""
+                futures = {}
+                more_star_msg = ""
+                with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+                    for i, star in enumerate(av_stars):
+                        # 如果个数大于 5 则退出
+                        if i >= 5:
+                            more_star_msg = f"""【演员】<a href="{av_url}">查看更多......</a>
 """
-                        break
-                    # 获取搜索名
-                    name = star["name"]
-                    other_name_start = name.find("(")  # 删除别名
-                    if other_name_start != -1:
-                        name = name[:other_name_start]
-                        star["name"] = name
-                    # 如果 i == 0, 则为收藏对象
-                    if i == 0:
-                        show_star_name = star["name"]
-                        show_star_id = star["id"]
-                    # 从日文维基获取中文维基
-                    futures[
-                        executor.submit(
-                            self.util_wiki.get_wiki_page_by_lang, name, "ja", "zh"
-                        )
-                    ] = i
-                for future in concurrent.futures.as_completed(futures):
-                    future_type = futures[future]
-                    wiki_json = future.result()
-                    wiki = f"{self.util_wiki.BASE_URL_JAPAN_WIKI}/{name}"
-                    name = av_stars[future_type]["name"]
-                    link = f'{self.util_javbus.BASE_URL_SEARCH_BY_STAR_ID}/{av_stars[future_type]["id"]}'
-                    if wiki_json and wiki_json["lang"] == "zh":
-                        name_zh = wiki_json["title"]
-                        wiki_zh = wiki_json["url"]
-                        msg += f"""【演员】<code>{name_zh}</code> | <a href="{wiki_zh}">Wiki</a> | <a href="{link}">Javbus</a>
+                            break
+                        # 获取搜索名
+                        name = star["name"]
+                        other_name_start = name.find("(")  # 删除别名
+                        if other_name_start != -1:
+                            name = name[:other_name_start]
+                            star["name"] = name
+                        # 从日文维基获取中文维基
+                        futures[
+                            executor.submit(
+                                self.util_wiki.get_wiki_page_by_lang, name, "ja", "zh"
+                            )
+                        ] = i
+                    for future in concurrent.futures.as_completed(futures):
+                        future_type = futures[future]
+                        wiki_json = future.result()
+                        wiki = f"{self.util_wiki.BASE_URL_JAPAN_WIKI}/{name}"
+                        name = av_stars[future_type]["name"]
+                        link = f'{self.util_javbus.BASE_URL_SEARCH_BY_STAR_ID}/{av_stars[future_type]["id"]}'
+                        if wiki_json and wiki_json["lang"] == "zh":
+                            name_zh = wiki_json["title"]
+                            wiki_zh = wiki_json["url"]
+                            stars_msg += f"""【演员】<code>{name_zh}</code> | <a href="{wiki_zh}">Wiki</a> | <a href="{link}">Javbus</a>
 """
-                    else:
-                        msg += f"""【演员】<code>{name}</code> | <a href="{wiki}">Wiki</a> | <a href="{link}">Javbus</a>
+                        else:
+                            stars_msg += f"""【演员】<code>{name}</code> | <a href="{wiki}">Wiki</a> | <a href="{link}">Javbus</a>
 """
-            if more_star_msg != "":
-                msg += more_star_msg
+                if more_star_msg != "":
+                    stars_msg += more_star_msg
+                BOT_CACHE_DB.set_cache(
+                    key=av_id, value=stars_msg, type=BotCacheDb.TYPE_STARS_MSG
+                )
+            msg += stars_msg
         # 标签
         if av_tags != "":
             av_tags = av_tags.replace("<", "").replace(">", "")
@@ -1187,6 +1194,7 @@ def listen_callback(call):
             )
     elif key_type == KEY_DEL_AV_CACHE:
         BOT_CACHE_DB.remove_cache(key=content, type=BotCacheDb.TYPE_AV)
+        BOT_CACHE_DB.remove_cache(key=content, type=BotCacheDb.TYPE_STARS_MSG)
         BOT_UTILS.get_av_by_id(id=content)
 
 

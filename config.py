@@ -52,9 +52,7 @@ class BotConfig:
                     "hostname": self.proxy_addr[t1 + 3 : t2],
                     "port": int(self.proxy_addr[t2 + 1 :]),
                 }
-                LOG.info(
-                    f"set proxy: {self.proxy_json}, set pikpak proxy: {self.proxy_json_pikpak}"
-                )
+                LOG.info(f"set proxy: {self.proxy_json}")
                 self.proxy_addr_dmm = self.proxy_addr
             elif self.use_proxy_dmm == "1":
                 LOG.info(f"set proxy for dmm: {self.proxy_json}")
