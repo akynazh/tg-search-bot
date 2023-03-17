@@ -193,8 +193,7 @@ class BotCache:
 
     def clear_cache(self):
         LOG.warning("清空缓存")
-        for k in self.cache.scan_iter("prefix:*"):
-            self.cache.delete(k)
+        self.cache.flushdb()
 
     def remove_cache(self, key, type: int):
         if BOT_CFG.use_cache == "0":
