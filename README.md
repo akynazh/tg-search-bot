@@ -2,9 +2,9 @@
 
 **一个万能 Telegram 番号查询机器人。基于 Javbus，Sukebei，Avgle，Dmm，Javlibrary，维基百科，谷歌翻译等进行构建，集成了 Pikpak 作为磁链保存网盘。**
 
-欢迎 issue / pr，如有其它问题，可通过邮箱 [akynazh@qq.com](mailto://akynazh@qq.com) 或电报 [@jackbryant286](https://t.me/jackbryant286) 联系我。
+欢迎 issue 和 pr，也可通过邮箱 [akynazh@qq.com](mailto://akynazh@qq.com) 或电报 [@jackbryant286](https://t.me/jackbryant286) 联系我。
 
-关联项目： [jvav](https://github.com/akynazh/jvav)
+子项目： [jvav](https://github.com/akynazh/jvav)
 
 ## 功能简介
 

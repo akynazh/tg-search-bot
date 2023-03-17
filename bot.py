@@ -11,13 +11,14 @@ import typing
 
 import jvav
 import langdetect
-import lxml
-import redis
+import lxml  # for bs4
 import telebot
-import yaml
 from pyrogram import Client
 from telebot import apihelper, types
 from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
+
+from config import BotConfig
+from database import BotFileDb, BotCacheDb, BotRelDb
 
 # 定义回调按键值
 KEY_GET_SAMPLE_BY_ID = "k0_0"
@@ -63,190 +64,31 @@ if not os.path.exists(PATH_ROOT):
 
 
 class Logger:
-    """日志记录器"""
-
     def __init__(self, log_level):
         """初始化日志记录器
 
         :param _type_ log_level: 记录级别
         """
         self.logger = logging.getLogger()
-        self.logger.addHandler(self.get_file_handler(PATH_LOG_FILE))
-        self.logger.addHandler(logging.StreamHandler())
+        formatter = logging.Formatter("[%(asctime)s] %(levelname)s: %(message)s")
+        file_handler = logging.FileHandler(PATH_LOG_FILE)
+        file_handler.setFormatter(formatter)
+        stream_handler = logging.StreamHandler()
+        stream_handler.setFormatter(formatter)
+        self.logger.addHandler(file_handler)
+        self.logger.addHandler(stream_handler)
         self.logger.setLevel(log_level)
-
-    def get_file_handler(self, file):
-        file_handler = logging.FileHandler(file)
-        file_handler.setFormatter(
-            logging.Formatter("[%(asctime)s] %(levelname)s: %(message)s")
-        )
-        return file_handler
 
 
 LOG = Logger(log_level=logging.INFO).logger
-
-
-class BotConfig:
-    def __init__(self):
-        # config.yaml
-        self.tg_chat_id = ""
-        self.tg_bot_token = ""
-        self.use_proxy = "0"
-        self.use_proxy_dmm = "0"
-        self.proxy_addr = ""
-        self.use_pikpak = "0"
-        self.tg_api_id = ""
-        self.tg_api_hash = ""
-        self.redis_host = ""
-        self.redis_port = ""
-        # extend
-        self.proxy_json = {"http": "", "https": ""}
-        self.proxy_json_pikpak = {}
-        self.proxy_addr_dmm = ""
-
-    def load_config(self):
-        with open(PATH_CONFIG_FILE, "r") as f:
-            config = yaml.safe_load(f)
-        self.tg_chat_id = str(config["tg_chat_id"])
-        self.tg_bot_token = str(config["tg_bot_token"])
-        self.use_proxy = str(config["use_proxy"])
-        self.use_proxy_dmm = config["use_proxy_dmm"]
-        self.proxy_addr = str(config["proxy_addr"])
-        self.use_pikpak = str(config["use_pikpak"])
-        self.tg_api_id = str(config["tg_api_id"])
-        self.tg_api_hash = str(config["tg_api_hash"])
-        self.use_cache = str(config["use_cache"])
-        self.redis_host = str(config["redis_host"])
-        self.redis_port = str(config["redis_port"])
-
-        if self.use_proxy == "1":
-            self.proxy_json = {"http": self.proxy_addr, "https": self.proxy_addr}
-            t1 = self.proxy_addr.find(":")
-            t2 = self.proxy_addr.rfind(":")
-            self.proxy_json_pikpak = {
-                "scheme": self.proxy_addr[:t1],
-                "hostname": self.proxy_addr[t1 + 3 : t2 - 1],
-                "port": int(self.proxy_addr[t2 + 1 :]),
-            }
-            self.proxy_addr_dmm = self.proxy_addr
-        elif self.use_proxy_dmm == "1":
-            self.proxy_addr_dmm = self.proxy_addr
-
-
-BOT_CFG = BotConfig()
+BOT_CFG = BotConfig(PATH_CONFIG_FILE)
 BOT_CFG.load_config()
 apihelper.proxy = BOT_CFG.proxy_json
 BOT = telebot.TeleBot(BOT_CFG.tg_bot_token)
-
-
-class BotCache:
-    CACHE_AV = {
-        "prefix": "av-",
-        "expire": 3600 * 24 * 30,
-    }
-    CACHE_STAR = {
-        "prefix": "star-",
-        "expire": 0,
-    }
-    CACHE_RANK = {
-        "prefix": "rank-",
-        "expire": 3600 * 24 * 7,
-    }
-    CACHE_SAMPLE = {
-        "prefix": "sample-",
-        "expire": 3600 * 24 * 30,
-    }
-    CACHE_MAGNET = {
-        "prefix": "magnet-",
-        "expire": 3600 * 24 * 5,
-    }
-    CACHE_PV = {
-        "prefix": "pv-",
-        "expire": 3600 * 24 * 15,
-    }
-    CACHE_FV = {
-        "prefix": "fv-",
-        "expire": 3600 * 24 * 15,
-    }
-
-    TYPE_AV = 1
-    TYPE_STAR = 2
-    TYPE_RANK = 3
-    TYPE_SAMPLE = 4
-    TYPE_MAGNET = 5
-    TYPE_PV = 6
-    TYPE_FV = 7
-
-    TYPE_MAP = {
-        TYPE_AV: CACHE_AV,
-        TYPE_STAR: CACHE_STAR,
-        TYPE_RANK: CACHE_RANK,
-        TYPE_SAMPLE: CACHE_SAMPLE,
-        TYPE_MAGNET: CACHE_MAGNET,
-        TYPE_PV: CACHE_PV,
-        TYPE_FV: CACHE_FV,
-    }
-
-    def __init__(self, host, port):
-        if BOT_CFG.use_cache == "1":
-            self.cache = redis.Redis(host=host, port=port)
-
-    def clear_cache(self):
-        LOG.warning("清空缓存")
-        self.cache.flushdb()
-
-    def remove_cache(self, key, type: int):
-        if BOT_CFG.use_cache == "0":
-            return
-        LOG.info(f"清除缓存: {key}")
-        key = str(key)
-        key = key.lower()
-        self.cache.delete(f"{BOT_CACHE.TYPE_MAP[type]['prefix']}{key}")
-
-    def set_cache(self, key: str, value, type: int):
-        """设置缓存
-
-        :param str key: 键
-        :param any value: 值
-        :param int type: 缓存类型
-        """
-        if BOT_CFG.use_cache == "0":
-            return
-        LOG.info(f"设置缓存: {key}")
-        key = str(key)
-        key = key.lower()
-        cache_info = BOT_CACHE.TYPE_MAP[type]
-        expire = cache_info["expire"]
-        prefix = cache_info["prefix"]
-        if expire != 0:
-            self.cache.set(
-                name=f"{prefix}{key}",
-                value=json.dumps({"data": value}),
-                ex=expire,
-            )
-        else:
-            self.cache.set(name=f"{prefix}{key}", value=json.dumps({"data": value}))
-
-    def get_cache(self, key, type: int) -> any:
-        """获取缓存
-
-        :param str key: 键
-        :param int type: 缓存类型
-        :return any: 缓存对象
-        """
-        if BOT_CFG.use_cache == "0":
-            return
-        key = str(key)
-        key = key.lower()
-        cache_info = BOT_CACHE.TYPE_MAP[type]
-        prefix = cache_info["prefix"]
-        json_str = self.cache.get(f"{prefix}{key}")
-        if json_str:
-            LOG.info(f"从缓存中找到结果: {key}")
-            return json.loads(json_str)["data"]
-
-
-BOT_CACHE = BotCache(host=BOT_CFG.redis_host, port=BOT_CFG.redis_port)
+BOT_CACHE_DB = BotCacheDb(
+    host=BOT_CFG.redis_host, port=BOT_CFG.redis_port, use_cache=BOT_CFG.use_cache
+)
+BOT_FILE_DB = BotFileDb(PATH_RECORD_FILE)
 
 
 class BotUtils:
@@ -482,186 +324,13 @@ class BotUtils:
             title,
         )
 
-    def check_has_record(self) -> typing.Tuple[dict, bool, bool]:
-        """检查是否有收藏记录, 如果有则返回记录
-
-        :return tuple[dict, bool, bool]: 收藏记录, 演员记录是否存在, 番号记录是否存在
-        """
-        # 初始化数据
-        record = {}
-        # 加载记录
-        if os.path.exists(PATH_RECORD_FILE):
-            try:
-                with open(PATH_RECORD_FILE, "r") as f:
-                    record = json.load(f)
-            except Exception as e:
-                LOG.error(e)
-                return None, False, False
-        # 尚无记录
-        if not record or record == {}:
-            return None, False, False
-        # 检查并返回记录
-        is_stars_exists = False
-        is_avs_exists = False
-        if (
-            "stars" in record.keys()
-            and record["stars"] != []
-            and len(record["stars"]) > 0
-        ):
-            is_stars_exists = True
-        if "avs" in record.keys() and record["avs"] != [] and len(record["avs"]) > 0:
-            is_avs_exists = True
-        return record, is_stars_exists, is_avs_exists
-
-    def check_star_exists_by_id(self, star_id: str) -> bool:
-        """根据演员 id 确认收藏记录中演员是否存在
-
-        :param str star_id: 演员 id
-        :return bool: 是否存在
-        """
-        record, exists, _ = self.check_has_record()
-        if not record or not exists:
-            return False
-        stars = record["stars"]
-        for star in stars:
-            if star["id"].lower() == star_id.lower():
-                return True
-
-    def check_id_exists(self, id: str) -> bool:
-        """根据番号确认收藏记录中番号是否存在
-
-        :param str id: 番号
-        :return bool: 是否存在
-        """
-        record, _, exists = self.check_has_record()
-        if not record or not exists:
-            return False
-        avs = record["avs"]
-        for av in avs:
-            if av["id"].lower() == id.lower():
-                return True
-
-    def renew_record(self, record: dict) -> bool:
-        """更新记录
-
-        :param dict record: 新的记录
-        :return bool: 是否更新成功
-        """
-        try:
-            with open(PATH_RECORD_FILE, "w") as f:
-                json.dump(
-                    record, f, separators=(",", ": "), indent=4, ensure_ascii=False
-                )
-            return True
-        except Exception as e:
-            LOG.error(e)
-            return False
-
-    def record_star_by_name_id(self, star_name: str, star_id: str) -> bool:
-        """记录演员
-
-        :param str star_name: 演员名称
-        :param str star_id: 演员编号
-        :return bool: 是否收藏成功
-        """
-        # 加载记录
-        record, is_stars_exists, _ = self.check_has_record()
-        if not record:
-            record, stars = {}, []
-        else:
-            if not is_stars_exists:
-                stars = []
-            else:
-                stars = record["stars"]
-        # 检查记录是否存在
-        for star in stars:
-            if star["id"].lower() == star_id.lower():
-                return True
-        # 如果记录需要更新则写回记录
-        stars.append({"name": star_name, "id": star_id.lower()})
-        record["stars"] = stars
-        return self.renew_record(record)
-
-    def record_id_by_id_stars(self, id: str, stars: list) -> bool:
-        """记录番号
-
-        :param str id: 番号
-        :param list stars: 演员编号列表
-        :return bool: 是否收藏成功
-        """
-        # 加载记录
-        record, _, is_avs_exists = self.check_has_record()
-        if not record:
-            record, avs = {}, []
-        else:
-            if not is_avs_exists:
-                avs = []
-            else:
-                avs = record["avs"]
-        # 检查记录是否存在
-        for av in avs:
-            if av["id"].lower() == id.lower():
-                return True
-        # 如果记录需要更新则写回记录
-        avs.append({"id": id.lower(), "stars": stars})
-        record["avs"] = avs
-        return self.renew_record(record)
-
-    def undo_record_star_by_id(self, star_id: str) -> bool:
-        """取消收藏演员
-
-        :param str star_id: 演员id
-        :return bool: 是否取消收藏成功
-        """
-        # 加载记录
-        record, exists, _ = self.check_has_record()
-        if not record or not exists:
-            return False
-        stars = record["stars"]
-        exists = False
-        # 删除记录
-        for i, star in enumerate(stars):
-            if star["id"].lower() == star_id.lower():
-                del stars[i]
-                exists = True
-                break
-        # 更新记录
-        if exists:
-            record["stars"] = stars
-            return self.renew_record(record)
-        return True
-
-    def undo_record_id(self, id: str) -> bool:
-        """取消收藏番号
-
-        :param str id: 番号
-        :return bool: 是否取消收藏成功
-        """
-        # 加载记录
-        record, _, exists = self.check_has_record()
-        if not record or not exists:
-            return False
-        avs = record["avs"]
-        exists = False
-        # 删除记录
-        for i, av in enumerate(avs):
-            if av["id"].lower() == id.lower():
-                del avs[i]
-                exists = True
-                break
-        # 更新记录
-        if exists:
-            record["avs"] = avs
-            return self.renew_record(record)
-        return True
-
     def get_stars_record(self, page=1):
         """获取演员收藏记录
 
         :param int page: 第几页, 默认第一页
         """
         # 初始化数据
-        record, is_star_exists, _ = self.check_has_record()
+        record, is_star_exists, _ = BOT_FILE_DB.check_has_record()
         if not record or not is_star_exists:
             self.send_msg_fail_reason_op(reason="尚无演员收藏记录", op="获取演员收藏记录")
             return
@@ -688,7 +357,7 @@ class BotUtils:
         :param str star_id: 演员编号
         """
         # 初始化数据
-        record, is_stars_exists, is_avs_exists = self.check_has_record()
+        record, is_stars_exists, is_avs_exists = BOT_FILE_DB.check_has_record()
         if not record:
             self.send_msg(reason="尚无该演员收藏记录", op=f"获取演员 <code>{star_name}</code> 的更多信息")
             return
@@ -751,7 +420,7 @@ class BotUtils:
         :param int page: 第几页, 默认第一页
         """
         # 初始化数据
-        record, _, is_avs_exists = self.check_has_record()
+        record, _, is_avs_exists = BOT_FILE_DB.check_has_record()
         if not record or not is_avs_exists:
             self.send_msg_fail_reason_op(reason="尚无番号收藏记录", op="获取番号收藏记录")
             return
@@ -784,7 +453,7 @@ class BotUtils:
 
         :param str id: 番号
         """
-        record, _, is_avs_exists = self.check_has_record()
+        record, _, is_avs_exists = BOT_FILE_DB.check_has_record()
         avs = record["avs"]
         cur_av_exists = False
         for av in avs:
@@ -826,7 +495,7 @@ class BotUtils:
         """
         # 获取 av
         op_get_av_by_id = f"搜索番号 <code>{id}</code>"
-        av = BOT_CACHE.get_cache(key=id, type=BOT_CACHE.TYPE_AV)
+        av = BOT_CACHE_DB.get_cache(key=id, type=BotCacheDb.TYPE_AV)
         av_score = None
         is_cache = False
         futures = {}
@@ -873,7 +542,7 @@ class BotUtils:
             elif code_sukebei == 200:
                 av = av_sukebei
             av["score"] = av_score
-            BOT_CACHE.set_cache(key=id, value=av, type=BOT_CACHE.TYPE_AV)
+            BOT_CACHE_DB.set_cache(key=id, value=av, type=BotCacheDb.TYPE_AV)
         else:
             av_score = av["score"]
             is_cache = True
@@ -998,7 +667,7 @@ class BotUtils:
         # 收藏演员按钮
         star_record_btn = None
         if len(av_stars) == 1:
-            if self.check_star_exists_by_id(star_id=show_star_id):
+            if BOT_FILE_DB.check_star_exists_by_id(star_id=show_star_id):
                 star_record_btn = InlineKeyboardButton(
                     text=f"演员收藏信息",
                     callback_data=f"{show_star_name}|{show_star_id}:{KEY_GET_STAR_DETAIL_RECORD_BY_STAR_NAME_ID}",
@@ -1018,7 +687,7 @@ class BotUtils:
             star_ids = star_ids[: len(star_ids) - 1]
         # 收藏番号按钮
         av_record_btn = None
-        if self.check_id_exists(id=av_id):
+        if BOT_FILE_DB.check_id_exists(id=av_id):
             av_record_btn = InlineKeyboardButton(
                 text=f"番号收藏信息",
                 callback_data=f"{av_id}:{KEY_GET_AV_DETAIL_RECORD_BY_ID}",
@@ -1082,12 +751,12 @@ class BotUtils:
         """
         op_get_sample = f"根据番号 <code>{id}</code> 获取 av 截图"
         # 获取截图
-        samples = BOT_CACHE.get_cache(key=id, type=BOT_CACHE.TYPE_SAMPLE)
+        samples = BOT_CACHE_DB.get_cache(key=id, type=BotCacheDb.TYPE_SAMPLE)
         if not samples:
             code, samples = self.util_javbus.get_samples_by_id(id)
             if not self.check_success(code, op_get_sample):
                 return
-            BOT_CACHE.set_cache(key=id, value=samples, type=BOT_CACHE.TYPE_SAMPLE)
+            BOT_CACHE_DB.set_cache(key=id, value=samples, type=BotCacheDb.TYPE_SAMPLE)
         # 发送图片列表
         samples_imp = []
         sample_error = False
@@ -1114,7 +783,7 @@ class BotUtils:
         :param str type: 0 预览视频 | 1 完整视频
         """
         if type == 0:
-            pv = BOT_CACHE.get_cache(key=id, type=BOT_CACHE.TYPE_PV)
+            pv = BOT_CACHE_DB.get_cache(key=id, type=BotCacheDb.TYPE_PV)
             if not pv:
                 op_watch_av = f"获取番号 <code>{id}</code> 对应 av 预览视频"
                 futures = {}
@@ -1141,7 +810,7 @@ class BotUtils:
                     from_site = "avgle"
                     pv_src = pv_avgle
                 pv_cache = {"from_site": from_site, "src": pv_src}
-                BOT_CACHE.set_cache(key=id, value=pv_cache, type=BOT_CACHE.TYPE_PV)
+                BOT_CACHE_DB.set_cache(key=id, value=pv_cache, type=BotCacheDb.TYPE_PV)
             else:
                 from_site = pv["from_site"]
                 pv_src = pv["src"]
@@ -1174,12 +843,12 @@ class BotUtils:
                     )
         elif type == 1:
             op_watch_av = f"获取番号 <code>{id}</code> 对应 av 完整视频"
-            video = BOT_CACHE.get_cache(key=id, type=BOT_CACHE.TYPE_FV)
+            video = BOT_CACHE_DB.get_cache(key=id, type=BotCacheDb.TYPE_FV)
             if not video:
                 code, video = self.util_avgle.get_fv_by_id(id)
                 if not self.check_success(code, op_watch_av):
                     return
-                BOT_CACHE.set_cache(key=id, value=video, type=BOT_CACHE.TYPE_FV)
+                BOT_CACHE_DB.set_cache(key=id, value=video, type=BotCacheDb.TYPE_FV)
             self.send_msg(f"Avgle 视频地址: {video}")
 
     def search_star_by_name(self, star_name: str):
@@ -1188,7 +857,7 @@ class BotUtils:
         :param str star_name: 演员名称
         """
         op_search_star = f"搜索演员 <code>{star_name}</code>"
-        star_id = BOT_CACHE.get_cache(key=star_name, type=BOT_CACHE.TYPE_STAR)
+        star_id = BOT_CACHE_DB.get_cache(key=star_name, type=BotCacheDb.TYPE_STAR)
 
         if not star_id:
             if langdetect.detect(star_name) != "ja":  # zh
@@ -1201,8 +870,10 @@ class BotUtils:
             code, star_id = self.util_javbus.check_star_exists(star_name)
             if not self.check_success(code, op_search_star):
                 return
-            BOT_CACHE.set_cache(key=star_name, value=star_id, type=BOT_CACHE.TYPE_STAR)
-        if self.check_star_exists_by_id(star_id):
+            BOT_CACHE_DB.set_cache(
+                key=star_name, value=star_id, type=BotCacheDb.TYPE_STAR
+            )
+        if BOT_FILE_DB.check_star_exists_by_id(star_id):
             self.get_star_detail_record_by_name_id(star_name=star_name, star_id=star_id)
             return
         markup = InlineKeyboardMarkup()
@@ -1236,13 +907,13 @@ class BotUtils:
         :param int page: 第几页, 默认第一页
         """
         op_get_top_stars = f"获取 DMM 女优排行榜"
-        stars = BOT_CACHE.get_cache(key=page, type=BOT_CACHE.TYPE_RANK)
+        stars = BOT_CACHE_DB.get_cache(key=page, type=BotCacheDb.TYPE_RANK)
 
         if not stars:
             code, stars = self.util_dmm.get_top_stars(page)
             if not self.check_success(code, op_get_top_stars):
                 return
-            BOT_CACHE.set_cache(key=page, value=stars, type=BOT_CACHE.TYPE_RANK)
+            BOT_CACHE_DB.set_cache(key=page, value=stars, type=BotCacheDb.TYPE_RANK)
         stars_tmp = [None] * 80
         stars = stars_tmp[: ((page - 1) * 20)] + stars + stars_tmp[((page - 1) * 20) :]
         col, row = 4, 5
@@ -1285,7 +956,7 @@ class BotUtils:
 
         :param id: 番号
         """
-        magnets = BOT_CACHE.get_cache(key=id, type=BOT_CACHE.TYPE_MAGNET)
+        magnets = BOT_CACHE_DB.get_cache(key=id, type=BotCacheDb.TYPE_MAGNET)
         if not magnets:
             av = self.get_av_by_id(
                 id=id, is_nice=False, is_uncensored=False, not_send=True
@@ -1293,7 +964,7 @@ class BotUtils:
             if not av:
                 return
             magnets = av["magnets"]
-            BOT_CACHE.set_cache(key=id, value=magnets, type=BOT_CACHE.TYPE_MAGNET)
+            BOT_CACHE_DB.set_cache(key=id, value=magnets, type=BotCacheDb.TYPE_MAGNET)
         msg = ""
         for magnet in magnets:
             magnet_tags = ""
@@ -1399,6 +1070,7 @@ class BotUtils:
             "new": "随机获取一部最新 av",
             "rank": "获取 DMM 女优排行榜",
             "record": "获取收藏记录文件",
+            "clear": "清空缓存",
         }
         cmds = []
         for cmd in tg_cmd_dict:
@@ -1450,7 +1122,7 @@ def listen_callback(call):
         s = content.find("|")
         star_name = content[:s]
         star_id = content[s + 1 :]
-        if BOT_UTILS.record_star_by_name_id(star_name=star_name, star_id=star_id):
+        if BOT_FILE_DB.record_star_by_name_id(star_name=star_name, star_id=star_id):
             BOT_UTILS.get_star_detail_record_by_name_id(
                 star_name=star_name, star_id=star_id
             )
@@ -1460,7 +1132,7 @@ def listen_callback(call):
         res = content.split("|")
         id = res[0]
         stars = [s for s in res[1:]]
-        if BOT_UTILS.record_id_by_id_stars(id=id, stars=stars):
+        if BOT_FILE_DB.record_id_by_id_stars(id=id, stars=stars):
             BOT_UTILS.get_av_detail_record_by_id(id=id)
         else:
             BOT_UTILS.send_msg_code_op(500, f"收藏番号 <code>{id}</code>")
@@ -1487,14 +1159,14 @@ def listen_callback(call):
             BOT_UTILS.get_av_by_id(id=id)
     elif key_type == KEY_UNDO_RECORD_AV_BY_ID:
         op_undo_record_av = f"取消收藏番号 <code>{content}</code>"
-        if BOT_UTILS.undo_record_id(id=content):
+        if BOT_FILE_DB.undo_record_id(id=content):
             BOT_UTILS.send_msg_success_op(op_undo_record_av)
         else:
             BOT_UTILS.send_msg_fail_reason_op(reason="文件解析出错", op=op_undo_record_av)
     elif key_type == KEY_UNDO_RECORD_STAR_BY_STAR_NAME_ID:
         s = content.find("|")
         op_undo_record_star = f"取消收藏演员 <code>{content[:s]}</code>"
-        if BOT_UTILS.undo_record_star_by_id(star_id=content[s + 1 :]):
+        if BOT_FILE_DB.undo_record_star_by_id(star_id=content[s + 1 :]):
             BOT_UTILS.send_msg_success_op(op_undo_record_star)
         else:
             BOT_UTILS.send_msg_fail_reason_op(reason="文件解析出错", op=op_undo_record_star)
@@ -1514,7 +1186,7 @@ def listen_callback(call):
                 objs=avs,
             )
     elif key_type == KEY_DEL_AV_CACHE:
-        BOT_CACHE.remove_cache(key=content, type=BOT_CACHE.TYPE_AV)
+        BOT_CACHE_DB.remove_cache(key=content, type=BotCacheDb.TYPE_AV)
         BOT_UTILS.get_av_by_id(id=content)
 
 
@@ -1570,7 +1242,7 @@ def handle_message(message):
     elif msg == "/rank":
         BOT_UTILS.get_top_stars(1)
     elif msg == "/clear":
-        BOT_CACHE.clear_cache()
+        BOT_CACHE_DB.clear_cache()
         BOT_UTILS.send_msg_success_op(op="清空缓存")
     elif msg_origin.find("/star") != -1:
         param = BOT_UTILS.get_msg_param(msg_origin)
