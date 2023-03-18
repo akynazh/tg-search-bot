@@ -103,6 +103,11 @@ python3 bot.py
 
 首先拉取最新代码。
 
-接着，如果是使用 docker 进行部署，则重新构建镜像并运行即可。
+接着，如果是使用 docker 进行部署，则重新构建镜像并运行即可，参考命令：
+
+```
+docker-compose down
+docker-compose up -d --build
+```
 
 如果是使用普通方法部署，则需要先更新 jvav 这个包，然后再运行机器人。
