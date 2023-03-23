@@ -31,17 +31,28 @@ class BotConfig:
         try:
             with open(self.path_config_file, "r") as f:
                 config = yaml.safe_load(f)
-            self.tg_chat_id = str(config["tg_chat_id"])
-            self.tg_bot_token = str(config["tg_bot_token"])
-            self.use_proxy = str(config["use_proxy"])
-            self.use_proxy_dmm = config["use_proxy_dmm"]
-            self.proxy_addr = str(config["proxy_addr"])
-            self.use_pikpak = str(config["use_pikpak"])
-            self.tg_api_id = str(config["tg_api_id"])
-            self.tg_api_hash = str(config["tg_api_hash"])
-            self.use_cache = str(config["use_cache"])
-            self.redis_host = str(config["redis_host"])
-            self.redis_port = str(config["redis_port"])
+            if config["tg_chat_id"]:
+                self.tg_chat_id = str(config["tg_chat_id"])
+            if config["tg_bot_token"]:
+                self.tg_bot_token = str(config["tg_bot_token"])
+            if config["use_proxy"]:
+                self.use_proxy = str(config["use_proxy"])
+            if config["use_proxy_dmm"]:
+                self.use_proxy_dmm = config["use_proxy_dmm"]
+            if config["proxy_addr"]:
+                self.proxy_addr = str(config["proxy_addr"])
+            if config["use_pikpak"]:
+                self.use_pikpak = str(config["use_pikpak"])
+            if config["tg_api_id"]:
+                self.tg_api_id = str(config["tg_api_id"])
+            if config["tg_api_hash"]:
+                self.tg_api_hash = str(config["tg_api_hash"])
+            if config["use_cache"]:
+                self.use_cache = str(config["use_cache"])
+            if config["redis_host"]:
+                self.redis_host = str(config["redis_host"])
+            if config["redis_port"]:
+                self.redis_port = str(config["redis_port"])
 
             if self.use_proxy == "1":
                 self.proxy_json = {"http": self.proxy_addr, "https": self.proxy_addr}
@@ -52,10 +63,10 @@ class BotConfig:
                     "hostname": self.proxy_addr[t1 + 3 : t2],
                     "port": int(self.proxy_addr[t2 + 1 :]),
                 }
-                LOG.info(f"set proxy: {self.proxy_json}")
                 self.proxy_addr_dmm = self.proxy_addr
+                LOG.info(f'set proxy: "{self.proxy_addr}"')
             elif self.use_proxy_dmm == "1":
-                LOG.info(f"set proxy for dmm: {self.proxy_json}")
                 self.proxy_addr_dmm = self.proxy_addr
+                LOG.info(f"set proxy for dmm: {self.proxy_json}")
         except Exception as e:
             LOG.error(f"读取配置文件出错: {e}")
