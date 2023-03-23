@@ -29,6 +29,7 @@ class BotConfig:
 
     def load_config(self):
         try:
+            LOG.info(f"load config from {self.path_config_file}")
             with open(self.path_config_file, "r") as f:
                 config = yaml.safe_load(f)
             if config["tg_chat_id"]:
@@ -67,6 +68,9 @@ class BotConfig:
                 LOG.info(f'set proxy: "{self.proxy_addr}"')
             elif self.use_proxy_dmm == "1":
                 self.proxy_addr_dmm = self.proxy_addr
+                self.proxy_addr = ""
                 LOG.info(f"set proxy for dmm: {self.proxy_json}")
+            else:
+                self.proxy_addr = ""
         except Exception as e:
             LOG.error(f"读取配置文件出错: {e}")

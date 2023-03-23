@@ -1282,4 +1282,5 @@ if __name__ == "__main__":
     if BOT_CFG.use_pikpak == "1" and not os.path.exists(PATH_SESSION_FILE):
         BOT_UTILS.send_msg_to_pikpak("登录认证")
     BOT_UTILS.set_command()
+    LOG.info("tg-jav-bot is started ^_^")
     BOT.infinity_polling()
