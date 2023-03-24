@@ -39,7 +39,7 @@ class BotConfig:
             if config["use_proxy"]:
                 self.use_proxy = str(config["use_proxy"])
             if config["use_proxy_dmm"]:
-                self.use_proxy_dmm = config["use_proxy_dmm"]
+                self.use_proxy_dmm = str(config["use_proxy_dmm"])
             if config["proxy_addr"]:
                 self.proxy_addr = str(config["proxy_addr"])
             if config["use_pikpak"]:
