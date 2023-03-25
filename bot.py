@@ -1069,7 +1069,7 @@ def test():
     return
 
 
-def get_msg_param(self, msg: str) -> str:
+def get_msg_param(msg: str) -> str:
     """获取消息参数
 
     :param str msg: 消息文本, 已经通过 strip() 函数将两旁空白清除
@@ -1217,18 +1217,16 @@ def handle_message(message):
     bot_utils = BotUtils()
     # 获取消息文本内容
     if message.content_type != "text":
-        msg_origin = message.caption
+        msg = message.caption
     else:
-        msg_origin = message.text
-    if not msg_origin:
+        msg = message.text
+    if not msg:
         return
-    LOG.info(f'收到消息: "{msg_origin}"')
+    LOG.info(f'收到消息: "{msg}"')
     # 如果是 inline 形式的消息, 则提取 @ 前的字符串
-    inline_idx = msg_origin.find("@")
+    inline_idx = msg.find(f"@{BOT_CFG.tg_bot_name}")
     if inline_idx != -1:
-        msg = msg_origin[:inline_idx]
-    else:
-        msg = msg_origin
+        msg = msg[:inline_idx]
     # 处理消息
     if msg == "/test":
         test()
@@ -1258,19 +1256,19 @@ def handle_message(message):
     elif msg == "/clear":
         BOT_CACHE_DB.clear_cache()
         bot_utils.send_msg_success_op(op="清空缓存")
-    elif msg_origin.find("/star") != -1:
-        param = get_msg_param(msg_origin)
+    elif msg.find("/star") != -1:
+        param = get_msg_param(msg)
         if param:
             bot_utils.send_msg(f"搜索演员: <code>{param}</code> ......")
             bot_utils.search_star_by_name(param)
-    elif msg_origin.find("/av") != -1:
-        param = get_msg_param(msg_origin)
+    elif msg.find("/av") != -1:
+        param = get_msg_param(msg)
         if param:
             bot_utils.send_msg(f"搜索番号: <code>{param}</code> ......")
             bot_utils.get_av_by_id(id=param, send_to_pikpak=True)
     else:
         # ids = re.compile(r'^[A-Za-z]+[-][0-9]+$').findall(msg)
-        ids = re.compile(r"[A-Za-z]+[-][0-9]+").findall(msg_origin)
+        ids = re.compile(r"[A-Za-z]+[-][0-9]+").findall(msg)
         if not ids:
             bot_utils.send_msg(
                 "消息似乎不存在符合<b>“字母-数字”</b>格式的番号, 请重试或使用“<code>/av</code> 番号”进行查找 =_="
@@ -1305,7 +1303,7 @@ def my_message_handler(message):
 
 
 def pyrogram_auth():
-    if BOT_CFG.use_pikpak == "1" and not os.path.exists(f'{PATH_SESSION_FILE}.session'):
+    if BOT_CFG.use_pikpak == "1" and not os.path.exists(f"{PATH_SESSION_FILE}.session"):
         LOG.info(f"进行 pyrogram 登录认证......")
         try:
             BotUtils().send_msg_to_pikpak("pyrogram 登录认证")
