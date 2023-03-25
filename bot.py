@@ -991,20 +991,16 @@ class BotUtils:
         :param _type_ msg: 消息
         :return any: 如果失败则为 None
         """
-
-        async def main():
-            async with Client(
+        try:
+            with Client(
                 name=PATH_SESSION_FILE,
                 api_id=BOT_CFG.tg_api_id,
                 api_hash=BOT_CFG.tg_api_hash,
                 proxy=BOT_CFG.proxy_json_pikpak,
             ) as app:
-                return await app.send_message(PIKPAK_BOT_NAME, msg)
-
-        try:
-            return asyncio.run(main())
+                return app.send_message(PIKPAK_BOT_NAME, msg)
         except Exception as e:
-            LOG.error(e)
+            LOG.error(f"fail to send message to pikpak: {e}")
             return None
 
     def get_more_magnets_by_id(self, id: str):
@@ -1308,16 +1304,27 @@ def my_message_handler(message):
         executor.submit(handle_message, message)
 
 
-if __name__ == "__main__":
-    try:
-        if BOT_CFG.use_pikpak == "1" and not os.path.exists(PATH_SESSION_FILE):
-            BotUtils().send_msg_to_pikpak("登录认证")
-    except Exception as e:
-        LOG.error(f"fail to perform pikpak authentication: {e}")
+def pyrogram_auth():
+    if BOT_CFG.use_pikpak == "1" and not os.path.exists(f'{PATH_SESSION_FILE}.session'):
+        LOG.info(f"进行 pyrogram 登录认证......")
+        try:
+            BotUtils().send_msg_to_pikpak("pyrogram 登录认证")
+            LOG.info(f"pyrogram 登录认证成功")
+        except BaseException as e:
+            LOG.error(f"pyrogram 登录认证失败: {e}")
+
+
+def main():
+    pyrogram_auth()
     try:
         bot_info = BOT.get_me()
         LOG.info(f"connected to @{bot_info.username} (ID: {bot_info.id})")
-        set_command()
-        BOT.infinity_polling()
     except Exception as e:
         LOG.error(f"fail to connect to bot: {e}")
+        return
+    set_command()
+    BOT.infinity_polling()
+
+
+if __name__ == "__main__":
+    main()
