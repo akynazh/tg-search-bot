@@ -69,7 +69,7 @@ class BotConfig:
             elif self.use_proxy_dmm == "1":
                 self.proxy_addr_dmm = self.proxy_addr
                 self.proxy_addr = ""
-                LOG.info(f"set proxy for dmm: {self.proxy_json}")
+                LOG.info(f"set proxy for dmm: {self.proxy_addr_dmm}")
             else:
                 self.proxy_addr = ""
         except Exception as e:
