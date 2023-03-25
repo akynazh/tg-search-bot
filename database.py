@@ -255,8 +255,10 @@ class BotCacheDb:
         if self.use_cache == "1":
             try:
                 self.cache = redis.Redis(host=host, port=port)
-                LOG.info(f"connect to redis server: {host}:{port}")
+                self.cache.ping()
+                LOG.info(f"connected to redis server: {host}:{port}")
             except Exception as e:
+                self.cache = None
                 LOG.error(f"fail to connect to redis server: {host}:{port}")
 
     def clear_cache(self):

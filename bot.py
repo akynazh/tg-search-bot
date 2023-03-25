@@ -1309,8 +1309,15 @@ def my_message_handler(message):
 
 
 if __name__ == "__main__":
-    if BOT_CFG.use_pikpak == "1" and not os.path.exists(PATH_SESSION_FILE):
-        BotUtils().send_msg_to_pikpak("登录认证")
-    set_command()
-    LOG.info("tg-jav-bot is started ^_^")
-    BOT.infinity_polling()
+    try:
+        if BOT_CFG.use_pikpak == "1" and not os.path.exists(PATH_SESSION_FILE):
+            BotUtils().send_msg_to_pikpak("登录认证")
+    except Exception as e:
+        LOG.error(f"fail to perform pikpak authentication: {e}")
+    try:
+        bot_info = BOT.get_me()
+        LOG.info(f"connected to @{bot_info.username} (ID: {bot_info.id})")
+        set_command()
+        BOT.infinity_polling()
+    except Exception as e:
+        LOG.error(f"fail to connect to bot: {e}")
