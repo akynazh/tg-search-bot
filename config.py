@@ -21,6 +21,7 @@ class BotConfig:
         self.use_pikpak = "0"
         self.tg_api_id = ""
         self.tg_api_hash = ""
+        self.use_cache = "0"
         self.redis_host = ""
         self.redis_port = ""
         # extend

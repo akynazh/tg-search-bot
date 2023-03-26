@@ -6,6 +6,8 @@
 
 从该项目分离出的一个爬虫子项目：[jvav](https://github.com/akynazh/jvav)，已经发布到 pypi，现在作为本项目的包依赖，同时可以服务于更多应用。
 
+一个基于本项目并提供更多功能（包括写备注, 在群组中使用, 导入记录等等）的机器人: [@tg-jav-bot-plus](https://t.me/zh_jav_plus_bot), 不会部署的可以考虑使用这个。
+
 ## 功能简介
 
 **主要功能：**
@@ -68,7 +70,7 @@
 
 编辑 `~/.tg-jav-bot/config.yaml`：
 
-```
+```yaml
 # TG 对话 ID
 tg_chat_id: 
 # TG 机器人 Token
