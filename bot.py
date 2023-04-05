@@ -486,7 +486,7 @@ class BotUtils:
             key_type=BotKey.KEY_GET_AV_DETAIL_RECORD_BY_ID,
             title="<b>收藏的番号: </b>" + title,
             objs=objs,
-            extra_btns=[extra_btn1, extra_btn2],
+            extra_btns=[[extra_btn1, extra_btn2]],
             page_btns=page_btns,
         )
 
@@ -1138,7 +1138,9 @@ def handle_callback(call):
     elif key_type == BotKey.KEY_RECORD_AV_BY_ID_STAR_IDS:
         res = content.split("|")
         id = res[0]
-        stars = [s for s in res[1:]]
+        stars = []
+        if res[1] != "":
+            stars = [s for s in res[1:]]
         if BOT_DB.record_id_by_id_stars(id=id, stars=stars):
             bot_utils.get_av_detail_record_by_id(id=id)
         else:
