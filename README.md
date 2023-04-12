@@ -70,7 +70,7 @@
 
 ### 配置机器人
 
-编辑 `~/.tg-jav-bot/config.yaml`：
+编辑 `~/.tg_jav_bot/config.yaml`：
 
 ```yaml
 # TG 对话 ID
