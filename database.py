@@ -197,7 +197,7 @@ class BotCacheDb:
     }
     CACHE_STAR = {
         "prefix": "star-",
-        "expire": 0,
+        "expire": 0,  # 永不过期
     }
     CACHE_RANK = {
         "prefix": "rank-",
@@ -223,6 +223,24 @@ class BotCacheDb:
         "prefix": "stars-msg-",
         "expire": 3600 * 24 * 5,
     }
+    CACHE_COMMENT = {"prefix": "comment-", "expire": 3600 * 24 * 30}
+    CACHE_NICE_AVS_OF_STAR = {
+        "prefix": "nice-avs-of-star-",
+        "expire": 3600 * 24 * 15,
+    }
+    CACHE_JLIB_PAGE_NICE_AVS = {
+        "prefix": "jlib-page-nice-avs-",
+        "expire": 3600 * 24 * 7,
+    }
+    CACHE_JLIB_PAGE_NEW_AVS = {
+        "prefix": "jlib-page-new-avs-",
+        "expire": 3600 * 24 * 2,
+    }
+    CACHE_STAR_JA_NAME = {"prefix": "star-ja-name-", "expire": 3600 * 24 * 30 * 6}
+    CACHE_NEW_AVS_OF_STAR = {
+        "prefix": "new-avs-of-star-",
+        "expire": 3600 * 24 * 12,
+    }
 
     TYPE_AV = 1
     TYPE_STAR = 2
@@ -232,6 +250,12 @@ class BotCacheDb:
     TYPE_PV = 6
     TYPE_FV = 7
     TYPE_STARS_MSG = 8
+    TYPE_COMMENT = 10
+    TYPE_NICE_AVS_OF_STAR = 11
+    TYPE_JLIB_PAGE_NICE_AVS = 12
+    TYPE_JLIB_PAGE_NEW_AVS = 13
+    TYPE_STAR_JA_NAME = 14
+    TYPE_NEW_AVS_OF_STAR = 16
 
     TYPE_MAP = {
         TYPE_AV: CACHE_AV,
@@ -242,6 +266,12 @@ class BotCacheDb:
         TYPE_PV: CACHE_PV,
         TYPE_FV: CACHE_FV,
         TYPE_STARS_MSG: CACHE_STARS_MSG,
+        TYPE_COMMENT: CACHE_COMMENT,
+        TYPE_NICE_AVS_OF_STAR: CACHE_NICE_AVS_OF_STAR,
+        TYPE_JLIB_PAGE_NICE_AVS: CACHE_JLIB_PAGE_NICE_AVS,
+        TYPE_JLIB_PAGE_NEW_AVS: CACHE_JLIB_PAGE_NEW_AVS,
+        TYPE_STAR_JA_NAME: CACHE_STAR_JA_NAME,
+        TYPE_NEW_AVS_OF_STAR: CACHE_NEW_AVS_OF_STAR,
     }
 
     def __init__(self, host: str, port: int, use_cache: str):
@@ -259,19 +289,22 @@ class BotCacheDb:
                 LOG.info(f"connected to redis server: {host}:{port}")
             except Exception as e:
                 self.cache = None
-                LOG.error(f"fail to connect to redis server: {host}:{port}")
+                LOG.error(f"fail to connect to redis server: {host}:{port} : {e}")
 
-    def clear_cache(self):
-        LOG.warning("清空缓存")
-        self.cache.flushdb()
+    def remove_cache(self, key: str, type: int):
+        """删除缓存
 
-    def remove_cache(self, key, type: int):
+        :param str key: 键
+        :param int type: 缓存类型
+        """
         if self.use_cache == "0" or not self.cache:
             return
-        key = str(key).lower()
-        cache_key = f"{BotCacheDb.TYPE_MAP[type]['prefix']}{key}"
-        self.cache.delete(cache_key)
-        LOG.info(f"成功清除缓存: {cache_key}")
+        try:
+            key = str(key).lower()
+            cache_key = f"{BotCacheDb.TYPE_MAP[type]['prefix']}{key}"
+            self.cache.delete(cache_key)
+        except Exception as e:
+            LOG.error(f"删除缓存: {cache_key} 失败: {e}")
 
     def set_cache(self, key: str, value, type: int):
         """设置缓存
@@ -282,19 +315,21 @@ class BotCacheDb:
         """
         if self.use_cache == "0" or not self.cache:
             return
-        key = str(key).lower()
-        expire = BotCacheDb.TYPE_MAP[type]["expire"]
-        prefix = BotCacheDb.TYPE_MAP[type]["prefix"]
-        cache_key = f"{prefix}{key}"
-        if expire != 0:
-            self.cache.set(
-                name=cache_key,
-                value=json.dumps({"data": value}),
-                ex=expire,
-            )
-        else:
-            self.cache.set(name=cache_key, value=json.dumps({"data": value}))
-        LOG.info(f"成功设置缓存: {cache_key}")
+        try:
+            key = str(key).lower()
+            expire = BotCacheDb.TYPE_MAP[type]["expire"]
+            prefix = BotCacheDb.TYPE_MAP[type]["prefix"]
+            cache_key = f"{prefix}{key}"
+            if expire != 0:
+                self.cache.set(
+                    name=cache_key,
+                    value=json.dumps(value),
+                    ex=expire,
+                )
+            else:
+                self.cache.set(name=cache_key, value=json.dumps(value))
+        except Exception as e:
+            LOG.error(f"设置缓存: {cache_key} 失败: {e}")
 
     def get_cache(self, key, type: int) -> any:
         """获取缓存
@@ -305,9 +340,11 @@ class BotCacheDb:
         """
         if self.use_cache == "0" or not self.cache:
             return
-        key = str(key).lower()
-        cache_key = f"{BotCacheDb.TYPE_MAP[type]['prefix']}{key}"
-        json_str = self.cache.get(cache_key)
-        if json_str:
-            LOG.info(f"从缓存中找到结果: {cache_key}")
-            return json.loads(json_str)["data"]
+        try:
+            key = str(key).lower()
+            cache_key = f"{BotCacheDb.TYPE_MAP[type]['prefix']}{key}"
+            value = self.cache.get(cache_key)
+            if value:
+                return json.loads(value)
+        except Exception as e:
+            LOG.error(f"获取缓存: {cache_key} 失败: {e}")

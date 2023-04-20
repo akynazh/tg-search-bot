@@ -5,8 +5,11 @@ import logging
 import math
 import os
 import re
+import json
 import string
 import typing
+import threading
+import random
 
 import jvav
 import langdetect
@@ -55,8 +58,6 @@ MSG_HELP = f"""发送给机器人一条含有番号的消息, 机器人会匹配
 
 /record  获取收藏记录文件
 
-/clear  清空缓存
-
 <code>/star</code>  后接演员名称可搜索该演员
 
 <code>/av</code>  后接番号可搜索该番号
@@ -70,7 +71,6 @@ BOT_CMD = {
     "new": "随机获取一部最新 av",
     "rank": "获取 DMM 女优排行榜",
     "record": "获取收藏记录文件",
-    "clear": "清空缓存",
     "star": "后接演员名称可搜索该演员",
     "av": "后接番号可搜索该番号",
 }
@@ -908,26 +908,22 @@ class BotUtils:
         :param str star_name: 演员名称
         """
         op_search_star = f"搜索演员 <code>{star_name}</code>"
-        star_id = BOT_CACHE_DB.get_cache(key=star_name, type=BotCacheDb.TYPE_STAR)
-        if not star_id:
+        star = BOT_CACHE_DB.get_cache(key=star_name, type=BotCacheDb.TYPE_STAR)
+        if not star:
             star_name_origin = star_name
-            if langdetect.detect(star_name) != "ja":  # zh
-                # 通过 wiki 获取日文名
-                wiki_json = WIKI_UTIL.get_wiki_page_by_lang(
-                    topic=star_name, from_lang="zh", to_lang="ja"
-                )
-                if wiki_json and wiki_json["lang"] == "ja":
-                    star_name = wiki_json["title"]
-            code, star_id = JAVBUS_UTIL.check_star_exists(star_name)
+            star_name = self.get_star_ja_name_by_zh_name(star_name)
+            code, star = JAVBUS_UTIL.check_star_exists(star_name)
             if not self.check_success(code, op_search_star):
                 return
-            BOT_CACHE_DB.set_cache(
-                key=star_name, value=star_id, type=BotCacheDb.TYPE_STAR
-            )
+            BOT_CACHE_DB.set_cache(key=star_name, value=star, type=BotCacheDb.TYPE_STAR)
             if star_name_origin != star_name:
                 BOT_CACHE_DB.set_cache(
-                    key=star_name_origin, value=star_id, type=BotCacheDb.TYPE_STAR
+                    key=star_name_origin,
+                    value=star,
+                    type=BotCacheDb.TYPE_STAR,
                 )
+        star_id = star["star_id"]
+        star_name = star["star_name"]
         if BOT_DB.check_star_exists_by_id(star_id=star_id):
             self.get_star_detail_record_by_name_id(star_name=star_name, star_id=star_id)
             return
@@ -1048,22 +1044,53 @@ class BotUtils:
         :param str star_id: 演员 id
         """
         op_get_star_new_avs = f"获取 <code>{star_name}</code> 最新 av"
-        code, ids = JAVBUS_UTIL.get_new_ids_by_star_id(star_id=star_id)
+        ids = BOT_CACHE_DB.get_cache(key=star_id, type=BotCacheDb.TYPE_NEW_AVS_OF_STAR)
+        if not ids:
+            code, ids = JAVBUS_UTIL.get_new_ids_by_star_id(star_id=star_id)
+            if not self.check_success(code, op_get_star_new_avs):
+                return
+            BOT_CACHE_DB.set_cache(
+                key=star_id, value=ids, type=BotCacheDb.TYPE_NEW_AVS_OF_STAR
+            )
         title = f"<code>{star_name}</code> 最新 av"
-        if self.check_success(code, op_get_star_new_avs):
-            btns = [
-                InlineKeyboardButton(
-                    text=id, callback_data=f"{id}:{BotKey.KEY_GET_AV_BY_ID}"
-                )
-                for id in ids
-            ]
-            if len(btns) <= 4:
-                self.send_msg(msg=title, markup=InlineKeyboardMarkup().row(*btns))
-            else:
-                markup = InlineKeyboardMarkup()
-                markup.row(*btns[:4])
-                markup.row(*btns[4:])
-                self.send_msg(msg=title, markup=markup)
+        btns = [
+            InlineKeyboardButton(
+                text=id, callback_data=f"{id}:{BotKey.KEY_GET_AV_BY_ID}"
+            )
+            for id in ids
+        ]
+        if len(btns) <= 4:
+            self.send_msg(msg=title, markup=InlineKeyboardMarkup().row(*btns))
+        else:
+            markup = InlineKeyboardMarkup()
+            markup.row(*btns[:4])
+            markup.row(*btns[4:])
+            self.send_msg(msg=title, markup=markup)
+
+    def get_star_ja_name_by_zh_name(self, star_name: str) -> str:
+        """根据中文名字获取日文名字
+
+        :param str star_name: 中文名字
+        :return str: 日文名字 (如果查找到)
+        """
+        if langdetect.detect(star_name) == "ja":
+            return star_name
+        star_ja_name = BOT_CACHE_DB.get_cache(
+            key=star_name, type=BotCacheDb.TYPE_STAR_JA_NAME
+        )
+        if star_ja_name:
+            return star_ja_name
+        wiki_json = WIKI_UTIL.get_wiki_page_by_lang(
+            topic=star_name, from_lang="zh", to_lang="ja"
+        )
+        if wiki_json and wiki_json["lang"] == "ja":
+            BOT_CACHE_DB.set_cache(
+                key=star_name,
+                value=wiki_json["title"],
+                type=BotCacheDb.TYPE_STAR_JA_NAME,
+            )
+            return wiki_json["title"]
+        return star_name
 
 
 def test():
@@ -1099,7 +1126,7 @@ def handle_callback(call):
     """
     # 回显 typing...
     bot_utils = BotUtils()
-    bot_utils.send_action_typing()
+    threading.Thread(target=bot_utils.send_action_typing).start()
     # 提取回调内容
     s = call.data.rfind(":")
     content = call.data[:s]
@@ -1184,16 +1211,35 @@ def handle_callback(call):
     elif key_type == BotKey.KEY_GET_TOP_STARS:
         bot_utils.get_top_stars(page=int(content))
     elif key_type == BotKey.KEY_GET_NICE_AVS_BY_STAR_NAME:
-        code, avs = DMM_UTIL.get_nice_avs_by_star_name(star_name=content)
-        if bot_utils.check_success(code, f"获取演员 {content} 的高分 av"):
-            avs = avs[:60]
-            bot_utils.send_msg_btns(
-                max_btn_per_row=3,
-                max_row_per_msg=20,
-                key_type=BotKey.KEY_GET_AV_BY_ID,
-                title=f"<b>演员 {content} 的高分 av</b>",
-                objs=avs,
-            )
+        star_name_ori = content
+        avs = BOT_CACHE_DB.get_cache(
+            key=star_name_ori, type=BotCacheDb.TYPE_NICE_AVS_OF_STAR
+        )
+        if not avs:
+            star_name_ja = bot_utils.get_star_ja_name_by_zh_name(star_name_ori)
+            code, avs = DMM_UTIL.get_nice_avs_by_star_name(star_name=star_name_ja)
+            if bot_utils.check_success(code, f"获取演员 {star_name_ori} 的高分 av"):
+                avs = avs[:60]
+                BOT_CACHE_DB.set_cache(
+                    key=star_name_ori,
+                    value=avs,
+                    type=BotCacheDb.TYPE_NICE_AVS_OF_STAR,
+                )
+                if star_name_ja != star_name_ori:
+                    BOT_CACHE_DB.set_cache(
+                        key=star_name_ja,
+                        value=avs,
+                        type=BotCacheDb.TYPE_NICE_AVS_OF_STAR,
+                    )
+            else:
+                return
+        bot_utils.send_msg_btns(
+            max_btn_per_row=3,
+            max_row_per_msg=20,
+            key_type=BotKey.KEY_GET_AV_BY_ID,
+            title=f"<b>演员 {star_name_ori} 的高分 av</b>",
+            objs=avs,
+        )
     elif key_type == BotKey.KEY_DEL_AV_CACHE:
         BOT_CACHE_DB.remove_cache(key=content, type=BotCacheDb.TYPE_AV)
         BOT_CACHE_DB.remove_cache(key=content, type=BotCacheDb.TYPE_STARS_MSG)
@@ -1207,7 +1253,7 @@ def handle_message(message):
     """
     # 回显 typing...
     bot_utils = BotUtils()
-    bot_utils.send_action_typing()
+    threading.Thread(target=bot_utils.send_action_typing).start()
     # 拦截请求
     chat_id = str(message.chat.id)
     if chat_id.lower() != BOT_CFG.tg_chat_id.lower():
@@ -1237,13 +1283,37 @@ def handle_message(message):
     elif msg == "/help" or msg.find("/start") != -1:
         bot_utils.send_msg(MSG_HELP)
     elif msg == "/nice":
-        code, id = JAVLIB_UTIL.get_random_id_from_rank(0)
-        if bot_utils.check_success(code, "随机获取高分 av"):
-            bot_utils.get_av_by_id(id=id)
+        page = random.randint(1, JAVLIB_UTIL.MAX_RANK_PAGE)
+        ids = BOT_CACHE_DB.get_cache(key=page, type=BotCacheDb.TYPE_JLIB_PAGE_NICE_AVS)
+        if not ids:
+            code, ids = JAVLIB_UTIL.get_random_ids_from_rank_by_page(
+                page=page, list_type=0
+            )
+            if bot_utils.check_success(code, "随机获取高分 av"):
+                BOT_CACHE_DB.set_cache(
+                    key=page,
+                    value=ids,
+                    type=BotCacheDb.TYPE_JLIB_PAGE_NICE_AVS,
+                )
+            else:
+                return
+        bot_utils.get_av_by_id(id=random.choice(ids))
     elif msg == "/new":
-        code, id = JAVLIB_UTIL.get_random_id_from_rank(1)
-        if bot_utils.check_success(code, "随机获取最新 av"):
-            bot_utils.get_av_by_id(id=id)
+        page = random.randint(1, JAVLIB_UTIL.MAX_RANK_PAGE)
+        ids = BOT_CACHE_DB.get_cache(key=page, type=BotCacheDb.TYPE_JLIB_PAGE_NEW_AVS)
+        if not ids:
+            code, ids = JAVLIB_UTIL.get_random_ids_from_rank_by_page(
+                page=page, list_type=1
+            )
+            if bot_utils.check_success(code, "随机获取最新 av"):
+                BOT_CACHE_DB.set_cache(
+                    key=page,
+                    value=ids,
+                    type=BotCacheDb.TYPE_JLIB_PAGE_NEW_AVS,
+                )
+            else:
+                return
+        bot_utils.get_av_by_id(id=random.choice(ids))
     elif msg == "/stars":
         bot_utils.get_stars_record()
     elif msg == "/avs":
@@ -1257,9 +1327,6 @@ def handle_message(message):
             bot_utils.send_msg_fail_reason_op(reason="尚无收藏记录", op="获取收藏记录文件")
     elif msg == "/rank":
         bot_utils.get_top_stars(1)
-    elif msg == "/clear":
-        BOT_CACHE_DB.clear_cache()
-        bot_utils.send_msg_success_op(op="清空缓存")
     elif msg.find("/star") != -1:
         param = get_msg_param(msg)
         if param:
