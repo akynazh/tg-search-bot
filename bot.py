@@ -39,6 +39,8 @@ PATH_RECORD_FILE = f"{PATH_ROOT}/record.json"
 PATH_SESSION_FILE = f"{PATH_ROOT}/my_account"
 # 配置文件位置
 PATH_CONFIG_FILE = f"{PATH_ROOT}/config.yaml"
+# MissAv 地址
+BASE_URL_MISS_AV = "https://missav.com"
 # 拦截消息
 MSG_INTERCEPT = f'该机器人仅供私人使用, 如需使用请自行部署: <a href="{PROJECT_ADDRESS}">项目地址</a>'
 # 帮助消息
@@ -893,14 +895,19 @@ class BotUtils:
                         f'通过 Avgle 搜索得到结果, 但视频解析失败: <a href="{pv_src}">视频地址</a> Q_Q'
                     )
         elif type == 1:
-            op_watch_av = f"获取番号 <code>{id}</code> 对应 av 完整视频"
             video = BOT_CACHE_DB.get_cache(key=id, type=BotCacheDb.TYPE_FV)
             if not video:
                 code, video = AVGLE_UTIL.get_fv_by_id(id)
-                if not self.check_success(code, op_watch_av):
+                if code != 200:
+                    self.send_msg(f"MissAv 视频地址: {BASE_URL_MISS_AV}/{id}")
                     return
                 BOT_CACHE_DB.set_cache(key=id, value=video, type=BotCacheDb.TYPE_FV)
-            self.send_msg(f"Avgle 视频地址: {video}")
+            self.send_msg(
+                f"""MissAv 视频地址: {BASE_URL_MISS_AV}/{id}
+
+Avgle 视频地址: {video}
+"""
+            )
 
     def search_star_by_name(self, star_name: str):
         """根据演员名称搜索演员
