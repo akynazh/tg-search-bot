@@ -1,4 +1,3 @@
-cfg.py
 __pycache__
-Pipfile*
+Pipfile.lock
 .vscode
