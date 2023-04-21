@@ -23,12 +23,16 @@ from config import BotConfig
 from database import BotFileDb, BotCacheDb
 
 
+# TG 地址
+BASE_URL_TG = "https://t.me"
+# MissAv 地址
+BASE_URL_MISS_AV = "https://missav.com"
 # 项目地址
 PROJECT_ADDRESS = "https://github.com/akynazh/tg-jav-bot"
 # 默认使用官方机器人: https://t.me/PikPak6_Bot
 PIKPAK_BOT_NAME = "PikPak6_Bot"
 # 联系作者
-CONTACT_AUTHOR = "https://t.me/jackbryant286"
+CONTACT_AUTHOR = f"{BASE_URL_TG}/jackbryant286"
 # 文件存储目录位置
 PATH_ROOT = f'{os.path.expanduser("~")}/.tg_jav_bot'
 # 日志文件位置
@@ -39,30 +43,26 @@ PATH_RECORD_FILE = f"{PATH_ROOT}/record.json"
 PATH_SESSION_FILE = f"{PATH_ROOT}/my_account"
 # 配置文件位置
 PATH_CONFIG_FILE = f"{PATH_ROOT}/config.yaml"
-# MissAv 地址
-BASE_URL_MISS_AV = "https://missav.com"
 # 拦截消息
 MSG_INTERCEPT = f'该机器人仅供私人使用, 如需使用请自行部署: <a href="{PROJECT_ADDRESS}">项目地址</a>'
 # 帮助消息
-MSG_HELP = f"""发送给机器人一条含有番号的消息, 机器人会匹配并搜索消息中所有符合<b>“字母-数字”</b>格式的番号, 其它格式的番号可通过<code>/av</code>命令查找。
+MSG_HELP = f"""发送给机器人一条含有番号的消息, 机器人会匹配并搜索消息中所有符合<b>“字母-数字”(主要番号格式), “fc2-数字”(FC2)</b>格式的番号, 其它格式的番号可通过 <code>/av</code> 命令查找。
 
 /help  查看指令帮助
-
 /stars  查看收藏的演员
-
 /avs  查看收藏的番号
-
 /nice  随机获取一部高分 av
-
 /new  随机获取一部最新 av
-
 /rank  获取 DMM 女优排行榜
-
 /record  获取收藏记录文件
+<code>/star</code>  后接空格和演员名称可搜索该演员 (需要在维基百科条目中存在)
+<code>/av</code>  后接空格和番号可搜索该番号
 
-<code>/star</code>  后接演员名称可搜索该演员
-
-<code>/av</code>  后接番号可搜索该番号
+示例1: 直接发送含番号消息: 若该消息中含有 “ipx-366”, “fc2-880652” 这样的字符串, 机器人会检测到它们并进行搜索
+示例2: 日/中文精准搜索演员: 发送 <code>/star 桜空もも</code> 可以搜索到樱空桃
+示例3: 模糊搜索演员: 发送 <code>/star 三上</code> 可以搜索到三上悠亚
+示例4: /av 搜索加勒比番号: 发送 <code>/av 091318_01</code>
+示例5: /av 搜索东京热番号: 发送 <code>/av n1282</code>
 """
 # 机器人指令
 BOT_CMD = {
@@ -682,7 +682,7 @@ class BotUtils:
             msg += f"""【标签】{av_tags}
 """
         # 其它
-        msg += f"""【其它】<a href="https://t.me/{PIKPAK_BOT_NAME}">Pikpak</a> | <a href="{PROJECT_ADDRESS}">项目</a> | <a href="{CONTACT_AUTHOR}">作者</a>
+        msg += f"""【其它】<a href="{BASE_URL_TG}/{PIKPAK_BOT_NAME}">Pikpak</a> | <a href="{PROJECT_ADDRESS}">项目</a> | <a href="{CONTACT_AUTHOR}">作者</a>
 """
         # 磁链
         magnet_send_to_pikpak = ""
@@ -1347,9 +1347,14 @@ def handle_message(message):
     else:
         # ids = re.compile(r'^[A-Za-z]+[-][0-9]+$').findall(msg)
         ids = re.compile(r"[A-Za-z]+[-][0-9]+").findall(msg)
-        if not ids:
+        ids_fc2 = re.compile(r"fc2-[0-9]+").findall(msg)
+        ids = ids + ids_fc2
+        if not ids or len(ids) == 0:
             bot_utils.send_msg(
-                "消息似乎不存在符合<b>“字母-数字”</b>格式的番号, 请重试或使用“<code>/av</code> 番号”进行查找 =_="
+                """消息似乎不存在符合<b>“字母-数字”</b>格式的番号, 请重试或使用“<code>/av</code> 番号”进行查找 =_=
+
+"""
+                + MSG_HELP
             )
         else:
             ids = [id.lower() for id in ids]
@@ -1357,7 +1362,7 @@ def handle_message(message):
             ids_msg = ", ".join(ids)
             bot_utils.send_msg(f"检测到番号: {ids_msg}, 开始搜索......")
             for id in ids:
-                bot_utils.get_av_by_id(id=id, send_to_pikpak=True)
+                bot_utils.get_av_by_id(id=id)
 
 
 @BOT.callback_query_handler(func=lambda call: True)
