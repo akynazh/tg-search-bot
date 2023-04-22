@@ -1121,6 +1121,7 @@ def handle_callback(call):
     # 回显 typing...
     bot_utils = BotUtils()
     threading.Thread(target=bot_utils.send_action_typing).start()
+    LOG.info(f"处理回调: {call.data}")
     # 提取回调内容
     s = call.data.rfind(":")
     content = call.data[:s]
