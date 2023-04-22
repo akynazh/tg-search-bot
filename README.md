@@ -52,8 +52,6 @@
 tg_chat_id: 
 # TG 机器人 Token
 tg_bot_token: 
-# TG 机器人名称
-tg_bot_name:
 # 全局是否使用代理 1 是 | 0 否
 use_proxy: 
 # 访问 dmm 时是否使用代理，如果全局使用代理，则忽略该字段 1 是 | 0 否

@@ -14,7 +14,6 @@ class BotConfig:
         # config.yaml
         self.tg_chat_id = ""
         self.tg_bot_token = ""
-        self.tg_bot_name = ""
         self.use_proxy = "0"
         self.use_proxy_dmm = "0"
         self.proxy_addr = ""
@@ -38,8 +37,6 @@ class BotConfig:
                 self.tg_chat_id = str(config["tg_chat_id"])
             if config["tg_bot_token"]:
                 self.tg_bot_token = str(config["tg_bot_token"])
-            if config["tg_bot_name"]:
-                self.tg_bot_name = str(config["tg_bot_name"])
             if config["use_proxy"]:
                 self.use_proxy = str(config["use_proxy"])
             if config["use_proxy_dmm"]:
