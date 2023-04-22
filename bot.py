@@ -1105,19 +1105,6 @@ def test():
     return
 
 
-def get_msg_param(msg: str) -> str:
-    """获取消息参数
-
-    :param str msg: 消息文本, 已经通过 strip() 函数将两旁空白清除
-    :return str: 消息参数(保证只有一个)
-    """
-    msgs = msg.split(" ", 1)  # 划分为两部分
-    if len(msgs) > 1:  # 有参数
-        param = "".join(msgs[1].split())  # 去除参数所有空白
-        if param != "":
-            return param
-
-
 def set_command():
     """设置机器人命令"""
     cmds = []
@@ -1280,16 +1267,19 @@ def handle_message(message):
     if not msg:
         return
     LOG.info(f'收到消息: "{msg}"')
-    # 如果是 inline 形式的消息, 则提取 @ 前的字符串
-    inline_idx = msg.find(f"@{BOT_CFG.tg_bot_name}")
-    if inline_idx != -1:
-        msg = msg[:inline_idx]
+    msgs = msg.split(" ", 1)  # 划分为两部分
+    # 消息命令
+    msg_cmd = msgs[0]
+    # 消息参数
+    msg_param = ""
+    if len(msgs) > 1:  # 有参数
+        msg_param = msgs[1].strip()
     # 处理消息
-    if msg == "/test":
+    if msg_cmd == "/test":
         test()
-    elif msg == "/help" or msg.find("/start") != -1:
+    elif msg_cmd == "/help" or msg_cmd == "/start":
         bot_utils.send_msg(MSG_HELP)
-    elif msg == "/nice":
+    elif msg_cmd == "/nice":
         page = random.randint(1, JAVLIB_UTIL.MAX_RANK_PAGE)
         ids = BOT_CACHE_DB.get_cache(key=page, type=BotCacheDb.TYPE_JLIB_PAGE_NICE_AVS)
         if not ids:
@@ -1305,7 +1295,7 @@ def handle_message(message):
             else:
                 return
         bot_utils.get_av_by_id(id=random.choice(ids))
-    elif msg == "/new":
+    elif msg_cmd == "/new":
         page = random.randint(1, JAVLIB_UTIL.MAX_RANK_PAGE)
         ids = BOT_CACHE_DB.get_cache(key=page, type=BotCacheDb.TYPE_JLIB_PAGE_NEW_AVS)
         if not ids:
@@ -1321,29 +1311,27 @@ def handle_message(message):
             else:
                 return
         bot_utils.get_av_by_id(id=random.choice(ids))
-    elif msg == "/stars":
+    elif msg_cmd == "/stars":
         bot_utils.get_stars_record()
-    elif msg == "/avs":
+    elif msg_cmd == "/avs":
         bot_utils.get_avs_record()
-    elif msg == "/record":
+    elif msg_cmd == "/record":
         if os.path.exists(PATH_RECORD_FILE):
             BOT.send_document(
                 chat_id=BOT_CFG.tg_chat_id, document=types.InputFile(PATH_RECORD_FILE)
             )
         else:
             bot_utils.send_msg_fail_reason_op(reason="尚无收藏记录", op="获取收藏记录文件")
-    elif msg == "/rank":
+    elif msg_cmd == "/rank":
         bot_utils.get_top_stars(1)
-    elif msg.find("/star") != -1:
-        param = get_msg_param(msg)
-        if param:
-            bot_utils.send_msg(f"搜索演员: <code>{param}</code> ......")
-            bot_utils.search_star_by_name(param)
-    elif msg.find("/av") != -1:
-        param = get_msg_param(msg)
-        if param:
-            bot_utils.send_msg(f"搜索番号: <code>{param}</code> ......")
-            bot_utils.get_av_by_id(id=param, send_to_pikpak=True)
+    elif msg_cmd == "/star":
+        if msg_param != "":
+            bot_utils.send_msg(f"搜索演员: <code>{msg_param}</code> ......")
+            bot_utils.search_star_by_name(msg_param)
+    elif msg_cmd == "/av":
+        if msg_param:
+            bot_utils.send_msg(f"搜索番号: <code>{msg_param}</code> ......")
+            bot_utils.get_av_by_id(id=msg_param, send_to_pikpak=True)
     else:
         # ids = re.compile(r'^[A-Za-z]+[-][0-9]+$').findall(msg)
         ids = re.compile(r"[A-Za-z]+[-][0-9]+").findall(msg)
