@@ -5,10 +5,8 @@ import logging
 import math
 import os
 import re
-import json
 import string
 import typing
-import threading
 import random
 
 import jvav
@@ -1120,7 +1118,7 @@ def handle_callback(call):
     """
     # 回显 typing...
     bot_utils = BotUtils()
-    threading.Thread(target=bot_utils.send_action_typing).start()
+    bot_utils.send_action_typing()
     LOG.info(f"处理回调: {call.data}")
     # 提取回调内容
     s = call.data.rfind(":")
@@ -1248,7 +1246,7 @@ def handle_message(message):
     """
     # 回显 typing...
     bot_utils = BotUtils()
-    threading.Thread(target=bot_utils.send_action_typing).start()
+    bot_utils.send_action_typing()
     # 拦截请求
     chat_id = str(message.chat.id)
     if chat_id.lower() != BOT_CFG.tg_chat_id.lower():
