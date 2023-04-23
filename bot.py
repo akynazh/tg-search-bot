@@ -1266,6 +1266,7 @@ def handle_message(message):
     if not msg:
         return
     LOG.info(f'收到消息: "{msg}"')
+    msg = msg.lower().strip()
     msgs = msg.split(" ", 1)  # 划分为两部分
     # 消息命令
     msg_cmd = msgs[0]
