@@ -910,7 +910,7 @@ Avgle 视频地址: {video}
 """
             )
 
-    def search_star_by_name(self, star_name: str):
+    def search_star_by_name(self, star_name: str) -> bool:
         """根据演员名称搜索演员
 
         :param str star_name: 演员名称
@@ -934,9 +934,8 @@ Avgle 视频地址: {video}
         star_name = star["star_name"]
         if BOT_DB.check_star_exists_by_id(star_id=star_id):
             self.get_star_detail_record_by_name_id(star_name=star_name, star_id=star_id)
-            return
+            return True
         markup = InlineKeyboardMarkup()
-
         markup.row(
             InlineKeyboardButton(
                 text="随机 av",
@@ -962,6 +961,7 @@ Avgle 视频地址: {video}
             msg=f'<code>{star_name}</code> | <a href="{star_wiki}">Wiki</a> | <a href="{JAVBUS_UTIL.BASE_URL_SEARCH_BY_STAR_NAME}/{star_name}">Javbus</a>',
             markup=markup,
         )
+        return True
 
     def get_top_stars(self, page=1):
         """根据页数获取 DMM 女优排行榜, 每页 20 位女优
@@ -1203,7 +1203,15 @@ def handle_callback(call):
         else:
             bot_utils.send_msg_fail_reason_op(reason="文件解析出错", op=op_undo_record_star)
     elif key_type == BotKey.KEY_SEARCH_STAR_BY_NAME:
-        bot_utils.search_star_by_name(content)
+        star_name = content
+        star_name_alias = ""
+        idx_alias = star_name.find("（")
+        if idx_alias != -1:
+            star_name_alias = star_name[idx_alias + 1 : -1]
+            star_name = star_name[:idx_alias]
+        if not bot_utils.search_star_by_name(star_name) and star_name_alias != "":
+            bot_utils.send_msg(f"尝试搜索演员{star_name}的别名{star_name_alias}......")
+            bot_utils.search_star_by_name(star_name_alias)
     elif key_type == BotKey.KEY_GET_TOP_STARS:
         bot_utils.get_top_stars(page=int(content))
     elif key_type == BotKey.KEY_GET_NICE_AVS_BY_STAR_NAME:
