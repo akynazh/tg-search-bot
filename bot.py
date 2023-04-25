@@ -833,6 +833,9 @@ class BotUtils:
         :param str id: 番号
         :param str type: 0 预览视频 | 1 完整视频
         """
+        id = id.lower()
+        if id.find("fc2") != -1 and id.find("ppv") == -1:
+            id = id.replace("fc2", "fc2-ppv")
         if type == 0:
             pv = BOT_CACHE_DB.get_cache(key=id, type=BotCacheDb.TYPE_PV)
             if not pv:
