@@ -7,6 +7,7 @@ import string
 import typing
 import random
 import jvav
+import asyncio
 import langdetect
 import lxml  # for bs4
 import telebot
@@ -761,7 +762,7 @@ class BotUtils:
         :param str id: 磁链对应的番号
         """
         name = PIKPAK_BOT_NAME
-        op_send_magnet_to_pikpak = f"发送番号 {id} 的磁链 A 到 pikpak: <code>{magnet}</code>"
+        op_send_magnet_to_pikpak = f"发送番号 {id} 的磁链 A: <code>{magnet}</code> 到 pikpak"
         if self.send_msg_to_pikpak(magnet):
             self.send_msg_success_op(op_send_magnet_to_pikpak)
         else:
@@ -971,17 +972,21 @@ Avgle 视频地址: {video}
         :param _type_ msg: 消息
         :return any: 如果失败则为 None
         """
-        try:
-            with Client(
-                name=PATH_SESSION_FILE,
-                api_id=BOT_CFG.tg_api_id,
-                api_hash=BOT_CFG.tg_api_hash,
-                proxy=BOT_CFG.proxy_json_pikpak,
-            ) as app:
-                return app.send_message(PIKPAK_BOT_NAME, msg)
-        except Exception as e:
-            LOG.error(f"无法将消息发送到 pikpak: {e}")
-            return None
+
+        async def send():
+            try:
+                async with Client(
+                    name=PATH_SESSION_FILE,
+                    api_id=BOT_CFG.tg_api_id,
+                    api_hash=BOT_CFG.tg_api_hash,
+                    proxy=BOT_CFG.proxy_json_pikpak,
+                ) as app:
+                    return await app.send_message(PIKPAK_BOT_NAME, msg)
+            except Exception as e:
+                LOG.error(f"无法将消息发送到 pikpak: {e}")
+                return None
+
+        return asyncio.run(send())
 
     def get_more_magnets_by_id(self, id: str):
         """根据番号获取更多磁链
