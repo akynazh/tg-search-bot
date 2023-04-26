@@ -29,7 +29,7 @@ class BotFileDb:
                 with open(self.path_record_file, "r") as f:
                     record = json.load(f)
             except Exception as e:
-                LOG.error(e)
+                LOG.error(f"加载收藏记录文件失败: {e}")
                 return None, False, False
         # 尚无记录
         if not record or record == {}:
@@ -88,7 +88,7 @@ class BotFileDb:
                 )
             return True
         except Exception as e:
-            LOG.error(e)
+            LOG.error(f"更新收藏记录文件失败: {e}")
             return False
 
     def record_star_by_name_id(self, star_name: str, star_id: str) -> bool:
@@ -286,10 +286,10 @@ class BotCacheDb:
             try:
                 self.cache = redis.Redis(host=host, port=port)
                 self.cache.ping()
-                LOG.info(f"connected to redis server: {host}:{port}")
+                LOG.info(f"连接到 redis 服务: {host}:{port}")
             except Exception as e:
                 self.cache = None
-                LOG.error(f"fail to connect to redis server: {host}:{port} : {e}")
+                LOG.error(f"无法连接到 redis 服务: {host}:{port} : {e}")
 
     def remove_cache(self, key: str, type: int):
         """删除缓存

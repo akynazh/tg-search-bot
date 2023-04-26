@@ -1,14 +1,11 @@
 # -*- coding: UTF-8 -*-
-import asyncio
 import concurrent.futures
-import logging
 import math
 import os
 import re
 import string
 import typing
 import random
-
 import jvav
 import langdetect
 import lxml  # for bs4
@@ -16,7 +13,7 @@ import telebot
 from pyrogram import Client
 from telebot import apihelper, types
 from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
-
+from logger import Logger
 from config import BotConfig
 from database import BotFileDb, BotCacheDb
 
@@ -41,8 +38,6 @@ PATH_RECORD_FILE = f"{PATH_ROOT}/record.json"
 PATH_SESSION_FILE = f"{PATH_ROOT}/my_account"
 # 配置文件位置
 PATH_CONFIG_FILE = f"{PATH_ROOT}/config.yaml"
-# 拦截消息
-MSG_INTERCEPT = f'该机器人仅供私人使用, 如需使用请自行部署: <a href="{PROJECT_ADDRESS}">项目地址</a>'
 # 帮助消息
 MSG_HELP = f"""发送给机器人一条含有番号的消息, 机器人会匹配并搜索消息中所有符合<b>“字母-数字”(主要番号格式), “fc2-数字”(FC2)</b>格式的番号, 其它格式的番号可通过 <code>/av</code> 命令查找。
 
@@ -62,8 +57,7 @@ MSG_HELP = f"""发送给机器人一条含有番号的消息, 机器人会匹配
 示例4: /av 搜索加勒比番号: 发送 <code>/av 091318_01</code>
 示例5: /av 搜索东京热番号: 发送 <code>/av n1282</code>
 """
-# 机器人指令
-BOT_CMD = {
+BOT_CMDS = {
     "help": "查看指令帮助",
     "stars": "查看收藏的演员",
     "avs": "查看收藏的番号",
@@ -74,6 +68,26 @@ BOT_CMD = {
     "star": "后接演员名称可搜索该演员",
     "av": "后接番号可搜索该番号",
 }
+
+
+if not os.path.exists(PATH_ROOT):
+    os.makedirs(PATH_ROOT)
+LOG = Logger(path_log_file=PATH_LOG_FILE).logger
+BOT_CFG = BotConfig(PATH_CONFIG_FILE)
+apihelper.proxy = BOT_CFG.proxy_json
+BOT = telebot.TeleBot(BOT_CFG.tg_bot_token)
+BOT_DB = BotFileDb(PATH_RECORD_FILE)
+BOT_CACHE_DB = BotCacheDb(
+    host=BOT_CFG.redis_host, port=BOT_CFG.redis_port, use_cache=BOT_CFG.use_cache
+)
+BASE_UTIL = jvav.BaseUtil(BOT_CFG.proxy_addr)
+DMM_UTIL = jvav.DmmUtil(BOT_CFG.proxy_addr_dmm)
+JAVBUS_UTIL = jvav.JavBusUtil(BOT_CFG.proxy_addr)
+JAVLIB_UTIL = jvav.JavLibUtil(BOT_CFG.proxy_addr)
+SUKEBEI_UTIL = jvav.SukebeiUtil(BOT_CFG.proxy_addr)
+TRANS_UTIL = jvav.TransUtil(BOT_CFG.proxy_addr)
+WIKI_UTIL = jvav.WikiUtil(BOT_CFG.proxy_addr)
+AVGLE_UTIL = jvav.AvgleUtil(BOT_CFG.proxy_addr)
 
 
 class BotKey:
@@ -100,46 +114,6 @@ class BotKey:
     KEY_UNDO_RECORD_STAR_BY_STAR_NAME_ID = "k3_6"
     KEY_UNDO_RECORD_AV_BY_ID = "k3_7"
     KEY_DEL_AV_CACHE = "k4_1"
-
-
-class Logger:
-    """日志记录器"""
-
-    def __init__(self, log_level):
-        """初始化日志记录器
-
-        :param _type_ log_level: 记录级别
-        """
-        self.logger = logging.getLogger()
-        formatter = logging.Formatter("[%(asctime)s] %(levelname)s: %(message)s")
-        file_handler = logging.FileHandler(PATH_LOG_FILE)
-        file_handler.setFormatter(formatter)
-        stream_handler = logging.StreamHandler()
-        stream_handler.setFormatter(formatter)
-        self.logger.addHandler(file_handler)
-        self.logger.addHandler(stream_handler)
-        self.logger.setLevel(log_level)
-
-
-if not os.path.exists(PATH_ROOT):
-    os.makedirs(PATH_ROOT)
-LOG = Logger(log_level=logging.INFO).logger
-BOT_CFG = BotConfig(PATH_CONFIG_FILE)
-BOT_CFG.load_config()
-apihelper.proxy = BOT_CFG.proxy_json
-BOT = telebot.TeleBot(BOT_CFG.tg_bot_token)
-BOT_CACHE_DB = BotCacheDb(
-    host=BOT_CFG.redis_host, port=BOT_CFG.redis_port, use_cache=BOT_CFG.use_cache
-)
-BOT_DB = BotFileDb(PATH_RECORD_FILE)
-BASE_UTIL = jvav.BaseUtil(BOT_CFG.proxy_addr)
-DMM_UTIL = jvav.DmmUtil(BOT_CFG.proxy_addr_dmm)
-JAVBUS_UTIL = jvav.JavBusUtil(BOT_CFG.proxy_addr)
-JAVLIB_UTIL = jvav.JavLibUtil(BOT_CFG.proxy_addr)
-SUKEBEI_UTIL = jvav.SukebeiUtil(BOT_CFG.proxy_addr)
-TRANS_UTIL = jvav.TransUtil(BOT_CFG.proxy_addr)
-WIKI_UTIL = jvav.WikiUtil(BOT_CFG.proxy_addr)
-AVGLE_UTIL = jvav.AvgleUtil(BOT_CFG.proxy_addr)
 
 
 class BotUtils:
@@ -777,7 +751,7 @@ class BotUtils:
             except Exception:  # 少数图片可能没法发送
                 self.send_msg(msg=msg, markup=markup)
         # 发给pikpak
-        if BOT_CFG.use_pikpak == 1 and magnet_send_to_pikpak != "" and send_to_pikpak:
+        if BOT_CFG.use_pikpak == "1" and magnet_send_to_pikpak != "" and send_to_pikpak:
             self.send_magnet_to_pikpak(magnet_send_to_pikpak, av_id)
 
     def send_magnet_to_pikpak(self, magnet: str, id: str):
@@ -1006,7 +980,7 @@ Avgle 视频地址: {video}
             ) as app:
                 return app.send_message(PIKPAK_BOT_NAME, msg)
         except Exception as e:
-            LOG.error(f"fail to send message to pikpak: {e}")
+            LOG.error(f"无法将消息发送到 pikpak: {e}")
             return None
 
     def get_more_magnets_by_id(self, id: str):
@@ -1099,19 +1073,6 @@ Avgle 视频地址: {video}
             )
             return wiki_json["title"]
         return star_name
-
-
-def test():
-    """用于测试"""
-    return
-
-
-def set_command():
-    """设置机器人命令"""
-    cmds = []
-    for cmd in BOT_CMD:
-        cmds.append(types.BotCommand(cmd, BOT_CMD[cmd]))
-    BOT.set_my_commands(cmds)
 
 
 def handle_callback(call):
@@ -1264,7 +1225,7 @@ def handle_message(message):
         LOG.info(f"拦截到非目标用户请求, id: {chat_id}")
         BOT.send_message(
             chat_id=chat_id,
-            text=MSG_INTERCEPT,
+            text=f'该机器人仅供私人使用, 如需使用请自行部署: <a href="{PROJECT_ADDRESS}">项目地址</a>',
             parse_mode="HTML",
         )
         return
@@ -1286,9 +1247,7 @@ def handle_message(message):
     if len(msgs) > 1:  # 有参数
         msg_param = msgs[1].strip()
     # 处理消息
-    if msg_cmd == "/test":
-        test()
-    elif msg_cmd == "/help" or msg_cmd == "/start":
+    if msg_cmd == "/help" or msg_cmd == "/start":
         bot_utils.send_msg(MSG_HELP)
     elif msg_cmd == "/nice":
         page = random.randint(1, JAVLIB_UTIL.MAX_RANK_PAGE)
@@ -1361,7 +1320,7 @@ def handle_message(message):
             ids_msg = ", ".join(ids)
             bot_utils.send_msg(f"检测到番号: {ids_msg}, 开始搜索......")
             for id in ids:
-                bot_utils.get_av_by_id(id=id)
+                bot_utils.get_av_by_id(id=id, send_to_pikpak=True)
 
 
 @BOT.callback_query_handler(func=lambda call: True)
@@ -1398,11 +1357,11 @@ def main():
     pyrogram_auth()
     try:
         bot_info = BOT.get_me()
-        LOG.info(f"connected to @{bot_info.username} (ID: {bot_info.id})")
+        LOG.info(f"连接到机器人: @{bot_info.username} (ID: {bot_info.id})")
     except Exception as e:
-        LOG.error(f"fail to connect to bot: {e}")
+        LOG.error(f"无法连接到机器人: {e}")
         return
-    set_command()
+    BOT.set_my_commands([types.BotCommand(cmd, BOT_CMDS[cmd]) for cmd in BOT_CMDS])
     BOT.infinity_polling()
 
 
