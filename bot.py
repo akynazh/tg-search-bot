@@ -8,6 +8,7 @@ import typing
 import random
 import jvav
 import asyncio
+import threading
 import langdetect
 import lxml  # for bs4
 import telebot
@@ -560,7 +561,12 @@ class BotUtils:
                 av = av_sukebei
             av["score"] = av_score
             if not not_send:
-                BOT_CACHE_DB.set_cache(key=id, value=av, type=BotCacheDb.TYPE_AV)
+                if len(av["magnets"]) == 0:
+                    BOT_CACHE_DB.set_cache(
+                        key=id, value=av, type=BotCacheDb.TYPE_AV, expire=3600 * 24 * 1
+                    )
+                else:
+                    BOT_CACHE_DB.set_cache(key=id, value=av, type=BotCacheDb.TYPE_AV)
         else:
             av_score = av["score"]
             is_cache = True
@@ -687,7 +693,10 @@ class BotUtils:
         more_btn = InlineKeyboardButton(
             text="更多磁链", callback_data=f"{av_id}:{BotKey.KEY_GET_MORE_MAGNETS_BY_ID}"
         )
-        markup = InlineKeyboardMarkup().row(sample_btn, pv_btn, fv_btn, more_btn)
+        if len(av_magnets) != 0:
+            markup = InlineKeyboardMarkup().row(sample_btn, pv_btn, fv_btn, more_btn)
+        else:
+            markup = InlineKeyboardMarkup().row(sample_btn, pv_btn, fv_btn)
         # 第二排按钮
         # 收藏演员按钮
         star_record_btn = None
@@ -1307,24 +1316,18 @@ def handle_message(message):
             bot_utils.send_msg(f"搜索番号: <code>{msg_param}</code> ......")
             bot_utils.get_av_by_id(id=msg_param, send_to_pikpak=True)
     else:
-        # ids = re.compile(r'^[A-Za-z]+[-][0-9]+$').findall(msg)
-        ids = re.compile(r"[A-Za-z]+[-][0-9]+").findall(msg)
-        ids_fc2 = re.compile(r"fc2-[0-9]+").findall(msg)
-        ids = ids + ids_fc2
+        ids = re.compile(r"\b(?:[A-Za-z]+-|fc2(?:-ppv)?-)\d+\b").findall(msg)
         if not ids or len(ids) == 0:
             bot_utils.send_msg(
-                """消息似乎不存在符合<b>“字母-数字”</b>格式的番号, 请重试或使用“<code>/av</code> 番号”进行查找 =_=
-
-"""
-                + MSG_HELP
+                "消息似乎不存在符合<b>“字母-数字”</b>格式的番号, 请重试或使用“<code>/av</code> 番号”进行查找, 可通过 /help 命令获得帮助 ~"
             )
         else:
             ids = [id.lower() for id in ids]
             ids = set(ids)
             ids_msg = ", ".join(ids)
             bot_utils.send_msg(f"检测到番号: {ids_msg}, 开始搜索......")
-            for id in ids:
-                bot_utils.get_av_by_id(id=id, send_to_pikpak=True)
+            for i, id in enumerate(ids):
+                threading.Thread(target=bot_utils.get_av_by_id, args=(id,)).start()
 
 
 EXECUTOR = concurrent.futures.ThreadPoolExecutor()

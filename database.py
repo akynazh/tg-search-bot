@@ -306,18 +306,20 @@ class BotCacheDb:
         except Exception as e:
             LOG.error(f"删除缓存: {cache_key} 失败: {e}")
 
-    def set_cache(self, key: str, value, type: int):
+    def set_cache(self, key: str, value, type: int, expire=None):
         """设置缓存
 
         :param str key: 键
         :param any value: 值
         :param int type: 缓存类型
+        :param int expire: 缓存存活时间(s), 默认使用内定时间
         """
         if self.use_cache == "0" or not self.cache:
             return
         try:
             key = str(key).lower()
-            expire = BotCacheDb.TYPE_MAP[type]["expire"]
+            if not expire:
+                expire = BotCacheDb.TYPE_MAP[type]["expire"]
             prefix = BotCacheDb.TYPE_MAP[type]["prefix"]
             cache_key = f"{prefix}{key}"
             if expire != 0:
