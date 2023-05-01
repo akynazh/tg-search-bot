@@ -1327,24 +1327,25 @@ def handle_message(message):
                 bot_utils.get_av_by_id(id=id, send_to_pikpak=True)
 
 
+EXECUTOR = concurrent.futures.ThreadPoolExecutor()
+
+
 @BOT.callback_query_handler(func=lambda call: True)
 def my_callback_handler(call):
     """消息回调处理器
 
     :param _type_ call
     """
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        executor.submit(handle_callback, call)
+    EXECUTOR.submit(handle_callback, call)
 
 
-@BOT.message_handler(content_types=["text", "photo", "animation", "video"])
+@BOT.message_handler(content_types=["text", "photo", "animation", "video", "document"])
 def my_message_handler(message):
     """消息处理器
 
     :param _type_ message: 消息
     """
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        executor.submit(handle_message, message)
+    EXECUTOR.submit(handle_message, message)
 
 
 def pyrogram_auth():
