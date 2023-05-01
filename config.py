@@ -13,7 +13,7 @@ class BotConfig:
         """
         try:
             # load
-            with open(path_config_file, "r") as f:
+            with open(path_config_file, "r", encoding="utf8") as f:
                 config = yaml.safe_load(f)
             self.tg_chat_id = str(config["tg_chat_id"]) if config["tg_chat_id"] else ""
             self.tg_bot_token = (

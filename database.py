@@ -26,7 +26,7 @@ class BotFileDb:
         # 加载记录
         if os.path.exists(self.path_record_file):
             try:
-                with open(self.path_record_file, "r") as f:
+                with open(self.path_record_file, "r", encoding="utf8") as f:
                     record = json.load(f)
             except Exception as e:
                 LOG.error(f"加载收藏记录文件失败: {e}")
@@ -82,7 +82,7 @@ class BotFileDb:
         :return bool: 是否更新成功
         """
         try:
-            with open(self.path_record_file, "w") as f:
+            with open(self.path_record_file, "w", encoding="utf8") as f:
                 json.dump(
                     record, f, separators=(",", ": "), indent=4, ensure_ascii=False
                 )
