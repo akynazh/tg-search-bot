@@ -282,6 +282,7 @@ class BotCacheDb:
         :param str use_cache: 是否使用缓存
         """
         self.use_cache = use_cache
+        self.cache = None
         if self.use_cache == "1":
             try:
                 self.cache = redis.Redis(host=host, port=port)
