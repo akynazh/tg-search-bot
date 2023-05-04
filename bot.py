@@ -52,11 +52,6 @@ MSG_HELP = f"""发送给机器人一条含有番号的消息, 机器人会匹配
 /record  获取收藏记录文件
 <code>/star</code>  后接空格和演员名称可搜索该演员
 <code>/av</code>  后接空格和番号可搜索该番号
-
-示例1: 直接发送含番号消息: 若该消息中含有 “<code>ipx-366</code>”, “<code>fc2-880652</code>” 这样的字符串, 机器人会检测到它们并进行搜索
-示例2: 日/中文精准搜索演员: 发送 <code>/star 桜空もも</code> 可以搜索到樱空桃
-示例3: 模糊搜索演员: 发送 <code>/star 三上</code> 可以搜索到三上悠亚
-示例4: <code>/av</code> 搜索加勒比番号: 发送 <code>/av 091318_01</code>
 """
 BOT_CMDS = {
     "help": "查看指令帮助",
@@ -1316,7 +1311,7 @@ def handle_message(message):
             bot_utils.send_msg(f"搜索番号: <code>{msg_param}</code> ......")
             bot_utils.get_av_by_id(id=msg_param, send_to_pikpak=True)
     else:
-        ids = re.compile(r"\b(?:[A-Za-z]+-|fc2(?:-ppv)?-)\d+\b").findall(msg)
+        ids = re.compile(r"\b(?:[a-z]+-|fc2(?:-ppv)?-)\d+\b").findall(msg)
         if not ids or len(ids) == 0:
             bot_utils.send_msg(
                 "消息似乎不存在符合<b>“字母-数字”</b>格式的番号, 请重试或使用“<code>/av</code> 番号”进行查找, 可通过 /help 命令获得帮助 ~"
