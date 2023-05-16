@@ -40,6 +40,8 @@ PATH_RECORD_FILE = f"{PATH_ROOT}/record.json"
 PATH_SESSION_FILE = f"{PATH_ROOT}/my_account"
 # 配置文件位置
 PATH_CONFIG_FILE = f"{PATH_ROOT}/config.yaml"
+# 正则匹配 AV
+AV_PAT = re.compile(r"[a-z0-9]+[-_](?:ppv-)?[a-z0-9]+")
 # 帮助消息
 MSG_HELP = f"""发送给机器人一条含有番号的消息, 机器人会匹配并搜索消息中所有符合番号规则(大部分)的番号, 若匹配不到可通过 <code>/av</code> 命令查找。
 
@@ -1311,7 +1313,7 @@ def handle_message(message):
             bot_utils.send_msg(f"搜索番号: <code>{msg_param}</code> ......")
             bot_utils.get_av_by_id(id=msg_param, send_to_pikpak=True)
     else:
-        ids = re.compile(r"[a-z0-9]+[-_](?:ppv-)?[a-z0-9]+").findall(msg)
+        ids = AV_PAT.findall(msg)
         if not ids or len(ids) == 0:
             bot_utils.send_msg(
                 "消息似乎不存在符合规则的番号, 可尝试通过“<code>/av</code> 番号”进行查找, 通过 /help 命令可获得帮助 ~"
