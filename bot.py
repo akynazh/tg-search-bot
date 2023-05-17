@@ -204,11 +204,11 @@ class BotUtils:
             self.send_msg_code_op(code=502, op=op)
         return False
 
-    def create_btn_by_key(self, key_type: str, obj: dict) -> InlineKeyboardButton:
+    def create_btn_by_key(self, key_type: str, obj) -> InlineKeyboardButton:
         """根据按钮种类创建按钮
 
         :param str key_type: 按钮种类
-        :param dict obj: 数据对象
+        :param any obj: 数据对象
         :return InlineKeyboardButton: 按钮对象
         """
         if key_type == BotKey.KEY_GET_STAR_DETAIL_RECORD_BY_STAR_NAME_ID:
@@ -241,7 +241,7 @@ class BotUtils:
         :param int max_row_per_msg: 每条消息最多行数
         :param str key_type: 按钮种类
         :param str title: 消息标题
-        :param dict objs: 数据对象数组
+        :param list objs: 数据对象数组
         :param list extra_btns: 附加按钮列表, 二维数组, 对应于实际的按钮排布, 附加在每条消息尾部, 默认为空
         :param list page_btns: 分页块
         """
@@ -279,16 +279,16 @@ class BotUtils:
             self.send_msg(msg=title, markup=markup)
 
     def get_page_elements(
-        self, objs: dict, page: int, col: int, row: int, key_type: str
-    ) -> typing.Tuple[dict, list, str]:
-        """获取当前页对象字典, 分页按钮列表, 数量标题
+        self, objs: list, page: int, col: int, row: int, key_type: str
+    ) -> typing.Tuple[list, list, str]:
+        """获取当前页对象列表, 分页按钮列表, 数量标题
 
-        :param dict objs: 对象字典
+        :param list objs: 所有对象
         :param int page: 当前页
         :param int col: 当前页列数
         :param int row: 当前页行数
         :param str key_type: 按键类型
-        :return tuple[dict, list, str]: 当前页对象字典, 分页按钮列表, 数量标题
+        :return tuple[list, list, str]: 当前页对象列表, 分页按钮列表, 数量标题
         """
         # 记录总数
         record_count_total = len(objs)
