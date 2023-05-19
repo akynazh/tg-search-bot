@@ -1,4 +1,4 @@
-# tg-jav-bot
+# tg-search-bot
 
 **一个用于查询与收藏演员和影片的机器人, 可自动保存磁链到 Pikpak。**
 
@@ -69,10 +69,8 @@ docker-compose up -d
 **或通过普通方法运行：**
 
 ```
-# 如果使用缓存的话需先开启 redis 服务
-# Python >=3.7
-pip install -r requirements.txt
-python3 bot.py
+# Python >=3.7, 如果使用缓存的话需先开启 redis 服务
+pip install -r requirements.txt && python3 bot.py
 ```
 
 ### 更新机器人
