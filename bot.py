@@ -10,7 +10,6 @@ import jvav
 import asyncio
 import threading
 import langdetect
-import lxml  # for bs4
 import telebot
 from pyrogram import Client
 from telebot import apihelper, types
