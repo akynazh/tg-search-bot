@@ -1,4 +1,5 @@
 Jvav
+TgCrypto
 langdetect==1.0.9
 lxml==4.9.2
 Pyrogram==2.0.92

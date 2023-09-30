@@ -30,7 +30,7 @@ PIKPAK_BOT_NAME = "PikPak6_Bot"
 # 联系作者
 CONTACT_AUTHOR = f"{BASE_URL_TG}/jackbryant286"
 # 文件存储目录位置
-PATH_ROOT = f'{os.path.expanduser("~")}/.tg_jav_bot'
+PATH_ROOT = f'{os.path.expanduser("~")}/.tg_search_bot'
 # 日志文件位置
 PATH_LOG_FILE = f"{PATH_ROOT}/log.txt"
 # 记录文件位置

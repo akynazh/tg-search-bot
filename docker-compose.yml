@@ -1,15 +1,17 @@
 version: "3"
+
 services:
   cache:
     image: redis
-    command: redis-server /usr/local/etc/redis/redis.conf
+    command: bash -c "mkdir -p ${PATH_REDIS} && touch ${PATH_REDIS}/redis.conf && redis-server ${PATH_REDIS}/redis.conf"
     ports:
       - "6379:6379"
     volumes:
-      - ~/.tg_jav_bot/redis/data:/data
-      - ~/.tg_jav_bot/redis/redis.conf:/usr/local/etc/redis/redis.conf
-  tg_jav_bot:
+      - ${HOST_PATH_ROOT}/redis:${PATH_REDIS}
+      - ${HOST_PATH_ROOT}/redis/data:/data
+  tg_search_bot:
     build: .
     volumes:
-      - ~/.tg_jav_bot:/root/.tg_jav_bot
-    network_mode: "host"
+      - ${HOST_PATH_ROOT}:${PATH_ROOT}
+    depends_on:
+      - cache
