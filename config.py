@@ -6,10 +6,6 @@ LOG = logging.getLogger(__name__)
 
 class BotConfig:
     def __init__(self, path_config_file: str):
-        """初始化
-
-        :param str path_config_file: 配置文件位置
-        """
         # load
         with open(path_config_file, "r", encoding="utf8") as f:
             config = yaml.safe_load(f)
@@ -30,6 +26,7 @@ class BotConfig:
         self.use_cache = str(config["use_cache"]) if config["use_cache"] else "0"
         self.redis_host = str(config["redis_host"]) if config["redis_host"] else ""
         self.redis_port = str(config["redis_port"]) if config["redis_port"] else ""
+        self.enable_nsfw = str(config["enable_nsfw"]) if config["enable_nsfw"] else "0"
         # set
         self.proxy_addr_dmm = ""
         self.proxy_json = {"http": "", "https": ""}
@@ -41,8 +38,8 @@ class BotConfig:
             t2 = self.proxy_addr.rfind(":")
             self.proxy_json_pikpak = {
                 "scheme": self.proxy_addr[:t1],
-                "hostname": self.proxy_addr[t1 + 3 : t2],
-                "port": int(self.proxy_addr[t2 + 1 :]),
+                "hostname": self.proxy_addr[t1 + 3: t2],
+                "port": int(self.proxy_addr[t2 + 1:]),
             }
             LOG.info(f'设置代理: "{self.proxy_addr}"')
         elif self.use_proxy_dmm == "1":
@@ -51,3 +48,4 @@ class BotConfig:
             LOG.info(f'设置 DMM 代理: "{self.proxy_addr_dmm}"')
         else:
             self.proxy_addr = ""
+        LOG.info("成功读取并加载配置文件")

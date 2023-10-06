@@ -1,7 +1,6 @@
 import os
 import json
 import redis
-import typing
 import logging
 
 LOG = logging.getLogger(__name__)
@@ -9,14 +8,10 @@ LOG = logging.getLogger(__name__)
 
 class BotFileDb:
     def __init__(self, path_record_file: str):
-        """初始化
-
-        :param str path_record_file: 记录文件位置
-        """
         self.path_record_file = path_record_file
         pass
 
-    def check_has_record(self) -> typing.Tuple[dict, bool, bool]:
+    def check_has_record(self) -> tuple[dict, bool, bool]:
         """检查是否有收藏记录, 如果有则返回记录
 
         :return tuple[dict, bool, bool]: 收藏记录, 演员记录是否存在, 番号记录是否存在
@@ -38,9 +33,9 @@ class BotFileDb:
         is_stars_exists = False
         is_avs_exists = False
         if (
-            "stars" in record.keys()
-            and record["stars"] != []
-            and len(record["stars"]) > 0
+                "stars" in record.keys()
+                and record["stars"] != []
+                and len(record["stars"]) > 0
         ):
             is_stars_exists = True
         if "avs" in record.keys() and record["avs"] != [] and len(record["avs"]) > 0:
@@ -191,6 +186,10 @@ class BotFileDb:
 
 
 class BotCacheDb:
+    CACHE_BT = {
+        "prefix": "bt-",
+        "expire": 3600 * 24 * 30,
+    }
     CACHE_AV = {
         "prefix": "av-",
         "expire": 3600 * 24 * 30,
@@ -256,6 +255,7 @@ class BotCacheDb:
     TYPE_JLIB_PAGE_NEW_AVS = 13
     TYPE_STAR_JA_NAME = 14
     TYPE_NEW_AVS_OF_STAR = 16
+    TYPE_BT = 17
 
     TYPE_MAP = {
         TYPE_AV: CACHE_AV,
@@ -272,6 +272,7 @@ class BotCacheDb:
         TYPE_JLIB_PAGE_NEW_AVS: CACHE_JLIB_PAGE_NEW_AVS,
         TYPE_STAR_JA_NAME: CACHE_STAR_JA_NAME,
         TYPE_NEW_AVS_OF_STAR: CACHE_NEW_AVS_OF_STAR,
+        TYPE_BT: CACHE_BT,
     }
 
     def __init__(self, host: str, port: int, use_cache: str):
@@ -300,9 +301,9 @@ class BotCacheDb:
         """
         if self.use_cache == "0" or not self.cache:
             return
+        key = str(key).lower()
+        cache_key = f"{BotCacheDb.TYPE_MAP[type]['prefix']}{key}"
         try:
-            key = str(key).lower()
-            cache_key = f"{BotCacheDb.TYPE_MAP[type]['prefix']}{key}"
             self.cache.delete(cache_key)
         except Exception as e:
             LOG.error(f"删除缓存: {cache_key} 失败: {e}")
@@ -317,12 +318,12 @@ class BotCacheDb:
         """
         if self.use_cache == "0" or not self.cache:
             return
+        key = str(key).lower()
+        if not expire:
+            expire = BotCacheDb.TYPE_MAP[type]["expire"]
+        prefix = BotCacheDb.TYPE_MAP[type]["prefix"]
+        cache_key = f"{prefix}{key}"
         try:
-            key = str(key).lower()
-            if not expire:
-                expire = BotCacheDb.TYPE_MAP[type]["expire"]
-            prefix = BotCacheDb.TYPE_MAP[type]["prefix"]
-            cache_key = f"{prefix}{key}"
             if expire != 0:
                 self.cache.set(
                     name=cache_key,
@@ -343,9 +344,9 @@ class BotCacheDb:
         """
         if self.use_cache == "0" or not self.cache:
             return
+        key = str(key).lower()
+        cache_key = f"{BotCacheDb.TYPE_MAP[type]['prefix']}{key}"
         try:
-            key = str(key).lower()
-            cache_key = f"{BotCacheDb.TYPE_MAP[type]['prefix']}{key}"
             value = self.cache.get(cache_key)
             if value:
                 return json.loads(value)

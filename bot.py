@@ -3,8 +3,9 @@ import math
 import os
 import re
 import string
-import typing
 import random
+from typing import Optional, List, Dict, Any
+
 import jvav
 import asyncio
 import threading
@@ -16,66 +17,25 @@ from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup, InputMedia
 from logger import Logger
 from config import BotConfig
 from database import BotFileDb, BotCacheDb
+from requests import get
+from requests.compat import quote
 
-
-# TG 地址
 BASE_URL_TG = "https://t.me"
-# MissAv 地址
 BASE_URL_MISS_AV = "https://missav.com"
-# 项目地址
-PROJECT_ADDRESS = "https://github.com/akynazh/tg-jav-bot"
-# 默认使用官方机器人: https://t.me/PikPak6_Bot
+PROJECT_ADDRESS = "https://github.com/akynazh/tg-search-bot"
 PIKPAK_BOT_NAME = "PikPak6_Bot"
-# 联系作者
 CONTACT_AUTHOR = f"{BASE_URL_TG}/jackbryant286"
-# 文件存储目录位置
 PATH_ROOT = f'{os.path.expanduser("~")}/.tg_search_bot'
-# 日志文件位置
 PATH_LOG_FILE = f"{PATH_ROOT}/log.txt"
-# 记录文件位置
 PATH_RECORD_FILE = f"{PATH_ROOT}/record.json"
-# my_account.session 文件位置
-PATH_SESSION_FILE = f"{PATH_ROOT}/my_account"
-# 配置文件位置
+PATH_SESSION_FILE = f"{PATH_ROOT}/session"
 PATH_CONFIG_FILE = f"{PATH_ROOT}/config.yaml"
-# 正则匹配 AV
-AV_PAT = re.compile(r"[a-z0-9]+[-_](?:ppv-)?[a-z0-9]+")
-# 帮助消息
-MSG_HELP = f"""发送给机器人一条含有番号的消息, 机器人会匹配并搜索消息中所有符合番号规则(大部分)的番号, 若匹配不到可通过 <code>/av</code> 命令查找。
-
-/help  查看指令帮助
-/stars  查看收藏的演员
-/avs  查看收藏的番号
-/nice  随机获取一部高分 av
-/new  随机获取一部最新 av
-/rank  获取 DMM 女优排行榜
-/record  获取收藏记录文件
-<code>/star</code>  后接空格和演员名称可搜索该演员
-<code>/av</code>  后接空格和番号可搜索该番号
-"""
-BOT_CMDS = {
-    "help": "查看指令帮助",
-    "stars": "查看收藏的演员",
-    "avs": "查看收藏的番号",
-    "nice": "随机获取一部高分 av",
-    "new": "随机获取一部最新 av",
-    "rank": "获取 DMM 女优排行榜",
-    "record": "获取收藏记录文件",
-    "star": "后接演员名称可搜索该演员",
-    "av": "后接番号可搜索该番号",
-}
-
-
-if not os.path.exists(PATH_ROOT):
-    os.makedirs(PATH_ROOT)
 LOG = Logger(path_log_file=PATH_LOG_FILE).logger
 BOT_CFG = BotConfig(PATH_CONFIG_FILE)
 apihelper.proxy = BOT_CFG.proxy_json
 BOT = telebot.TeleBot(BOT_CFG.tg_bot_token)
 BOT_DB = BotFileDb(PATH_RECORD_FILE)
-BOT_CACHE_DB = BotCacheDb(
-    host=BOT_CFG.redis_host, port=BOT_CFG.redis_port, use_cache=BOT_CFG.use_cache
-)
+BOT_CACHE_DB = BotCacheDb(host=BOT_CFG.redis_host, port=BOT_CFG.redis_port, use_cache=BOT_CFG.use_cache)
 BASE_UTIL = jvav.BaseUtil(BOT_CFG.proxy_addr)
 DMM_UTIL = jvav.DmmUtil(BOT_CFG.proxy_addr_dmm)
 JAVBUS_UTIL = jvav.JavBusUtil(BOT_CFG.proxy_addr)
@@ -84,11 +44,30 @@ SUKEBEI_UTIL = jvav.SukebeiUtil(BOT_CFG.proxy_addr)
 TRANS_UTIL = jvav.TransUtil(BOT_CFG.proxy_addr)
 WIKI_UTIL = jvav.WikiUtil(BOT_CFG.proxy_addr)
 AVGLE_UTIL = jvav.AvgleUtil(BOT_CFG.proxy_addr)
+EXECUTOR = concurrent.futures.ThreadPoolExecutor()
+ID_PAT = re.compile(r"[a-z0-9]+[-_](?:ppv-)?[a-z0-9]+")
+BOT_CMDS = {
+    "help": "查看指令帮助",
+    "stars": "查看收藏的演员",
+    "ids": "查看收藏的番号",
+    "nice": "随机获取一部高分影片",
+    "new": "随机获取一部最新影片",
+    "rank": "获取 DMM 演员排行榜",
+    "record": "获取收藏记录文件",
+    "star": "后接演员名称可搜索该演员",
+    "id": "后接番号可搜索该番号",
+}
+MSG_HELP = f"""发送影片名称, 关键字, 或番号给我就好哦 ~
+
+"""
+for cmd, content in BOT_CMDS.items():
+    MSG_HELP += f"""/{cmd}  {content}
+"""
+MSG_HELP += f"""
+[NSFW: {"OPENED" if BOT_CFG.enable_nsfw == "1" else "CLOSED"}]"""
 
 
 class BotKey:
-    """回调按键值"""
-
     KEY_GET_SAMPLE_BY_ID = "k0_0"
     KEY_GET_MORE_MAGNETS_BY_ID = "k0_1"
     KEY_SEARCH_STAR_BY_NAME = "k0_2"
@@ -113,13 +92,11 @@ class BotKey:
 
 
 class BotUtils:
-    """机器人工具"""
 
     def __init__(self):
         pass
 
     def send_action_typing(self):
-        """显示机器人正在处理消息"""
         BOT.send_chat_action(chat_id=BOT_CFG.tg_chat_id, action="typing")
 
     def send_msg(self, msg: str, pv=False, markup=None):
@@ -224,14 +201,14 @@ class BotUtils:
             )
 
     def send_msg_btns(
-        self,
-        max_btn_per_row: int,
-        max_row_per_msg: int,
-        key_type: str,
-        title: str,
-        objs: list,
-        extra_btns=[],
-        page_btns=[],
+            self,
+            max_btn_per_row: int,
+            max_row_per_msg: int,
+            key_type: str,
+            title: str,
+            objs: list,
+            extra_btns=[],
+            page_btns=[],
     ):
         """发送按钮消息
 
@@ -277,8 +254,8 @@ class BotUtils:
             self.send_msg(msg=title, markup=markup)
 
     def get_page_elements(
-        self, objs: list, page: int, col: int, row: int, key_type: str
-    ) -> typing.Tuple[list, list, str]:
+            self, objs: list, page: int, col: int, row: int, key_type: str
+    ) -> tuple[list, list, str]:
         """获取当前页对象列表, 分页按钮列表, 数量标题
 
         :param list objs: 所有对象
@@ -302,7 +279,7 @@ class BotUtils:
             page = page_count
         # 获取当前页对象字典
         start_idx = (page - 1) * record_count_per_page
-        objs = objs[start_idx : start_idx + record_count_per_page]
+        objs = objs[start_idx: start_idx + record_count_per_page]
         # 获取按键列表
         if page == 1:
             to_previous = 1
@@ -333,12 +310,13 @@ class BotUtils:
             title,
         )
 
-    def get_stars_record(self, page=1):
-        """获取演员收藏记录
+    def check_if_enable_nsfw(self) -> bool:
+        if BOT_CFG.enable_nsfw == "0":
+            self.send_msg("[NSFW] FORBIDDEN!")
+            return False
+        return True
 
-        :param int page: 第几页, 默认第一页
-        """
-        # 初始化数据
+    def get_stars_record(self, page=1):
         record, is_star_exists, _ = BOT_DB.check_has_record()
         if not record or not is_star_exists:
             self.send_msg_fail_reason_op(reason="尚无演员收藏记录", op="获取演员收藏记录")
@@ -364,12 +342,6 @@ class BotUtils:
         )
 
     def get_star_detail_record_by_name_id(self, star_name: str, star_id: str):
-        """根据演员名称和编号获取该演员更多信息
-
-        :param str star_name: 演员名称
-        :param str star_id: 演员编号
-        """
-        # 初始化数据
         record, is_stars_exists, is_avs_exists = BOT_DB.check_has_record()
         if not record:
             self.send_msg(reason="尚无该演员收藏记录", op=f"获取演员 <code>{star_name}</code> 的更多信息")
@@ -389,7 +361,6 @@ class BotUtils:
             for star in stars:
                 if star["id"].lower() == star_id.lower():
                     cur_star_exists = True
-        # 发送按钮消息
         extra_btn1 = InlineKeyboardButton(
             text=f"随机 av",
             callback_data=f"{star_name}|{star_id}:{BotKey.KEY_RANDOM_GET_AV_BY_STAR_ID}",
@@ -428,18 +399,12 @@ class BotUtils:
         )
 
     def get_avs_record(self, page=1):
-        """获取番号收藏记录
-
-        :param int page: 第几页, 默认第一页
-        """
-        # 初始化数据
         record, _, is_avs_exists = BOT_DB.check_has_record()
         if not record or not is_avs_exists:
             self.send_msg_fail_reason_op(reason="尚无番号收藏记录", op="获取番号收藏记录")
             return
         avs = [av["id"] for av in record["avs"]]
         avs.reverse()
-        # 发送按钮消息
         extra_btn1 = InlineKeyboardButton(
             text="随机高分 av", callback_data=f"0:{BotKey.KEY_RANDOM_GET_AV_NICE}"
         )
@@ -461,10 +426,6 @@ class BotUtils:
         )
 
     def get_av_detail_record_by_id(self, id: str):
-        """根据番号获取该番号更多信息
-
-        :param str id: 番号
-        """
         record, _, is_avs_exists = BOT_DB.check_has_record()
         avs = record["avs"]
         cur_av_exists = False
@@ -487,15 +448,84 @@ class BotUtils:
             markup.row(btn)
         self.send_msg(msg=f"<code>{id}</code>", markup=markup)
 
+    def search_bts(self, q) -> list[dict[str, str | Any]] | None:
+        def append_trackers() -> str:
+            """Returns the base tracker list"""
+            trackers = [
+                'udp://tracker.coppersurfer.tk:6969/announce',
+                'udp://tracker.openbittorrent.com:6969/announce',
+                'udp://9.rarbg.to:2710/announce',
+                'udp://9.rarbg.me:2780/announce',
+                'udp://9.rarbg.to:2730/announce',
+                'udp://tracker.opentrackr.org:1337',
+                'http://p4p.arenabg.com:1337/announce',
+                'udp://tracker.torrent.eu.org:451/announce',
+                'udp://tracker.tiny-vps.com:6969/announce',
+                'udp://open.stealth.si:80/announce',
+            ]
+            trackers = [quote(tr) for tr in trackers]
+            return '&tr='.join(trackers)
+
+        def category_name(category) -> str:
+            """Translates the category code to a name"""
+            names = [
+                '',
+                'audio',
+                'video',
+                'apps',
+                'games',
+                'nsfw',
+                'other'
+            ]
+            category = int(category[0])
+            category = category if category < len(names) - 1 else -1
+            return names[category]
+
+        def size_as_str(size) -> str:
+            """Formats the file size in bytes to kb, mb or gb accordingly"""
+            size = int(size)
+            size_str = f"{size} b"
+            if size >= 1024:
+                size_str = f"{(size / 1024):.2f} kb"
+            if size >= 1024 ** 2:
+                size_str = f"{(size / 1024 ** 2):.2f} mb"
+            if size >= 1024 ** 3:
+                size_str = f"{(size / 1024 ** 3):.2f} gb"
+            return size_str
+
+        def magnet_link(ih, name) -> str:
+            """Creates the magnet URI"""
+            return f'magnet:?xt=urn:btih:{ih}&dn={quote(name)}&tr={append_trackers()}'
+
+        agent = BASE_UTIL.ua()
+        url = f"https://apibay.org/q.php?q={quote(q)}"
+        results = get(url, headers={'agent': agent})
+        if not results.status_code == 200:
+            return None
+        matches = []
+        data = results.json()
+        if data and 'no results' in data[0]['name'].lower():
+            return matches
+        for d in data:
+            matches.append({
+                'seeders': d['seeders'],
+                'leechers': d['leechers'],
+                'name': d['name'],
+                'category': category_name(d['category']),
+                'size': size_as_str(d['size']),
+                'magnet': magnet_link(d['info_hash'], d['name']),
+            })
+        return matches
+
     def get_av_by_id(
-        self,
-        id: str,
-        send_to_pikpak=False,
-        is_nice=True,
-        is_uncensored=True,
-        magnet_max_count=3,
-        not_send=False,
-    ) -> dict:
+            self,
+            id: str,
+            send_to_pikpak=False,
+            is_nice=True,
+            is_uncensored=True,
+            magnet_max_count=3,
+            not_send=False,
+    ) -> Optional[dict]:
         """根据番号获取 av
 
         :param str id: 番号
@@ -506,6 +536,8 @@ class BotUtils:
         :param not_send: 是否不发送 av 结果, 默认发送
         :return dict: 当不发送 av 结果时, 返回得到的 av(如果有)
         """
+        if not self.check_if_enable_nsfw():
+            return {}
         # 获取 av
         op_get_av_by_id = f"搜索番号 <code>{id}</code>"
         av = BOT_CACHE_DB.get_cache(key=id, type=BotCacheDb.TYPE_AV)
@@ -764,7 +796,6 @@ class BotUtils:
         :param str magnet: 磁链
         :param str id: 磁链对应的番号
         """
-        name = PIKPAK_BOT_NAME
         op_send_magnet_to_pikpak = f"发送番号 {id} 的磁链 A: <code>{magnet}</code> 到 pikpak"
         if self.send_msg_to_pikpak(magnet):
             self.send_msg_success_op(op_send_magnet_to_pikpak)
@@ -774,10 +805,6 @@ class BotUtils:
             )
 
     def get_sample_by_id(self, id: str):
-        """根据番号获取 av 截图
-
-        :param str id: 番号
-        """
         op_get_sample = f"根据番号 <code>{id}</code> 获取 av 截图"
         # 获取截图
         samples = BOT_CACHE_DB.get_cache(key=id, type=BotCacheDb.TYPE_SAMPLE)
@@ -889,10 +916,8 @@ Avgle 视频地址: {video}
             )
 
     def search_star_by_name(self, star_name: str) -> bool:
-        """根据演员名称搜索演员
-
-        :param str star_name: 演员名称
-        """
+        if not self.check_if_enable_nsfw():
+            return False
         op_search_star = f"搜索演员 <code>{star_name}</code>"
         star = BOT_CACHE_DB.get_cache(key=star_name, type=BotCacheDb.TYPE_STAR)
         if not star:
@@ -942,11 +967,7 @@ Avgle 视频地址: {video}
         return True
 
     def get_top_stars(self, page=1):
-        """根据页数获取 DMM 女优排行榜, 每页 20 位女优
-
-        :param int page: 第几页, 默认第一页
-        """
-        op_get_top_stars = f"获取 DMM 女优排行榜"
+        op_get_top_stars = f"获取 DMM 演员排行榜"
         stars = BOT_CACHE_DB.get_cache(key=page, type=BotCacheDb.TYPE_RANK)
 
         if not stars:
@@ -955,7 +976,7 @@ Avgle 视频地址: {video}
                 return
             BOT_CACHE_DB.set_cache(key=page, value=stars, type=BotCacheDb.TYPE_RANK)
         stars_tmp = [None] * 80
-        stars = stars_tmp[: ((page - 1) * 20)] + stars + stars_tmp[((page - 1) * 20) :]
+        stars = stars_tmp[: ((page - 1) * 20)] + stars + stars_tmp[((page - 1) * 20):]
         col, row = 4, 5
         objs, page_btns, title = self.get_page_elements(
             objs=stars, page=page, col=4, row=5, key_type=BotKey.KEY_GET_TOP_STARS
@@ -964,25 +985,20 @@ Avgle 视频地址: {video}
             max_btn_per_row=col,
             max_row_per_msg=row,
             key_type=BotKey.KEY_SEARCH_STAR_BY_NAME,
-            title="<b>DMM 女优排行榜: </b>" + title,
+            title="<b>DMM 演员排行榜: </b>" + title,
             objs=objs,
             page_btns=page_btns,
         )
 
     def send_msg_to_pikpak(self, msg):
-        """发送消息到Pikpak机器人
-
-        :param _type_ msg: 消息
-        :return any: 如果失败则为 None
-        """
 
         async def send():
             try:
                 async with Client(
-                    name=PATH_SESSION_FILE,
-                    api_id=BOT_CFG.tg_api_id,
-                    api_hash=BOT_CFG.tg_api_hash,
-                    proxy=BOT_CFG.proxy_json_pikpak,
+                        name=PATH_SESSION_FILE,
+                        api_id=BOT_CFG.tg_api_id,
+                        api_hash=BOT_CFG.tg_api_hash,
+                        proxy=BOT_CFG.proxy_json_pikpak,
                 ) as app:
                     return await app.send_message(PIKPAK_BOT_NAME, msg)
             except Exception as e:
@@ -992,10 +1008,6 @@ Avgle 视频地址: {video}
         return asyncio.run(send())
 
     def get_more_magnets_by_id(self, id: str):
-        """根据番号获取更多磁链
-
-        :param id: 番号
-        """
         magnets = BOT_CACHE_DB.get_cache(key=id, type=BotCacheDb.TYPE_MAGNET)
         if not magnets:
             av = self.get_av_by_id(
@@ -1028,11 +1040,6 @@ Avgle 视频地址: {video}
             self.send_msg(msg)
 
     def get_star_new_avs_by_name_id(self, star_name: str, star_id: str):
-        """获取演员最新 av
-
-        :param str star_name: 演员名称
-        :param str star_id: 演员 id
-        """
         op_get_star_new_avs = f"获取 <code>{star_name}</code> 最新 av"
         ids = BOT_CACHE_DB.get_cache(key=star_id, type=BotCacheDb.TYPE_NEW_AVS_OF_STAR)
         if not ids:
@@ -1058,11 +1065,6 @@ Avgle 视频地址: {video}
             self.send_msg(msg=title, markup=markup)
 
     def get_star_ja_name_by_zh_name(self, star_name: str) -> str:
-        """根据中文名字获取日文名字
-
-        :param str star_name: 中文名字
-        :return str: 日文名字 (如果查找到)
-        """
         if langdetect.detect(star_name) == "ja":
             return star_name
         star_ja_name = BOT_CACHE_DB.get_cache(
@@ -1082,21 +1084,94 @@ Avgle 视频地址: {video}
             return wiki_json["title"]
         return star_name
 
+    def send_bts(self, q, bts):
+        res = f"""关于 {q} 的查询结果:
+
+"""
+        for bt in bts:
+            if len(res) >= 3000:
+                return
+            res += f"""名称: {bt['name']}
+大小: {bt['size']}
+类型: {bt['category']}
+磁链: <code>{bt['magnet']}</code>
+
+"""
+        self.send_msg(res, markup=InlineKeyboardMarkup().row(
+            InlineKeyboardButton("转到 PikPak 云盘", url=f"{BASE_URL_TG}/{PIKPAK_BOT_NAME}")))
+
+    def random_get_new_av(self):
+        page = random.randint(1, JAVLIB_UTIL.MAX_RANK_PAGE)
+        ids = BOT_CACHE_DB.get_cache(key=page, type=BotCacheDb.TYPE_JLIB_PAGE_NEW_AVS)
+        if not ids:
+            code, ids = JAVLIB_UTIL.get_random_ids_from_rank_by_page(
+                page=page, list_type=1
+            )
+            if self.check_success(code, "随机获取最新 av"):
+                BOT_CACHE_DB.set_cache(
+                    key=page,
+                    value=ids,
+                    type=BotCacheDb.TYPE_JLIB_PAGE_NEW_AVS,
+                )
+            else:
+                return
+        self.get_av_by_id(id=random.choice(ids))
+
+    def random_get_nice_av(self):
+        page = random.randint(1, JAVLIB_UTIL.MAX_RANK_PAGE)
+        ids = BOT_CACHE_DB.get_cache(key=page, type=BotCacheDb.TYPE_JLIB_PAGE_NICE_AVS)
+        if not ids:
+            code, ids = JAVLIB_UTIL.get_random_ids_from_rank_by_page(
+                page=page, list_type=0
+            )
+            if self.check_success(code, "随机获取高分 av"):
+                BOT_CACHE_DB.set_cache(
+                    key=page,
+                    value=ids,
+                    type=BotCacheDb.TYPE_JLIB_PAGE_NICE_AVS,
+                )
+            else:
+                return
+        self.get_av_by_id(id=random.choice(ids))
+
+    def random_get_nice_star_avs(self, star_name_ori):
+        avs = BOT_CACHE_DB.get_cache(
+            key=star_name_ori, type=BotCacheDb.TYPE_NICE_AVS_OF_STAR
+        )
+        if not avs:
+            star_name_ja = self.get_star_ja_name_by_zh_name(star_name_ori)
+            code, avs = DMM_UTIL.get_nice_avs_by_star_name(star_name=star_name_ja)
+            if self.check_success(code, f"获取演员 {star_name_ori} 的高分 av"):
+                avs = avs[:60]
+                BOT_CACHE_DB.set_cache(
+                    key=star_name_ori,
+                    value=avs,
+                    type=BotCacheDb.TYPE_NICE_AVS_OF_STAR,
+                )
+                if star_name_ja != star_name_ori:
+                    BOT_CACHE_DB.set_cache(
+                        key=star_name_ja,
+                        value=avs,
+                        type=BotCacheDb.TYPE_NICE_AVS_OF_STAR,
+                    )
+            else:
+                return
+        self.send_msg_btns(
+            max_btn_per_row=3,
+            max_row_per_msg=20,
+            key_type=BotKey.KEY_GET_AV_BY_ID,
+            title=f"<b>演员 {star_name_ori} 的高分 av</b>",
+            objs=avs,
+        )
+
 
 def handle_callback(call):
-    """处理回调
-
-    :param _type_ call
-    """
-    # 回显 typing...
     bot_utils = BotUtils()
     bot_utils.send_action_typing()
     LOG.info(f"处理回调: {call.data}")
-    # 提取回调内容
     s = call.data.rfind(":")
     content = call.data[:s]
-    key_type = call.data[s + 1 :]
-    # 检查按键类型并处理
+    key_type = call.data[s + 1:]
     if key_type == BotKey.KEY_WATCH_PV_BY_ID:
         bot_utils.watch_av_by_id(id=content, type=0)
     elif key_type == BotKey.KEY_WATCH_FV_BY_ID:
@@ -1120,7 +1195,7 @@ def handle_callback(call):
     elif key_type == BotKey.KEY_RECORD_STAR_BY_STAR_NAME_ID:
         s = content.find("|")
         star_name = content[:s]
-        star_id = content[s + 1 :]
+        star_id = content[s + 1:]
         if BOT_DB.record_star_by_name_id(star_name=star_name, star_id=star_id):
             bot_utils.get_star_detail_record_by_name_id(
                 star_name=star_name, star_id=star_id
@@ -1144,7 +1219,7 @@ def handle_callback(call):
     elif key_type == BotKey.KEY_GET_STAR_DETAIL_RECORD_BY_STAR_NAME_ID:
         s = content.find("|")
         bot_utils.get_star_detail_record_by_name_id(
-            star_name=content[:s], star_id=content[s + 1 :]
+            star_name=content[:s], star_id=content[s + 1:]
         )
     elif key_type == BotKey.KEY_GET_AV_DETAIL_RECORD_BY_ID:
         bot_utils.get_av_detail_record_by_id(id=content)
@@ -1167,7 +1242,7 @@ def handle_callback(call):
     elif key_type == BotKey.KEY_UNDO_RECORD_STAR_BY_STAR_NAME_ID:
         s = content.find("|")
         op_undo_record_star = f"取消收藏演员 <code>{content[:s]}</code>"
-        if BOT_DB.undo_record_star_by_id(star_id=content[s + 1 :]):
+        if BOT_DB.undo_record_star_by_id(star_id=content[s + 1:]):
             bot_utils.send_msg_success_op(op_undo_record_star)
         else:
             bot_utils.send_msg_fail_reason_op(reason="文件解析出错", op=op_undo_record_star)
@@ -1176,7 +1251,7 @@ def handle_callback(call):
         star_name_alias = ""
         idx_alias = star_name.find("（")
         if idx_alias != -1:
-            star_name_alias = star_name[idx_alias + 1 : -1]
+            star_name_alias = star_name[idx_alias + 1: -1]
             star_name = star_name[:idx_alias]
         if not bot_utils.search_star_by_name(star_name) and star_name_alias != "":
             bot_utils.send_msg(f"尝试搜索演员{star_name}的别名{star_name_alias}......")
@@ -1184,35 +1259,7 @@ def handle_callback(call):
     elif key_type == BotKey.KEY_GET_TOP_STARS:
         bot_utils.get_top_stars(page=int(content))
     elif key_type == BotKey.KEY_GET_NICE_AVS_BY_STAR_NAME:
-        star_name_ori = content
-        avs = BOT_CACHE_DB.get_cache(
-            key=star_name_ori, type=BotCacheDb.TYPE_NICE_AVS_OF_STAR
-        )
-        if not avs:
-            star_name_ja = bot_utils.get_star_ja_name_by_zh_name(star_name_ori)
-            code, avs = DMM_UTIL.get_nice_avs_by_star_name(star_name=star_name_ja)
-            if bot_utils.check_success(code, f"获取演员 {star_name_ori} 的高分 av"):
-                avs = avs[:60]
-                BOT_CACHE_DB.set_cache(
-                    key=star_name_ori,
-                    value=avs,
-                    type=BotCacheDb.TYPE_NICE_AVS_OF_STAR,
-                )
-                if star_name_ja != star_name_ori:
-                    BOT_CACHE_DB.set_cache(
-                        key=star_name_ja,
-                        value=avs,
-                        type=BotCacheDb.TYPE_NICE_AVS_OF_STAR,
-                    )
-            else:
-                return
-        bot_utils.send_msg_btns(
-            max_btn_per_row=3,
-            max_row_per_msg=20,
-            key_type=BotKey.KEY_GET_AV_BY_ID,
-            title=f"<b>演员 {star_name_ori} 的高分 av</b>",
-            objs=avs,
-        )
+        bot_utils.random_get_nice_star_avs(content)
     elif key_type == BotKey.KEY_DEL_AV_CACHE:
         BOT_CACHE_DB.remove_cache(key=content, type=BotCacheDb.TYPE_AV)
         BOT_CACHE_DB.remove_cache(key=content, type=BotCacheDb.TYPE_STARS_MSG)
@@ -1220,25 +1267,12 @@ def handle_callback(call):
 
 
 def handle_message(message):
-    """处理消息
-
-    :param _type_ message
-    """
-    # 回显 typing...
     bot_utils = BotUtils()
     bot_utils.send_action_typing()
-    # 拦截请求
     chat_id = str(message.chat.id)
     if chat_id.lower() != BOT_CFG.tg_chat_id.lower():
-        LOG.info(f"拦截到非目标用户请求, id: {chat_id}")
-        BOT.send_message(
-            chat_id=chat_id,
-            text=f'该机器人仅供私人使用, 如需使用请自行部署: <a href="{PROJECT_ADDRESS}">项目地址</a>',
-            parse_mode="HTML",
-        )
         return
     bot_utils = BotUtils()
-    # 获取消息文本内容
     if message.content_type != "text":
         msg = message.caption
     else:
@@ -1248,74 +1282,57 @@ def handle_message(message):
     LOG.info(f'收到消息: "{msg}"')
     msg = msg.lower().strip()
     msgs = msg.split(" ", 1)  # 划分为两部分
-    # 消息命令
     msg_cmd = msgs[0]
-    # 消息参数
     msg_param = ""
     if len(msgs) > 1:  # 有参数
         msg_param = msgs[1].strip()
-    # 处理消息
     if msg_cmd == "/help" or msg_cmd == "/start":
         bot_utils.send_msg(MSG_HELP)
     elif msg_cmd == "/nice":
-        page = random.randint(1, JAVLIB_UTIL.MAX_RANK_PAGE)
-        ids = BOT_CACHE_DB.get_cache(key=page, type=BotCacheDb.TYPE_JLIB_PAGE_NICE_AVS)
-        if not ids:
-            code, ids = JAVLIB_UTIL.get_random_ids_from_rank_by_page(
-                page=page, list_type=0
-            )
-            if bot_utils.check_success(code, "随机获取高分 av"):
-                BOT_CACHE_DB.set_cache(
-                    key=page,
-                    value=ids,
-                    type=BotCacheDb.TYPE_JLIB_PAGE_NICE_AVS,
-                )
-            else:
-                return
-        bot_utils.get_av_by_id(id=random.choice(ids))
+        if not bot_utils.check_if_enable_nsfw():
+            return
+        bot_utils.random_get_nice_av()
     elif msg_cmd == "/new":
-        page = random.randint(1, JAVLIB_UTIL.MAX_RANK_PAGE)
-        ids = BOT_CACHE_DB.get_cache(key=page, type=BotCacheDb.TYPE_JLIB_PAGE_NEW_AVS)
-        if not ids:
-            code, ids = JAVLIB_UTIL.get_random_ids_from_rank_by_page(
-                page=page, list_type=1
-            )
-            if bot_utils.check_success(code, "随机获取最新 av"):
-                BOT_CACHE_DB.set_cache(
-                    key=page,
-                    value=ids,
-                    type=BotCacheDb.TYPE_JLIB_PAGE_NEW_AVS,
-                )
-            else:
-                return
-        bot_utils.get_av_by_id(id=random.choice(ids))
+        if not bot_utils.check_if_enable_nsfw():
+            return
+        bot_utils.random_get_new_av()
     elif msg_cmd == "/stars":
         bot_utils.get_stars_record()
-    elif msg_cmd == "/avs":
+    elif msg_cmd == "/ids":
         bot_utils.get_avs_record()
     elif msg_cmd == "/record":
-        if os.path.exists(PATH_RECORD_FILE):
-            BOT.send_document(
-                chat_id=BOT_CFG.tg_chat_id, document=types.InputFile(PATH_RECORD_FILE)
-            )
-        else:
+        if not os.path.exists(PATH_RECORD_FILE):
             bot_utils.send_msg_fail_reason_op(reason="尚无收藏记录", op="获取收藏记录文件")
+            return
+        BOT.send_document(
+            chat_id=BOT_CFG.tg_chat_id, document=types.InputFile(PATH_RECORD_FILE)
+        )
     elif msg_cmd == "/rank":
         bot_utils.get_top_stars(1)
     elif msg_cmd == "/star":
-        if msg_param != "":
+        if msg_param:
             bot_utils.send_msg(f"搜索演员: <code>{msg_param}</code> ......")
             bot_utils.search_star_by_name(msg_param)
-    elif msg_cmd == "/av":
+    elif msg_cmd == "/id":
         if msg_param:
             bot_utils.send_msg(f"搜索番号: <code>{msg_param}</code> ......")
             bot_utils.get_av_by_id(id=msg_param, send_to_pikpak=True)
     else:
-        ids = AV_PAT.findall(msg)
+        ids = ID_PAT.findall(msg)
         if not ids or len(ids) == 0:
-            bot_utils.send_msg(
-                "消息似乎不存在符合规则的番号, 可尝试通过“<code>/av</code> 番号”进行查找, 通过 /help 命令可获得帮助 ~"
-            )
+            op = f"搜索 <code>{msg}</code>"
+            bts = BOT_CACHE_DB.get_cache(key=msg, type=BotCacheDb.TYPE_BT)
+            if not bts:
+                bts = bot_utils.search_bts(msg)
+                if not bts:
+                    bot_utils.send_msg_fail_reason_op(reason="未找到结果", op=op)
+                    return
+                if BOT_CFG.enable_nsfw == "0":
+                    bts = list(filter(lambda bt: bt['category'] != "nsfw", bts))
+                    bts = list(filter(lambda bt: "nsfw" not in bt['name'].lower(), bts))
+                bts = bts[:5]
+                BOT_CACHE_DB.set_cache(key=msg, value=bts, type=BotCacheDb.TYPE_BT)
+            bot_utils.send_bts(msg, bts)
         else:
             ids = [id.lower() for id in ids]
             ids = set(ids)
@@ -1325,24 +1342,13 @@ def handle_message(message):
                 threading.Thread(target=bot_utils.get_av_by_id, args=(id,)).start()
 
 
-EXECUTOR = concurrent.futures.ThreadPoolExecutor()
-
-
 @BOT.callback_query_handler(func=lambda call: True)
 def my_callback_handler(call):
-    """消息回调处理器
-
-    :param _type_ call
-    """
     EXECUTOR.submit(handle_callback, call)
 
 
 @BOT.message_handler(content_types=["text", "photo", "animation", "video", "document"])
 def my_message_handler(message):
-    """消息处理器
-
-    :param _type_ message: 消息
-    """
     EXECUTOR.submit(handle_message, message)
 
 
