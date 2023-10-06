@@ -87,7 +87,7 @@ enable_nsfw: 0
 
 注：配置，记录和日志等文件存放在 `~/.tg_search_bot` 目录下。
 
-如需使用 Pikpak 自动发送功能，需要先手动授权 [Pikpak 官方机器人](https://t.me/PikPak6_Bot)，然后在初次运行机器人时进行登录操作。
+如需使用 Pikpak 自动发送功能，需要先手动授权 [Pikpak 官方机器人](https://t.me/PikPak6_Bot)，然后在初次运行机器人时进行登录操作。(我的 Pikpak 邀请码: 99492001, 输入可得会员)
 
 ### 运行机器人
 
