@@ -33,6 +33,15 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "JackBryant286",
+      "name": "Jack Bryant",
+      "avatar_url": "https://avatars.githubusercontent.com/u/113345781?v=4",
+      "profile": "https://github.com/JackBryant286",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
