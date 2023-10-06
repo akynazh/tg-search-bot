@@ -1,4 +1,3 @@
-# -*- coding: UTF-8 -*-
 import concurrent.futures
 import math
 import os

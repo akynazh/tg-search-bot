@@ -1,4 +1,5 @@
 import logging
+from logging.handlers import RotatingFileHandler
 
 
 class Logger:
@@ -11,11 +12,12 @@ class Logger:
         :param int log_level: 记录级别, 默认 INFO 级别
         """
         self.logger = logging.getLogger()
-        formatter = logging.Formatter("[%(asctime)s] %(levelname)s: %(message)s")
-        file_handler = logging.FileHandler(path_log_file)
-        file_handler.setFormatter(formatter)
+        formatter = logging.Formatter(
+            "[%(asctime)s] %(levelname)s: %(message)s")
         stream_handler = logging.StreamHandler()
         stream_handler.setFormatter(formatter)
-        self.logger.addHandler(file_handler)
+        r_file_handler = RotatingFileHandler(path_log_file, maxBytes=1024 * 1024 * 16, backupCount=1)
+        r_file_handler.setFormatter(formatter)
+        self.logger.addHandler(r_file_handler)
         self.logger.addHandler(stream_handler)
         self.logger.setLevel(log_level)
