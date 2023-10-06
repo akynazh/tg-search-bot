@@ -1,13 +1,12 @@
 # tg-search-bot
+
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
 [![All Contributors](https://img.shields.io/badge/all_contributors-3-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 **一个可用于搜索各种影片磁链的电报机器人, 支持收藏, 导出记录, 自动保存磁链等操作, 可手动配置以屏蔽 NSFW 内容和代理上网。**
 
-机器人基于 Python3 构建, 支持 Docker 一键部署, 并通过 Redis 实现了缓存功能。
-
-机器人主要由 [akynazh](https://github.com/akynazh) 完成开发, 并结合社区力量进行了改进和优化, 感谢以下协作者:
+机器人基于 Python3 构建, 支持 Docker 一键部署, 并通过 Redis 实现了缓存功能, 主要由 [akynazh](https://github.com/akynazh) 完成开发, 并结合社区力量进行了改进和优化, 感谢以下协作者:
 
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
 <!-- prettier-ignore-start -->
@@ -24,11 +23,9 @@
 
 <!-- markdownlint-restore -->
 <!-- prettier-ignore-end -->
-
 <!-- ALL-CONTRIBUTORS-LIST:END -->
 
-如果你也想为社区贡献自己的一份力量, 请查看 [TODO](https://github.com/akynazh/tg-search-bot#todo), 欢迎 issue 和 pr，可通过邮箱 [akynazh@qq.com](mailto://akynazh@qq.com)
-或电报 [@jackbryant286](https://t.me/jackbryant286) 联系我。
+如果你也想为社区贡献自己的一份力量, 请查看 [TODO](https://github.com/akynazh/tg-search-bot#todo), 欢迎 issue 和 pr。
 
 ## 功能简介
 
@@ -104,16 +101,3 @@ docker-compose up -d
 # Python >=3.10, 如果使用缓存的话需先开启 redis 服务
 pip install -r requirements.txt && python3 bot.py
 ```
-
-## Contributors ✨
-
-Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
-
-<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
-<!-- prettier-ignore-start -->
-<!-- markdownlint-disable -->
-<!-- markdownlint-restore -->
-<!-- prettier-ignore-end -->
-<!-- ALL-CONTRIBUTORS-LIST:END -->
-
-This project follows the [all-contributors](https://github.com/all-contributors/all-contributors) specification. Contributions of any kind welcome!
