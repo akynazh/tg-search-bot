@@ -27,7 +27,7 @@
 
 <!-- ALL-CONTRIBUTORS-LIST:END -->
 
-如果你也想为社区贡献自己的一份力量, 请查看 [TODO](https://github.com/akynazh/tg-search-bot#todo), 欢迎 issue 和 pr。
+如果你也想为社区贡献自己的一份力量, 请查看 [开发步骤](https://github.com/akynazh/tg-search-bot#开发步骤) 和 [TODO](https://github.com/akynazh/tg-search-bot#todo), 欢迎 issue 和 pr。
 
 ## 功能简介
 
@@ -48,19 +48,9 @@
 - 支持搜索演员 - 2023/02/18
 - 支持通过 redis 进行缓存 - 2023/03/17
 
-## TODO
-
-- 英文版本
-- 影片搜索支持更多磁力网站(目前只支持了海盗湾)
-- 其他你希望出现的功能...
-
 ## 使用教程
 
-首先需要下载本项目代码到本地。
-
-### 配置机器人
-
-编辑 `~/.tg_search_bot/config.yaml`：
+首先需要下载本项目代码到本地，然后配置机器人，编辑 `~/.tg_search_bot/config.yaml`：
 
 ```yaml
 # TG 对话 ID
@@ -87,21 +77,34 @@ redis_port:
 enable_nsfw: 0
 ```
 
-注：配置，记录和日志等文件存放在 `~/.tg_search_bot` 目录下。
+PS: 如需使用 Pikpak 自动发送功能，需要先手动授权 [Pikpak 官方机器人](https://t.me/PikPak6_Bot)，然后在初次运行机器人时进行登录操作。(我的 Pikpak 邀请码: 99492001, 输入可得会员)
 
-如需使用 Pikpak 自动发送功能，需要先手动授权 [Pikpak 官方机器人](https://t.me/PikPak6_Bot)，然后在初次运行机器人时进行登录操作。(我的 Pikpak 邀请码: 99492001, 输入可得会员)
+最后运行机器人即可：(记录和日志等文件位于 `~/.tg_search_bot` 目录下)
 
-### 运行机器人
-
-**通过 docker 运行：**
-
-```
+```sh
+# 方法一: 通过 docker 运行：(推荐)
 docker-compose up -d
-```
-
-**或通过普通方法运行：**
-
-```
-# Python >=3.10, 如果使用缓存的话需先开启 redis 服务
+# 方法二: 通过普通方法运行:（Python >=3.10, 如果使用缓存的话需先开启 redis 服务）
 pip install -r requirements.txt && python3 bot.py
 ```
+
+## 开发步骤
+
+我使用 python-3.10.9 进行开发，请使用 python <= 3.10 进行开发，另外，推荐使用 python 虚拟环境开发以避免出现一些不必要的问题。下面是一个我的开发步骤，仅供参考：
+
+```shell
+# python=3.10.9
+git clone https://github.com/akynazh/jvav.git
+cd jvav
+python3 -m venv venv
+source ./venv/bin/activate
+pip3 install -r requirements.txt
+```
+
+接着就可以开始写代码了，完成后记得编写或运行测试实例(在 `tests/test.py` 中)。请确保测试没问题再提交代码哟～
+
+## TODO
+
+- 英文版本
+- 影片搜索支持更多磁力网站(目前只支持了海盗湾)
+- 其他你希望出现的功能...
