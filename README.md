@@ -94,8 +94,8 @@ pip install -r requirements.txt && python3 bot.py
 
 ```shell
 # python=3.10.9
-git clone https://github.com/akynazh/jvav.git
-cd jvav
+git clone https://github.com/akynazh/tg-search-bot.git
+cd tg-search-bot
 python3 -m venv venv
 source ./venv/bin/activate
 pip3 install -r requirements.txt
