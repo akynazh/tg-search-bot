@@ -10,6 +10,8 @@
 
 该机器人基于Python3构建，支持使用Docker一键部署，并通过Redis实现缓存功能。
 
+其他语言的自述文件（由自动生成[翻译自述文件](https://github.com/dephraiim/translate-readme)):[阿拉伯](./README.ar.md),[没有](./README.hi.md),[法语](./README.fr.md),[简体中文](./README.zh-CN.md),[繁体中文](./README.zh-TW.md).
+
 ## 功能
 
 以下功能按开发完成时间排序，后续会不断添加新功能。
@@ -56,6 +58,8 @@ use_cache:
 redis_host:
 # optional, your redis port (required if use_cache == 1)
 redis_port:
+# optional, your redis password
+redis_password:
 # required, enable nsfw or not, 1 yes | 0 no
 enable_nsfw: 0
 ```
