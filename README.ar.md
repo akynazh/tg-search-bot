@@ -10,6 +10,8 @@
 
 تم تصميم الروبوت استنادًا إلى Python3، ويدعم النشر بنقرة واحدة باستخدام Docker، وينفذ وظائف التخزين المؤقت من خلال Redis.
 
+وثائق README بلغات أخرى (يتم إنشاؤها تلقائيًا بواسطة[ترجمة الملف التمهيدي](https://github.com/dephraiim/translate-readme)):[عربي](./README.ar.md),[لا](./README.hi.md),[فرنسي](./README.fr.md),[الصينية المبسطة](./README.zh-CN.md),[الصينية التقليدية](./README.zh-TW.md).
+
 ## المهام
 
 يتم فرز الوظائف التالية حسب وقت اكتمال التطوير، وسيتم إضافة وظائف جديدة بشكل مستمر في المستقبل.
@@ -56,6 +58,8 @@ use_cache:
 redis_host:
 # optional, your redis port (required if use_cache == 1)
 redis_port:
+# optional, your redis password
+redis_password:
 # required, enable nsfw or not, 1 yes | 0 no
 enable_nsfw: 0
 ```
@@ -88,7 +92,7 @@ pip3 install -r requirements.txt
 ## الجميع
 
 -   النسخة الإنجليزية
--   Video search supports more magnetic websites (currently only The Pirate Bay is supported)
+-   يدعم البحث عن الفيديو المزيد من مواقع الويب المغناطيسية (حاليًا يتم دعم The Pirate Bay فقط)
 -   الميزات الأخرى التي ترغب في رؤيتها تظهر...
 
 ## شكر وتقدير
