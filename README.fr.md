@@ -27,7 +27,7 @@ Les fonctions suivantes sont triées par heure d'achèvement du développement e
 -   Prend en charge l'obtention de classements d'acteurs et de classements de films - 20/01/2023
 -   Prend en charge l'accès aléatoire aux vidéos les plus performantes et aux dernières vidéos - 2023/01/25
 -   Aide à l'obtention des noms chinois des acteurs via Wikipédia - 2023/02/18
--   Support traduction des titres japonais - 18/02/2023
+-   Support traduction des titres japonais - 2023/02/18
 -   Accompagnement à la recherche d'acteurs - 18/02/2023
 -   Prise en charge de la mise en cache via Redis - 2023/03/17
 
@@ -95,7 +95,7 @@ Ensuite, vous pouvez commencer à écrire du code. Lorsque vous avez terminé, n
 -   La recherche vidéo prend en charge davantage de sites Web magnétiques (actuellement, seul The Pirate Bay est pris en charge)
 -   D'autres fonctionnalités que vous aimeriez voir apparaître...
 
-## Remerciements
+## Acknowledgments
 
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
 
