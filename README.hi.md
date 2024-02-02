@@ -8,19 +8,19 @@
 
 **एक टेलीग्राम बॉट जिसका उपयोग विभिन्न वीडियो चुंबक लिंक खोजने के लिए किया जा सकता है। यह संग्रह, निर्यात रिकॉर्ड और स्वचालित रूप से चुंबक लिंक को सहेजने जैसे कार्यों का समर्थन करता है। इसे NSFW सामग्री और प्रॉक्सी इंटरनेट एक्सेस को ब्लॉक करने के लिए मैन्युअल रूप से कॉन्फ़िगर किया जा सकता है।**
 
-The bot is built based on Python3, supports one-click deployment with Docker, and implements caching functions through Redis.
+बॉट Python3 पर आधारित है, डॉकर के साथ एक-क्लिक परिनियोजन का समर्थन करता है, और Redis के माध्यम से कैशिंग फ़ंक्शन लागू करता है।
 
-अन्य भाषाओं में README दस्तावेज़ (स्वचालित रूप से उत्पन्न)।[अनुवाद-रीडमी](https://github.com/dephraiim/translate-readme)):[अरबी](./README.ar.md),[Hindi](./README.hi.md),[फ़्रेंच](./README.fr.md),[सरलीकृत चीनी](./README.zh-CN.md),[परंपरागत चीनी](./README.zh-TW.md).
+अन्य भाषाओं में README दस्तावेज़ (स्वचालित रूप से उत्पन्न)।[अनुवाद-रीडमी](https://github.com/dephraiim/translate-readme)):[अरबी](./README.ar.md),[नहीं](./README.hi.md),[फ़्रेंच](./README.fr.md),[सरलीकृत चीनी](./README.zh-CN.md),[परंपरागत चीनी](./README.zh-TW.md).
 
 ## कार्य
 
-The following functions are sorted by development completion time, and new functions will be continuously added in the future.
+निम्नलिखित कार्यों को विकास पूरा होने के समय के अनुसार क्रमबद्ध किया गया है, और भविष्य में लगातार नए कार्य जोड़े जाएंगे।
 
 -   बुनियादी वीडियो जानकारी और चुंबक लिंक प्राप्त करने का समर्थन करता है - 2022/11/25
 -   समर्थन कॉन्फ़िगरेशन प्रॉक्सी - 2022/11/26
 -   समर्थन फ़िल्टरिंग चुंबक लिंक (बिना सेंसर => एचडी => उपशीर्षक) - 2022/11/26
 -   बॉट को पिकपैक में इष्टतम चुंबक लिंक को स्वचालित रूप से सहेजने की अनुमति देने वाला समर्थन - 2022/12/29
--   Support getting preview video and full video - 2022/12/31
+-   पूर्वावलोकन वीडियो और पूर्ण वीडियो प्राप्त करने में सहायता - 2022/12/31
 -   वीडियो स्क्रीनशॉट प्राप्त करने में सहायता - 2023/01/01
 -   अभिनेताओं और वीडियो का समर्थन संग्रह - 2023/01/04
 -   डॉकर के माध्यम से समर्थन परिनियोजन - 2023/01/08
@@ -77,7 +77,7 @@ pip install -r requirements.txt && python3 bot.py
 
 ## विकास
 
-मैं विकास के लिए पायथन-3.10.9 का उपयोग करता हूं। कृपया विकास के लिए Python >= 3.10 का उपयोग करें। इसके अलावा, अनावश्यक समस्याओं से बचने के लिए पायथन वर्चुअल पर्यावरण विकास का उपयोग करने की अनुशंसा की जाती है। केवल संदर्भ के लिए मेरे विकास चरण निम्नलिखित हैं:
+I use python-3.10.9 for development. Please use python >= 3.10 for development. In addition, it is recommended to use python virtual environment development to avoid unnecessary problems. The following are my development steps for reference only:
 
 ```shell
 git clone https://github.com/akynazh/tg-search-bot.git
