@@ -1,78 +1,81 @@
 # tg-search-bot
 
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
+
 [![All Contributors](https://img.shields.io/badge/all_contributors-4-orange.svg?style=flat-square)](#contributors-)
+
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
-**一个可用于搜索各种影片磁链的电报机器人, 支持收藏, 导出记录, 自动保存磁链等操作, 可手动配置以屏蔽 NSFW 内容和代理上网。**
+**A Telegram bot that can be used to search for various video magnet links. It supports operations such as collection, exporting records, and automatically saving magnet links. It can be manually configured to block NSFW content and proxy Internet access.**
 
-机器人基于 Python3 构建, 支持 Docker 一键部署, 并通过 Redis 实现了缓存功能。
+The bot is built based on Python3, supports one-click deployment with Docker, and implements caching functions through Redis.
 
-## 功能简介
+## Functions
 
-以下功能按开发完成时间进行排序，后续有新功能将持续补充。
+The following functions are sorted by development completion time, and new functions will be continuously added in the future.
 
-- 支持获取影片基本信息和磁链 - 2022/11/25
-- 支持配置代理 - 2022/11/26
-- 支持过滤磁链 (uncensored => hd => subtitle)- 2022/11/26
-- 支持让机器人自动将最优磁链保存到 Pikpak - 2022/12/29
-- 支持获取预览视频和完整视频 - 2022/12/31
-- 支持获取影片截图 - 2023/01/01
-- 支持收藏演员和影片 - 2023/01/04
-- 支持通过 docker 部署 - 2023/01/08
-- 支持获取演员排行榜，影片评分 - 2023/01/20
-- 支持随机获取高分影片和最新影片 - 2023/01/25
-- 支持通过维基百科获取演员中文名 - 2023/02/18
-- 支持翻译日文标题 - 2023/02/18
-- 支持搜索演员 - 2023/02/18
-- 支持通过 redis 进行缓存 - 2023/03/17
+- Supports obtaining basic video information and magnet links - 2022/11/25
+- Support configuration proxy - 2022/11/26
+- Support filtering magnet links (uncensored => hd => subtitle)- 2022/11/26
+- Support allowing bot to automatically save optimal magnet links to Pikpak - 2022/12/29
+- Support getting preview video and full video - 2022/12/31
+- Support obtaining video screenshots - 2023/01/01
+- Support collection of actors and videos - 2023/01/04
+- Support deployment via docker - 2023/01/08
+- Supports obtaining actor rankings and film ratings - 2023/01/20
+- Supports random access to high-scoring videos and latest videos - 2023/01/25
+- Support obtaining actors’ Chinese names through Wikipedia - 2023/02/18
+- Support translation of Japanese titles - 2023/02/18
+- Support searching for actors - 2023/02/18
+- Support caching through redis - 2023/03/17
 
-## 使用教程
+## Tutorial
 
-首先需要下载本项目代码到本地，然后配置机器人，编辑 `~/.tg_search_bot/config.yaml`：
+First, you need to download the project code locally, then configure the bot and edit `~/.tg_search_bot/config.yaml`：
 
 ```yaml
-# TG 对话 ID
+# required, your telegram chat id
 tg_chat_id:
-# TG 机器人 Token
+# required, your telegram bot token
 tg_bot_token:
-# 全局是否使用代理 1 是 | 0 否
+# required, global proxy, 1 yes | 0 no
 use_proxy:
-# 访问 dmm 时是否使用代理，如果全局使用代理，则忽略该字段 1 是 | 0 否
+# required, dmm proxy, 1 yes | 0 no
 use_proxy_dmm:
-# 代理服务器地址，如果不使用代理，则忽略该字段
+# optional, proxy server address (required if use_proxy == 1 or use_proxy_dmm == 1)
 proxy_addr:
-# 是否使用 Pikpak 自动发送功能 1 是 | 0 否
+# required, pikpak’s automatic sending function, 1 yes | 0 no
 use_pikpak:
-# 配置 TG API，如果不使用 Pikpak 自动发送功能，则忽略以下两个字段，可在这里申请 API: https://my.telegram.org/apps
+# optional, your telegram api id (required if use_pikpak == 1)
 tg_api_id:
+# optional, your telegram api hash (required if use_pikpak == 1)
 tg_api_hash:
-# 是否使用缓存 1 是 | 0 否
+# required, enable cache or not, 1 yes | 0 no
 use_cache:
-# redis 地址，如果不使用缓存，则忽略以下两个字段
+# optional, your redis host (required if use_cache == 1)
 redis_host:
+# optional, your redis port (required if use_cache == 1)
 redis_port:
-# nsfw 1 是 | 0 否
+# required, enable nsfw or not, 1 yes | 0 no
 enable_nsfw: 0
 ```
 
-PS: 如需使用 Pikpak 自动发送功能，需要先手动授权 [Pikpak 官方机器人](https://t.me/PikPak6_Bot)，然后在初次运行机器人时进行登录操作。(我的 Pikpak 邀请码: 99492001, 输入可得会员)
+PS: If you want to use Pikpak’s automatic sending function, you need to authorize it manually first: [Pikpak official bot](https://t.me/PikPak6_Bot), and then log in when running the bot for the first time. (My Pikpak invitation code: 99492001, enter to get membership)
 
-最后运行机器人即可：(记录和日志等文件位于 `~/.tg_search_bot` 目录下)
+Finally, run the bot: (files such as records and logs are located in `~/.tg_search_bot`)
 
 ```sh
-# 方法一: 通过 docker 运行：(推荐)
+# op1. docker-compose
 docker-compose up -d
-# 方法二: 通过普通方法运行:（Python >=3.10, 如果使用缓存的话需先开启 redis 服务）
+# op2. simple way (Python >=3.10)
 pip install -r requirements.txt && python3 bot.py
 ```
 
-## 开发步骤
+## Development
 
-我使用 python-3.10.9 进行开发，请使用 python <= 3.10 进行开发，另外，推荐使用 python 虚拟环境开发以避免出现一些不必要的问题。下面是一个我的开发步骤，仅供参考：
+I use python-3.10.9 for development. Please use python >= 3.10 for development. In addition, it is recommended to use python virtual environment development to avoid unnecessary problems. The following are my development steps for reference only:
 
 ```shell
-# python=3.10.9
 git clone https://github.com/akynazh/tg-search-bot.git
 cd tg-search-bot
 python3 -m venv venv
@@ -80,19 +83,22 @@ source ./venv/bin/activate
 pip3 install -r requirements.txt
 ```
 
-接着就可以开始写代码了，完成后记得编写或运行测试实例(在 `tests/test.py` 中)。请确保测试没问题再提交代码哟～
+Then you can start writing code. When you are done, remember to write or run a test instance (in `tests/test.py`). Please make sure there is no problem with the test before submitting the code.
 
-## TODO
+## Todo
 
-- 英文版本
-- 影片搜索支持更多磁力网站(目前只支持了海盗湾)
-- 其他你希望出现的功能...
+- English version
+- Video search supports more magnetic websites (currently only The Pirate Bay is supported)
+- Other features you would like to see appear...
 
-## 鸣谢
+## Acknowledgments
 
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+
 <!-- prettier-ignore-start -->
+
 <!-- markdownlint-disable -->
+
 <table>
   <tbody>
     <tr>
@@ -105,8 +111,9 @@ pip3 install -r requirements.txt
 </table>
 
 <!-- markdownlint-restore -->
+
 <!-- prettier-ignore-end -->
 
 <!-- ALL-CONTRIBUTORS-LIST:END -->
 
-如果你也想为社区贡献自己的一份力量, 请查看 [TODO](https://github.com/akynazh/tg-search-bot#todo), 并根据 [开发步骤](https://github.com/akynazh/tg-search-bot#开发步骤) 进行开发, 欢迎 issue 和 pr。
+If you also want to contribute to the community, please check out [todo list](https://github.com/akynazh/tg-search-bot#TODO) and read [development steps](https://github.com/akynazh/tg-search-bot#Development), issues and prs are welcome.
