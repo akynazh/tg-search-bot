@@ -26,6 +26,7 @@ class BotConfig:
         self.use_cache = str(config["use_cache"]) if config["use_cache"] else "0"
         self.redis_host = str(config["redis_host"]) if config["redis_host"] else ""
         self.redis_port = str(config["redis_port"]) if config["redis_port"] else ""
+        self.redis_password = str(config["redis_password"]) if config["redis_password"] else ""
         self.enable_nsfw = str(config["enable_nsfw"]) if config["enable_nsfw"] else "0"
         # set
         self.proxy_addr_dmm = ""

@@ -235,7 +235,8 @@ class BotCacheDb:
         "prefix": "jlib-page-new-avs-",
         "expire": 3600 * 24 * 2,
     }
-    CACHE_STAR_JA_NAME = {"prefix": "star-ja-name-", "expire": 3600 * 24 * 30 * 6}
+    CACHE_STAR_JA_NAME = {"prefix": "star-ja-name-",
+                          "expire": 3600 * 24 * 30 * 6}
     CACHE_NEW_AVS_OF_STAR = {
         "prefix": "new-avs-of-star-",
         "expire": 3600 * 24 * 12,
@@ -275,18 +276,22 @@ class BotCacheDb:
         TYPE_BT: CACHE_BT,
     }
 
-    def __init__(self, host: str, port: int, use_cache: str):
+    def __init__(self, host: str, port: int, password: str, use_cache: str):
         """初始化
 
         :param str host: ip 地址
         :param int port: 端口
+        :param str password: 密码
         :param str use_cache: 是否使用缓存
         """
         self.use_cache = use_cache
         self.cache = None
         if self.use_cache == "1":
             try:
-                self.cache = redis.Redis(host=host, port=port)
+                if password:
+                    self.cache = redis.Redis(host=host, port=port, password=password)
+                else:
+                    self.cache = redis.Redis(host=host, port=port)
                 self.cache.ping()
                 LOG.info(f"连接到 redis 服务: {host}:{port}")
             except Exception as e:

@@ -59,6 +59,8 @@ use_cache:
 redis_host:
 # optional, your redis port (required if use_cache == 1)
 redis_port:
+# optional, your redis password
+redis_password:
 # required, enable nsfw or not, 1 yes | 0 no
 enable_nsfw: 0
 ```
