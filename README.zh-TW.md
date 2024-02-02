@@ -10,6 +10,8 @@
 
 該機器人基於Python3構建，支援使用Docker一鍵部署，並透過Redis實現快取功能。
 
+其他語言的自述文件（由自動生成[翻譯自述文件](https://github.com/dephraiim/translate-readme)):[阿拉伯](./README.ar.md),[沒有](./README.hi.md),[法語](./README.fr.md),[簡體中文](./README.zh-CN.md),[繁體中文](./README.zh-TW.md).
+
 ## 功能
 
 以下功能依開發完成時間排序，後續將持續新增功能。
@@ -56,6 +58,8 @@ use_cache:
 redis_host:
 # optional, your redis port (required if use_cache == 1)
 redis_port:
+# optional, your redis password
+redis_password:
 # required, enable nsfw or not, 1 yes | 0 no
 enable_nsfw: 0
 ```
@@ -87,7 +91,7 @@ pip3 install -r requirements.txt
 
 ## 全部
 
--   English version
+-   英文版
 -   影片搜尋支援更多磁力網站（目前僅支援海盜灣）
 -   您希望看到的其他功能出現...
 
