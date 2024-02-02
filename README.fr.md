@@ -10,6 +10,8 @@
 
 Le bot est construit sur la base de Python3, prend en charge le déploiement en un clic avec Docker et implémente des fonctions de mise en cache via Redis.
 
+Documentation README dans d'autres langues (générée automatiquement par[traduire-lisez-moi](https://github.com/dephraiim/translate-readme)):[arabe](./README.ar.md),[Non](./README.hi.md),[Français](./README.fr.md),[Chinois simplifié](./README.zh-CN.md),[chinois traditionnel](./README.zh-TW.md).
+
 ## Les fonctions
 
 Les fonctions suivantes sont triées par heure d'achèvement du développement et de nouvelles fonctions seront continuellement ajoutées à l'avenir.
@@ -56,6 +58,8 @@ use_cache:
 redis_host:
 # optional, your redis port (required if use_cache == 1)
 redis_port:
+# optional, your redis password
+redis_password:
 # required, enable nsfw or not, 1 yes | 0 no
 enable_nsfw: 0
 ```
