@@ -1,0 +1,2 @@
+[console_scripts]
+jvav = jvav.cmd:main

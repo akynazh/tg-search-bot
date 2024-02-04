@@ -1,0 +1,10 @@
+anti_useragent
+anti_useragent\__pycache__
+anti_useragent\settings
+anti_useragent\settings\__pycache__
+anti_useragent\useragent
+anti_useragent\useragent\__pycache__
+anti_useragent\useragent\browser
+anti_useragent\useragent\browser\__pycache__
+anti_useragent\utils
+anti_useragent\utils\__pycache__

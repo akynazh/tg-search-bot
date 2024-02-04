@@ -1,0 +1,96 @@
+Metadata-Version: 2.1
+Name: Jvav
+Version: 1.4.1
+Summary: Useful tools for Jav.
+Home-page: https://github.com/akynazh/jvav
+Download-URL: https://github.com/akynazh/jvav/releases/latest
+Author: akynazh
+Author-email: akynazh@gmail.com
+License: GPLv3
+Project-URL: Tracker, https://github.com/akynazh/jvav/issues
+Project-URL: Source, https://github.com/akynazh/jvav
+Keywords: jav japan av api library python spider
+Classifier: License :: OSI Approved :: GNU General Public License v3 (GPLv3)
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Topic :: Internet :: WWW/HTTP :: Indexing/Search
+Requires-Python: ~=3.10
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: anti-useragent ==1.0.10
+Requires-Dist: beautifulsoup4 ==4.11.2
+Requires-Dist: deep-translator ==1.11.4
+Requires-Dist: langdetect ==1.0.9
+Requires-Dist: lxml ==4.9.2
+Requires-Dist: Requests ==2.31.0
+Requires-Dist: setuptools ==68.1.2
+Requires-Dist: Wikipedia-API ==0.5.8
+
+# Jvav
+
+Useful tools for Jav.
+
+## INSTALL
+
+```
+# python >= 3.7.9
+pip install jvav -U
+```
+
+## LIB
+
+- DmmUtil
+- JavDbUtil
+- JavLibUtil
+- JavBusUtil
+- AvgleUtil
+- MagnetUtil
+- SukebeiUtil
+- WikiUtil
+- TransUtil
+- SgpUtil
+
+```py
+# A sample for DmmUtil
+import jvav
+
+util = jvav.DmmUtil(proxy_addr='http://127.0.0.1:7890')
+util.get_nice_avs_by_star_name('小倉由菜')
+util.get_score_by_id('cawd-441')
+util.get_all_top_stars()
+```
+
+## CMD
+
+```
+$ jvav -h
+usage: cmd.py [-h] [-v] [-av1 AV1] [-av2 AV2] [-nc] [-uc] [-sr SR] [-srn SRN]
+              [-tg TG] [-pv1 PV1] [-pv2 PV2] [-tp] [-p PROXY]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -v, --version         View the version number
+  -av1 AV1              Followed by a code, search for the code on JavBus
+  -av2 AV2              Followed by a code, search for the code on Sukebei
+  -nc                   Filter out high-definition torrents with subtitles
+  -uc                   Filter out uncensored torrents
+  -sr SR                Followed by an actress name, get a list of high-rated codes based on the actress name
+  -srn SRN              Followed by an actress name, get a list of the latest codes based on the actress name
+  -tg TG                Followed by a keyword, search for codes based on the keyword
+  -pv1 PV1              Followed by a code, get the preview video corresponding to the code from DMM
+  -pv2 PV2              Followed by a code, get the preview video corresponding to the code from Avgle
+  -tp                   Get the top 25 ranking of DMM actresses
+  -p PROXY, --proxy PROXY
+                        Followed by the proxy server address, by default reads the value of the http_proxy environment variable.
+```
+
+## TODO
+
+The following are some functions to be implemented, and I look forward to your contribution~ 
+
+- [ ] cache the successful query results locally
+- [x] support javdb.com (Thanks: [@Steven-Fake](https://github.com/Steven-Fake))
+- [ ] support db.msin.jp
+- [ ] support JavDbUtil in cmd
+- [ ] support SgpUtil in cmd
+- [ ] support JavDbUtil in cmd
