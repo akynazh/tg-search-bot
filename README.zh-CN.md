@@ -77,12 +77,12 @@ pip install -r requirements.txt && python3 bot.py
 
 ## 发展
 
-我使用 python-3.10.9 进行开发。请使用 python >= 3.10 进行开发。另外，建议使用python虚拟环境开发，以避免出现不必要的问题。以下是我的开发步骤，仅供参考：
+我使用 python-3.10.9 进行开发。请使用 python &lt;= 3.10 进行开发。另外，建议使用python虚拟环境开发，以避免出现不必要的问题。以下是我的开发步骤，仅供参考：
 
 ```shell
 git clone https://github.com/akynazh/tg-search-bot.git
 cd tg-search-bot
-python3 -m venv venv
+~/.pyenv/versions/3.10.9/bin/python -m venv venv
 source ./venv/bin/activate
 pip3 install -r requirements.txt
 ```
