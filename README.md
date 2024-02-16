@@ -78,7 +78,7 @@ pip install -r requirements.txt && python3 bot.py
 
 ## Development
 
-I use python-3.10.9 for development. Please use python >= 3.10 for development. In addition, it is recommended to use python virtual environment development to avoid unnecessary problems. The following are my development steps for reference only:
+I use python-3.10.9 for development. Please use python <= 3.10 for development. In addition, it is recommended to use python virtual environment development to avoid unnecessary problems. The following are my development steps for reference only:
 
 ```shell
 git clone https://github.com/akynazh/tg-search-bot.git
