@@ -77,12 +77,12 @@ pip install -r requirements.txt && python3 bot.py
 
 ## تطوير
 
-أستخدم python-3.10.9 للتطوير. الرجاء استخدام بايثون >= 3.10 للتطوير. بالإضافة إلى ذلك، يوصى باستخدام تطوير البيئة الافتراضية بايثون لتجنب المشاكل غير الضرورية. فيما يلي خطوات التطوير الخاصة بي كمرجع فقط:
+أستخدم python-3.10.9 للتطوير. الرجاء استخدام python &lt;= 3.10 للتطوير. بالإضافة إلى ذلك، يوصى باستخدام تطوير البيئة الافتراضية بايثون لتجنب المشاكل غير الضرورية. فيما يلي خطوات التطوير الخاصة بي كمرجع فقط:
 
 ```shell
 git clone https://github.com/akynazh/tg-search-bot.git
 cd tg-search-bot
-python3 -m venv venv
+~/.pyenv/versions/3.10.9/bin/python -m venv venv
 source ./venv/bin/activate
 pip3 install -r requirements.txt
 ```
