@@ -10,7 +10,7 @@
 
 該機器人基於Python3構建，支援使用Docker一鍵部署，並透過Redis實現快取功能。
 
-其他語言的自述文件（由自動生成[翻譯自述文件](https://github.com/dephraiim/translate-readme)):[阿拉伯](./README.ar.md),[沒有](./README.hi.md),[法語](./README.fr.md),[簡體中文](./README.zh-CN.md),[繁體中文](./README.zh-TW.md).
+其他語言的自述文件（由自動生成[翻譯自述文件](https://github.com/dephraiim/translate-readme)):[阿拉伯](./README.ar.md),[沒有](./README.hi.md),[法語](./README.fr.md),[簡體中文](./README.zh-CN.md),[繁体中文](./README.zh-TW.md).
 
 ## 功能
 
@@ -77,12 +77,12 @@ pip install -r requirements.txt && python3 bot.py
 
 ## 發展
 
-我使用 python-3.10.9 進行開發。請使用 python >= 3.10 進行開發。另外，建議使用python虛擬環境開發，以避免不必要的問題。以下是我的開發步驟，僅供參考：
+我使用 python-3.10.9 進行開發。請使用 python &lt;= 3.10 進行開發。另外，建議使用python虛擬環境開發，以避免不必要的問題。以下是我的開發步驟，僅供參考：
 
 ```shell
 git clone https://github.com/akynazh/tg-search-bot.git
 cd tg-search-bot
-python3 -m venv venv
+~/.pyenv/versions/3.10.9/bin/python -m venv venv
 source ./venv/bin/activate
 pip3 install -r requirements.txt
 ```
