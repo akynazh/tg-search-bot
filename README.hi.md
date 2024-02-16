@@ -77,12 +77,12 @@ pip install -r requirements.txt && python3 bot.py
 
 ## विकास
 
-I use python-3.10.9 for development. Please use python >= 3.10 for development. In addition, it is recommended to use python virtual environment development to avoid unnecessary problems. The following are my development steps for reference only:
+मैं विकास के लिए पायथन-3.10.9 का उपयोग करता हूं। कृपया विकास के लिए पायथन &lt;= 3.10 का उपयोग करें। इसके अलावा, अनावश्यक समस्याओं से बचने के लिए पायथन वर्चुअल पर्यावरण विकास का उपयोग करने की अनुशंसा की जाती है। केवल संदर्भ के लिए मेरे विकास चरण निम्नलिखित हैं:
 
 ```shell
 git clone https://github.com/akynazh/tg-search-bot.git
 cd tg-search-bot
-python3 -m venv venv
+~/.pyenv/versions/3.10.9/bin/python -m venv venv
 source ./venv/bin/activate
 pip3 install -r requirements.txt
 ```
