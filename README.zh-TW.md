@@ -1,4 +1,4 @@
-# tg 搜索機器人
+# tg-search-bot
 
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
 
@@ -10,9 +10,9 @@
 
 該機器人基於Python3構建，支援使用Docker一鍵部署，並透過Redis實現快取功能。
 
-其他語言的自述文件（由自動生成[翻譯自述文件](https://github.com/dephraiim/translate-readme)):[阿拉伯](./README.ar.md),[沒有](./README.hi.md),[法語](./README.fr.md),[簡體中文](./README.zh-CN.md),[繁体中文](./README.zh-TW.md).
+其他語言的自述文件（由自動生成[翻譯自述文件](https://github.com/dephraiim/translate-readme)):[阿拉伯](./README.ar.md),[沒有](./README.hi.md),[法語](./README.fr.md),[簡體中文](./README.zh-CN.md),[繁體中文](./README.zh-TW.md).
 
-## 功能
+## Functions
 
 以下功能依開發完成時間排序，後續將持續新增功能。
 
