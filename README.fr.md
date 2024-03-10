@@ -27,7 +27,7 @@ Les fonctions suivantes sont triées par heure d'achèvement du développement e
 -   Prend en charge l'obtention de classements d'acteurs et de classements de films - 20/01/2023
 -   Prend en charge l'accès aléatoire aux vidéos les plus performantes et aux dernières vidéos - 2023/01/25
 -   Aide à l'obtention des noms chinois des acteurs via Wikipédia - 2023/02/18
--   Support traduction des titres japonais - 18/02/2023
+-   Support traduction des titres japonais - 2023/02/18
 -   Accompagnement à la recherche d'acteurs - 18/02/2023
 -   Prise en charge de la mise en cache via Redis - 2023/03/17
 
@@ -120,4 +120,4 @@ Ensuite, vous pouvez commencer à écrire du code. Lorsque vous avez terminé, n
 
 <!-- ALL-CONTRIBUTORS-LIST:END -->
 
-Si vous souhaitez également contribuer à la communauté, veuillez consulter[tout liste](https://github.com/akynazh/tg-search-bot#TODO)et lis[étapes de développement](https://github.com/akynazh/tg-search-bot#Development), les problèmes et les prs sont les bienvenus.
+Si vous souhaitez également contribuer à la communauté, veuillez consulter[tout liste](https://github.com/akynazh/tg-search-bot#TODO) and read [étapes de développement](https://github.com/akynazh/tg-search-bot#Development), les problèmes et les prs sont les bienvenus.
