@@ -1,4 +1,4 @@
-# tg-search-bot
+# tg 搜索機器人
 
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
 
@@ -12,7 +12,7 @@
 
 其他語言的自述文件（由自動生成[翻譯自述文件](https://github.com/dephraiim/translate-readme)):[阿拉伯](./README.ar.md),[沒有](./README.hi.md),[法語](./README.fr.md),[簡體中文](./README.zh-CN.md),[繁體中文](./README.zh-TW.md).
 
-## Functions
+## 功能
 
 以下功能依開發完成時間排序，後續將持續新增功能。
 
@@ -64,7 +64,7 @@ redis_password:
 enable_nsfw: 0
 ```
 
-PS：如果要使用Pikpak的自動傳送功能，需要先手動授權：[Pikpak 官方機器人](https://t.me/PikPak6_Bot)，然後在第一次運行機器人時登入。 （我的Pikpak邀請碼：99492001，輸入即可獲得會員資格）
+PS: If you want to use Pikpak’s automatic sending function, you need to authorize it manually first: [Pikpak 官方機器人](https://t.me/PikPak6_Bot)，然後在第一次運行機器人時登入。 （我的Pikpak邀請碼：99492001，輸入即可獲得會員資格）
 
 最後執行bot：（記錄、日誌等文件位於`~/.tg_search_bot`)
 
