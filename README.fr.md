@@ -120,4 +120,4 @@ Ensuite, vous pouvez commencer à écrire du code. Lorsque vous avez terminé, n
 
 <!-- ALL-CONTRIBUTORS-LIST:END -->
 
-Si vous souhaitez également contribuer à la communauté, veuillez consulter[tout liste](https://github.com/akynazh/tg-search-bot#TODO) and read [étapes de développement](https://github.com/akynazh/tg-search-bot#Development), les problèmes et les prs sont les bienvenus.
+Si vous souhaitez également contribuer à la communauté, veuillez consulter[tout liste](https://github.com/akynazh/tg-search-bot#TODO)et lis[étapes de développement](https://github.com/akynazh/tg-search-bot#Development), les problèmes et les prs sont les bienvenus.
