@@ -1,4 +1,4 @@
-# tg 搜索機器人
+# tg-search-bot
 
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
 
@@ -16,7 +16,7 @@
 
 以下功能依開發完成時間排序，後續將持續新增功能。
 
--   支援獲取基本視訊資訊和磁力連結 - 2022/11/25
+-   Supports obtaining basic video information and magnet links - 2022/11/25
 -   支援配置代理 - 2022/11/26
 -   支援過濾磁力連結（無碼=>高清=>字幕）- 2022/11/26
 -   支援讓機器人自動保存最佳磁力連結到 Pikpak - 2022/12/29
@@ -64,7 +64,7 @@ redis_password:
 enable_nsfw: 0
 ```
 
-PS: If you want to use Pikpak’s automatic sending function, you need to authorize it manually first: [Pikpak 官方機器人](https://t.me/PikPak6_Bot)，然後在第一次運行機器人時登入。 （我的Pikpak邀請碼：99492001，輸入即可獲得會員資格）
+PS：如果要使用Pikpak的自動傳送功能，需要先手動授權：[Pikpak 官方機器人](https://t.me/PikPak6_Bot)，然後在第一次運行機器人時登入。 （我的Pikpak邀請碼：99492001，輸入即可獲得會員資格）
 
 最後執行bot：（記錄、日誌等文件位於`~/.tg_search_bot`)
 
