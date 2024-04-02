@@ -29,11 +29,11 @@
 -   支持通过维基百科获取演员中文名字 - 2023/02/18
 -   支持日文标题翻译 - 2023/02/18
 -   支持寻找演员 - 2023/02/18
--   Support caching through redis - 2023/03/17
+-   通过redis支持缓存 - 2023/03/17
 
 ## 教程
 
-First, you need to download the project code locally, then configure the bot and edit `~/.tg_search_bot/config.yaml`：
+首先需要将项目代码下载到本地，然后配置bot并编辑`~/.tg_search_bot/config.yaml`：
 
 ```yaml
 # required, your telegram chat id
@@ -91,7 +91,7 @@ pip3 install -r requirements.txt
 
 ## 全部
 
--   English version
+-   英文版
 -   视频搜索支持更多磁力网站（目前仅支持海盗湾）
 -   您希望看到的其他功能出现...
 
