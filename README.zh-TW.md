@@ -1,4 +1,4 @@
-# tg-search-bot
+# tg 搜索機器人
 
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
 
@@ -16,7 +16,7 @@
 
 以下功能依開發完成時間排序，後續將持續新增功能。
 
--   Supports obtaining basic video information and magnet links - 2022/11/25
+-   支援獲取基本視訊資訊和磁力連結 - 2022/11/25
 -   支援配置代理 - 2022/11/26
 -   支援過濾磁力連結（無碼=>高清=>字幕）- 2022/11/26
 -   支援讓機器人自動保存最佳磁力連結到 Pikpak - 2022/12/29
