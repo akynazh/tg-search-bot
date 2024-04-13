@@ -24,7 +24,7 @@ Les fonctions suivantes sont triées par heure d'achèvement du développement e
 -   Prise en charge de l'obtention de captures d'écran vidéo - 01/01/2023
 -   Collecte de soutien d'acteurs et de vidéos - 04/01/2023
 -   Support déploiement via docker - 08/01/2023
--   Supports obtaining actor rankings and film ratings - 2023/01/20
+-   Prend en charge l'obtention de classements d'acteurs et de classements de films - 20/01/2023
 -   Prend en charge l'accès aléatoire aux vidéos les plus performantes et aux dernières vidéos - 2023/01/25
 -   Aide à l'obtention des noms chinois des acteurs via Wikipédia - 2023/02/18
 -   Support traduction des titres japonais - 18/02/2023
