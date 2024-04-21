@@ -83,8 +83,8 @@ I use python-3.10.9 for development. Please use python <= 3.10 for development. 
 ```shell
 git clone https://github.com/akynazh/tg-search-bot.git
 cd tg-search-bot
-~/.pyenv/versions/3.10.9/bin/python -m venv venv
-source ./venv/bin/activate
+~/.pyenv/versions/3.10.9/bin/python -m venv .venv
+source ./.venv/bin/activate
 pip3 install -r requirements.txt
 ```
 
