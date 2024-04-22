@@ -8,7 +8,7 @@
 
 **一個 Telegram 機器人，可用於搜尋各種視訊磁力連結。支援收藏、匯出記錄、自動儲存磁力連結等操作。它可以手動設定為阻止 NSFW 內容和代理 Internet 存取。**
 
-The bot is built based on Python3, supports one-click deployment with Docker, and implements caching functions through Redis.
+該機器人基於Python3構建，支援使用Docker一鍵部署，並透過Redis實現快取功能。
 
 其他語言的自述文件（由自動生成[翻譯自述文件](https://github.com/dephraiim/translate-readme)):[阿拉伯](./README.ar.md),[沒有](./README.hi.md),[法語](./README.fr.md),[簡體中文](./README.zh-CN.md),[繁體中文](./README.zh-TW.md).
 
@@ -18,7 +18,7 @@ The bot is built based on Python3, supports one-click deployment with Docker, an
 
 -   支援獲取基本視訊資訊和磁力連結 - 2022/11/25
 -   支援配置代理 - 2022/11/26
--   支援過濾磁力連結（無碼=>高清=>字幕）- 2022/11/26
+-   Support filtering magnet links (uncensored => hd => subtitle)- 2022/11/26
 -   支援讓機器人自動保存最佳磁力連結到 Pikpak - 2022/12/29
 -   支援取得預覽影片和完整影片 - 2022/12/31
 -   支援獲取視頻截圖 - 2023/01/01
@@ -64,7 +64,7 @@ redis_password:
 enable_nsfw: 0
 ```
 
-PS：如果要使用Pikpak的自動傳送功能，需要先手動授權：[Pikpak 官方機器人](https://t.me/PikPak6_Bot), and then log in when running the bot for the first time. (My Pikpak invitation code: 99492001, enter to get membership)
+PS：如果要使用Pikpak的自動傳送功能，需要先手動授權：[Pikpak 官方機器人](https://t.me/PikPak6_Bot)，然後在第一次運行機器人時登入。 （我的Pikpak邀請碼：99492001，輸入即可獲得會員資格）
 
 最後執行bot：（記錄、日誌等文件位於`~/.tg_search_bot`)
 
