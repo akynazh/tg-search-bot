@@ -10,14 +10,14 @@
 
 Le bot est construit sur la base de Python3, prend en charge le déploiement en un clic avec Docker et implémente des fonctions de mise en cache via Redis.
 
-Documentation README dans d'autres langues (générée automatiquement par[traduire-lisez-moi](https://github.com/dephraiim/translate-readme)):[arabe](./README.ar.md),[Non](./README.hi.md),[Français](./README.fr.md),[Chinois simplifié](./README.zh-CN.md),[chinois traditionnel](./README.zh-TW.md).
+Documentation README dans d'autres langues (générée automatiquement par[traduire-lisez-moi](https://github.com/dephraiim/translate-readme)):[arabe](./README.ar.md),[Non](./README.hi.md),[Français](./README.fr.md),[简体中文](./README.zh-CN.md),[chinois traditionnel](./README.zh-TW.md).
 
 ## Les fonctions
 
 Les fonctions suivantes sont triées par heure d'achèvement du développement et de nouvelles fonctions seront continuellement ajoutées à l'avenir.
 
 -   Prend en charge l'obtention d'informations vidéo de base et de liens magnétiques - 2022/11/25
--   Prise en charge du proxy de configuration - 26/11/2022
+-   Proxy de configuration de prise en charge - 26/11/2022
 -   Prise en charge des liens magnétiques de filtrage (non censuré => hd => sous-titre) - 26/11/2022
 -   Support permettant au bot d'enregistrer automatiquement les liens magnétiques optimaux vers Pikpak - 2022/12/29
 -   Prise en charge de l'obtention d'un aperçu de la vidéo et de la vidéo complète - 2022/12/31
@@ -27,7 +27,7 @@ Les fonctions suivantes sont triées par heure d'achèvement du développement e
 -   Prend en charge l'obtention de classements d'acteurs et de classements de films - 20/01/2023
 -   Prend en charge l'accès aléatoire aux vidéos les plus performantes et aux dernières vidéos - 2023/01/25
 -   Aide à l'obtention des noms chinois des acteurs via Wikipédia - 2023/02/18
--   Support traduction des titres japonais - 18/02/2023
+-   Support traduction des titres japonais - 2023/02/18
 -   Accompagnement à la recherche d'acteurs - 18/02/2023
 -   Prise en charge de la mise en cache via Redis - 2023/03/17
 
@@ -82,8 +82,8 @@ J'utilise python-3.10.9 pour le développement. Veuillez utiliser python &lt;= 3
 ```shell
 git clone https://github.com/akynazh/tg-search-bot.git
 cd tg-search-bot
-~/.pyenv/versions/3.10.9/bin/python -m venv venv
-source ./venv/bin/activate
+~/.pyenv/versions/3.10.9/bin/python -m venv .venv
+source ./.venv/bin/activate
 pip3 install -r requirements.txt
 ```
 
