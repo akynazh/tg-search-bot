@@ -82,8 +82,8 @@ pip install -r requirements.txt && python3 bot.py
 ```shell
 git clone https://github.com/akynazh/tg-search-bot.git
 cd tg-search-bot
-~/.pyenv/versions/3.10.9/bin/python -m venv venv
-source ./venv/bin/activate
+~/.pyenv/versions/3.10.9/bin/python -m venv .venv
+source ./.venv/bin/activate
 pip3 install -r requirements.txt
 ```
 
