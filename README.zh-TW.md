@@ -8,7 +8,7 @@
 
 **一個 Telegram 機器人，可用於搜尋各種視訊磁力連結。支援收藏、匯出記錄、自動儲存磁力連結等操作。它可以手動設定為阻止 NSFW 內容和代理 Internet 存取。**
 
-該機器人基於Python3構建，支援使用Docker一鍵部署，並透過Redis實現快取功能。
+The bot is built based on Python3, supports one-click deployment with Docker, and implements caching functions through Redis.
 
 其他語言的自述文件（由自動生成[翻譯自述文件](https://github.com/dephraiim/translate-readme)):[阿拉伯](./README.ar.md),[沒有](./README.hi.md),[法語](./README.fr.md),[簡體中文](./README.zh-CN.md),[繁體中文](./README.zh-TW.md).
 
@@ -64,7 +64,7 @@ redis_password:
 enable_nsfw: 0
 ```
 
-PS：如果要使用Pikpak的自動傳送功能，需要先手動授權：[Pikpak 官方機器人](https://t.me/PikPak6_Bot)，然後在第一次運行機器人時登入。 （我的Pikpak邀請碼：99492001，輸入即可獲得會員資格）
+PS：如果要使用Pikpak的自動傳送功能，需要先手動授權：[Pikpak 官方機器人](https://t.me/PikPak6_Bot), and then log in when running the bot for the first time. (My Pikpak invitation code: 99492001, enter to get membership)
 
 最後執行bot：（記錄、日誌等文件位於`~/.tg_search_bot`)
 
@@ -82,8 +82,8 @@ pip install -r requirements.txt && python3 bot.py
 ```shell
 git clone https://github.com/akynazh/tg-search-bot.git
 cd tg-search-bot
-~/.pyenv/versions/3.10.9/bin/python -m venv venv
-source ./venv/bin/activate
+~/.pyenv/versions/3.10.9/bin/python -m venv .venv
+source ./.venv/bin/activate
 pip3 install -r requirements.txt
 ```
 
