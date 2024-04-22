@@ -8,24 +8,24 @@
 
 **روبوت Telegram يمكن استخدامه للبحث عن روابط فيديو مغناطيسية مختلفة. وهو يدعم عمليات مثل التجميع وتصدير السجلات وحفظ الروابط المغناطيسية تلقائيًا. يمكن تهيئته يدويًا لحظر محتوى NSFW والوصول إلى الإنترنت عبر الوكيل.**
 
-تم تصميم الروبوت استنادًا إلى Python3، ويدعم النشر بنقرة واحدة باستخدام Docker، وينفذ وظائف التخزين المؤقت من خلال Redis.
+The bot is built based on Python3, supports one-click deployment with Docker, and implements caching functions through Redis.
 
 وثائق README بلغات أخرى (يتم إنشاؤها تلقائيًا بواسطة[ترجمة الملف التمهيدي](https://github.com/dephraiim/translate-readme)):[عربي](./README.ar.md),[لا](./README.hi.md),[فرنسي](./README.fr.md),[الصينية المبسطة](./README.zh-CN.md),[الصينية التقليدية](./README.zh-TW.md).
 
 ## المهام
 
-The following functions are sorted by development completion time, and new functions will be continuously added in the future.
+يتم فرز الوظائف التالية حسب وقت اكتمال التطوير، وسيتم إضافة وظائف جديدة بشكل مستمر في المستقبل.
 
--   يدعم الحصول على معلومات الفيديو الأساسية وروابط المغناطيس - 2022/11/25
+-   Supports obtaining basic video information and magnet links - 2022/11/25
 -   دعم وكيل التكوين - 2022/11/26
--   دعم تصفية الروابط المغناطيسية (غير خاضعة للرقابة => hd => الترجمة)- 2022/11/26
+-   دعم تصفية الروابط المغناطيسية (غير خاضعة للرقابة => hd => الترجمة) - 2022/11/26
 -   دعم السماح للروبوت بحفظ الروابط المغناطيسية المثالية تلقائيًا إلى Pikpak - 2022/12/29
 -   دعم الحصول على معاينة الفيديو والفيديو الكامل - 2022/12/31
 -   دعم الحصول على لقطات فيديو - 2023/01/01
 -   دعم مجموعة الممثلين ومقاطع الفيديو - 2023/01/04
--   دعم النشر عبر عامل الإرساء - 2023/01/08
+-   Support deployment via docker - 2023/01/08
 -   يدعم الحصول على تصنيفات الممثلين وتقييمات الأفلام - 2023/01/20
--   يدعم الوصول العشوائي إلى مقاطع الفيديو عالية الدرجات وأحدث مقاطع الفيديو - 2023/01/25
+-   Supports random access to high-scoring videos and latest videos - 2023/01/25
 -   دعم الحصول على أسماء الممثلين الصينية من خلال ويكيبيديا - 2023/02/18
 -   دعم ترجمة العناوين اليابانية - 2023/02/18
 -   دعم البحث عن الممثلين - 2023/02/18
@@ -64,7 +64,7 @@ redis_password:
 enable_nsfw: 0
 ```
 
-PS: If you want to use Pikpak’s automatic sending function, you need to authorize it manually first: [بوت Pikpak الرسمي](https://t.me/PikPak6_Bot)، ثم قم بتسجيل الدخول عند تشغيل الروبوت لأول مرة. (رمز دعوة بيكباك الخاص بي: 99492001، أدخل للحصول على العضوية)
+ملاحظة: إذا كنت تريد استخدام وظيفة الإرسال التلقائي في Pikpak، فأنت بحاجة إلى ترخيصها يدويًا أولاً:[بوت Pikpak الرسمي](https://t.me/PikPak6_Bot)، ثم قم بتسجيل الدخول عند تشغيل الروبوت لأول مرة. (رمز دعوة بيكباك الخاص بي: 99492001، أدخل للحصول على العضوية)
 
 أخيرًا، قم بتشغيل الروبوت: (توجد ملفات مثل السجلات والسجلات في`~/.tg_search_bot`)
 
@@ -82,12 +82,12 @@ pip install -r requirements.txt && python3 bot.py
 ```shell
 git clone https://github.com/akynazh/tg-search-bot.git
 cd tg-search-bot
-~/.pyenv/versions/3.10.9/bin/python -m venv venv
-source ./venv/bin/activate
+~/.pyenv/versions/3.10.9/bin/python -m venv .venv
+source ./.venv/bin/activate
 pip3 install -r requirements.txt
 ```
 
-ثم يمكنك البدء في كتابة التعليمات البرمجية. عند الانتهاء، تذكر كتابة أو تشغيل مثيل اختبار (في`tests/test.py`). يرجى التأكد من عدم وجود مشكلة في الاختبار قبل إرسال الرمز.
+Then you can start writing code. When you are done, remember to write or run a test instance (in `tests/test.py`). يرجى التأكد من عدم وجود مشكلة في الاختبار قبل إرسال الرمز.
 
 ## الجميع
 
