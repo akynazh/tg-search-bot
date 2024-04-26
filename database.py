@@ -11,7 +11,7 @@ class BotFileDb:
         self.path_record_file = path_record_file
         pass
 
-    def check_has_record(self) -> tuple[dict, bool, bool]:
+    def check_has_record(self):
         """检查是否有收藏记录, 如果有则返回记录
 
         :return tuple[dict, bool, bool]: 收藏记录, 演员记录是否存在, 番号记录是否存在
@@ -33,16 +33,16 @@ class BotFileDb:
         is_stars_exists = False
         is_avs_exists = False
         if (
-                "stars" in record.keys()
-                and record["stars"] != []
-                and len(record["stars"]) > 0
+            "stars" in record.keys()
+            and record["stars"] != []
+            and len(record["stars"]) > 0
         ):
             is_stars_exists = True
         if "avs" in record.keys() and record["avs"] != [] and len(record["avs"]) > 0:
             is_avs_exists = True
         return record, is_stars_exists, is_avs_exists
 
-    def check_star_exists_by_id(self, star_id: str) -> bool:
+    def check_star_exists_by_id(self, star_id: str):
         """根据演员 id 确认收藏记录中演员是否存在
 
         :param str star_id: 演员 id
@@ -56,7 +56,7 @@ class BotFileDb:
             if star["id"].lower() == star_id.lower():
                 return True
 
-    def check_id_exists(self, id: str) -> bool:
+    def check_id_exists(self, id: str):
         """根据番号确认收藏记录中番号是否存在
 
         :param str id: 番号
@@ -70,7 +70,7 @@ class BotFileDb:
             if av["id"].lower() == id.lower():
                 return True
 
-    def renew_record(self, record: dict) -> bool:
+    def renew_record(self, record: dict):
         """更新记录
 
         :param dict record: 新的记录
@@ -86,7 +86,7 @@ class BotFileDb:
             LOG.error(f"更新收藏记录文件失败: {e}")
             return False
 
-    def record_star_by_name_id(self, star_name: str, star_id: str) -> bool:
+    def record_star_by_name_id(self, star_name: str, star_id: str):
         """记录演员
 
         :param str star_name: 演员名称
@@ -111,7 +111,7 @@ class BotFileDb:
         record["stars"] = stars
         return self.renew_record(record)
 
-    def record_id_by_id_stars(self, id: str, stars: list) -> bool:
+    def record_id_by_id_stars(self, id: str, stars: list):
         """记录番号
 
         :param str id: 番号
@@ -136,7 +136,7 @@ class BotFileDb:
         record["avs"] = avs
         return self.renew_record(record)
 
-    def undo_record_star_by_id(self, star_id: str) -> bool:
+    def undo_record_star_by_id(self, star_id: str):
         """取消收藏演员
 
         :param str star_id: 演员id
@@ -160,7 +160,7 @@ class BotFileDb:
             return self.renew_record(record)
         return True
 
-    def undo_record_id(self, id: str) -> bool:
+    def undo_record_id(self, id: str):
         """取消收藏番号
 
         :param str id: 番号
@@ -235,8 +235,7 @@ class BotCacheDb:
         "prefix": "jlib-page-new-avs-",
         "expire": 3600 * 24 * 2,
     }
-    CACHE_STAR_JA_NAME = {"prefix": "star-ja-name-",
-                          "expire": 3600 * 24 * 30 * 6}
+    CACHE_STAR_JA_NAME = {"prefix": "star-ja-name-", "expire": 3600 * 24 * 30 * 6}
     CACHE_NEW_AVS_OF_STAR = {
         "prefix": "new-avs-of-star-",
         "expire": 3600 * 24 * 12,
@@ -340,7 +339,7 @@ class BotCacheDb:
         except Exception as e:
             LOG.error(f"设置缓存: {cache_key} 失败: {e}")
 
-    def get_cache(self, key, type: int) -> any:
+    def get_cache(self, key, type: int):
         """获取缓存
 
         :param str key: 键

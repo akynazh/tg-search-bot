@@ -72,18 +72,18 @@ Finally, run the bot: (files such as records and logs are located in `~/.tg_sear
 ```sh
 # op1. docker-compose
 docker-compose up -d
-# op2. simple way (Python >=3.10)
+# op2. simple way (Python >=3.9)
 pip install -r requirements.txt && python3 bot.py
 ```
 
 ## Development
 
-I use python-3.10.9 for development. Please use python <= 3.10 for development. In addition, it is recommended to use python virtual environment development to avoid unnecessary problems. The following are my development steps for reference only:
+I use python-3.9.13 for development. Please use python <= 3.9 for development. In addition, it is recommended to use python virtual environment development to avoid unnecessary problems. The following are my development steps for reference only:
 
 ```shell
 git clone https://github.com/akynazh/tg-search-bot.git
 cd tg-search-bot
-~/.pyenv/versions/3.10.9/bin/python -m venv .venv
+~/.pyenv/versions/3.9.13/bin/python -m venv .venv
 source ./.venv/bin/activate
 pip3 install -r requirements.txt
 ```
