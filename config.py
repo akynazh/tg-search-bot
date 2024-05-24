@@ -6,7 +6,6 @@ LOG = logging.getLogger(__name__)
 
 class BotConfig:
     def __init__(self, path_config_file: str):
-        # load
         with open(path_config_file, "r", encoding="utf8") as f:
             config = yaml.safe_load(f)
         self.tg_chat_id = str(config["tg_chat_id"]) if config["tg_chat_id"] else ""
@@ -20,13 +19,13 @@ class BotConfig:
         self.proxy_addr = str(config["proxy_addr"]) if config["proxy_addr"] else ""
         self.use_pikpak = str(config["use_pikpak"]) if config["use_pikpak"] else "0"
         self.tg_api_id = str(config["tg_api_id"]) if config["tg_api_id"] else ""
-        self.tg_api_hash = (
-            str(config["tg_api_hash"]) if config["tg_api_hash"] else ""
-        )
+        self.tg_api_hash = str(config["tg_api_hash"]) if config["tg_api_hash"] else ""
         self.use_cache = str(config["use_cache"]) if config["use_cache"] else "0"
         self.redis_host = str(config["redis_host"]) if config["redis_host"] else ""
         self.redis_port = str(config["redis_port"]) if config["redis_port"] else ""
-        self.redis_password = str(config["redis_password"]) if config["redis_password"] else ""
+        self.redis_password = (
+            str(config["redis_password"]) if config["redis_password"] else ""
+        )
         self.enable_nsfw = str(config["enable_nsfw"]) if config["enable_nsfw"] else "0"
         # set
         self.proxy_addr_dmm = ""
@@ -39,14 +38,14 @@ class BotConfig:
             t2 = self.proxy_addr.rfind(":")
             self.proxy_json_pikpak = {
                 "scheme": self.proxy_addr[:t1],
-                "hostname": self.proxy_addr[t1 + 3: t2],
-                "port": int(self.proxy_addr[t2 + 1:]),
+                "hostname": self.proxy_addr[t1 + 3 : t2],
+                "port": int(self.proxy_addr[t2 + 1 :]),
             }
-            LOG.info(f'设置代理: "{self.proxy_addr}"')
+            LOG.info(f'Set proxy: "{self.proxy_addr}"')
         elif self.use_proxy_dmm == "1":
             self.proxy_addr_dmm = self.proxy_addr
             self.proxy_addr = ""
-            LOG.info(f'设置 DMM 代理: "{self.proxy_addr_dmm}"')
+            LOG.info(f'Set dmm proxy: "{self.proxy_addr_dmm}"')
         else:
             self.proxy_addr = ""
-        LOG.info("成功读取并加载配置文件")
+        LOG.info("Successfully read and loaded the configuration file.")

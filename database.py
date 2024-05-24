@@ -12,24 +12,16 @@ class BotFileDb:
         pass
 
     def check_has_record(self):
-        """检查是否有收藏记录, 如果有则返回记录
-
-        :return tuple[dict, bool, bool]: 收藏记录, 演员记录是否存在, 番号记录是否存在
-        """
-        # 初始化数据
         record = {}
-        # 加载记录
         if os.path.exists(self.path_record_file):
             try:
                 with open(self.path_record_file, "r", encoding="utf8") as f:
                     record = json.load(f)
             except Exception as e:
-                LOG.error(f"加载收藏记录文件失败: {e}")
+                LOG.error(f"Failed to load the saved records file: {e}")
                 return None, False, False
-        # 尚无记录
         if not record or record == {}:
             return None, False, False
-        # 检查并返回记录
         is_stars_exists = False
         is_avs_exists = False
         if (
@@ -43,11 +35,6 @@ class BotFileDb:
         return record, is_stars_exists, is_avs_exists
 
     def check_star_exists_by_id(self, star_id: str):
-        """根据演员 id 确认收藏记录中演员是否存在
-
-        :param str star_id: 演员 id
-        :return bool: 是否存在
-        """
         record, exists, _ = self.check_has_record()
         if not record or not exists:
             return False
@@ -57,11 +44,6 @@ class BotFileDb:
                 return True
 
     def check_id_exists(self, id: str):
-        """根据番号确认收藏记录中番号是否存在
-
-        :param str id: 番号
-        :return bool: 是否存在
-        """
         record, _, exists = self.check_has_record()
         if not record or not exists:
             return False
@@ -71,11 +53,6 @@ class BotFileDb:
                 return True
 
     def renew_record(self, record: dict):
-        """更新记录
-
-        :param dict record: 新的记录
-        :return bool: 是否更新成功
-        """
         try:
             with open(self.path_record_file, "w", encoding="utf8") as f:
                 json.dump(
@@ -83,17 +60,10 @@ class BotFileDb:
                 )
             return True
         except Exception as e:
-            LOG.error(f"更新收藏记录文件失败: {e}")
+            LOG.error(f"Failed to update the saved records file: {e}")
             return False
 
     def record_star_by_name_id(self, star_name: str, star_id: str):
-        """记录演员
-
-        :param str star_name: 演员名称
-        :param str star_id: 演员编号
-        :return bool: 是否收藏成功
-        """
-        # 加载记录
         record, is_stars_exists, _ = self.check_has_record()
         if not record:
             record, stars = {}, []
@@ -102,23 +72,14 @@ class BotFileDb:
                 stars = []
             else:
                 stars = record["stars"]
-        # 检查记录是否存在
         for star in stars:
             if star["id"].lower() == star_id.lower():
                 return True
-        # 如果记录需要更新则写回记录
         stars.append({"name": star_name, "id": star_id.lower()})
         record["stars"] = stars
         return self.renew_record(record)
 
     def record_id_by_id_stars(self, id: str, stars: list):
-        """记录番号
-
-        :param str id: 番号
-        :param list stars: 演员编号列表
-        :return bool: 是否收藏成功
-        """
-        # 加载记录
         record, _, is_avs_exists = self.check_has_record()
         if not record:
             record, avs = {}, []
@@ -127,58 +88,40 @@ class BotFileDb:
                 avs = []
             else:
                 avs = record["avs"]
-        # 检查记录是否存在
         for av in avs:
             if av["id"].lower() == id.lower():
                 return True
-        # 如果记录需要更新则写回记录
         avs.append({"id": id.lower(), "stars": stars})
         record["avs"] = avs
         return self.renew_record(record)
 
     def undo_record_star_by_id(self, star_id: str):
-        """取消收藏演员
-
-        :param str star_id: 演员id
-        :return bool: 是否取消收藏成功
-        """
-        # 加载记录
         record, exists, _ = self.check_has_record()
         if not record or not exists:
             return False
         stars = record["stars"]
         exists = False
-        # 删除记录
         for i, star in enumerate(stars):
             if star["id"].lower() == star_id.lower():
                 del stars[i]
                 exists = True
                 break
-        # 更新记录
         if exists:
             record["stars"] = stars
             return self.renew_record(record)
         return True
 
     def undo_record_id(self, id: str):
-        """取消收藏番号
-
-        :param str id: 番号
-        :return bool: 是否取消收藏成功
-        """
-        # 加载记录
         record, _, exists = self.check_has_record()
         if not record or not exists:
             return False
         avs = record["avs"]
         exists = False
-        # 删除记录
         for i, av in enumerate(avs):
             if av["id"].lower() == id.lower():
                 del avs[i]
                 exists = True
                 break
-        # 更新记录
         if exists:
             record["avs"] = avs
             return self.renew_record(record)
@@ -196,7 +139,7 @@ class BotCacheDb:
     }
     CACHE_STAR = {
         "prefix": "star-",
-        "expire": 0,  # 永不过期
+        "expire": 0,  # never expire
     }
     CACHE_RANK = {
         "prefix": "rank-",
@@ -276,13 +219,6 @@ class BotCacheDb:
     }
 
     def __init__(self, host: str, port: int, password: str, use_cache: str):
-        """初始化
-
-        :param str host: ip 地址
-        :param int port: 端口
-        :param str password: 密码
-        :param str use_cache: 是否使用缓存
-        """
         self.use_cache = use_cache
         self.cache = None
         if self.use_cache == "1":
@@ -292,17 +228,14 @@ class BotCacheDb:
                 else:
                     self.cache = redis.Redis(host=host, port=port)
                 self.cache.ping()
-                LOG.info(f"连接到 redis 服务: {host}:{port}")
+                LOG.info(f"Connecting to the Redis service: {host}:{port}")
             except Exception as e:
                 self.cache = None
-                LOG.error(f"无法连接到 redis 服务: {host}:{port} : {e}")
+                LOG.error(
+                    f"Unable to connect to the Redis service: {host}:{port} : {e}"
+                )
 
     def remove_cache(self, key: str, type: int):
-        """删除缓存
-
-        :param str key: 键
-        :param int type: 缓存类型
-        """
         if self.use_cache == "0" or not self.cache:
             return
         key = str(key).lower()
@@ -310,15 +243,16 @@ class BotCacheDb:
         try:
             self.cache.delete(cache_key)
         except Exception as e:
-            LOG.error(f"删除缓存: {cache_key} 失败: {e}")
+            LOG.error(f"Failed to delete cache: {cache_key}: {e}")
 
     def set_cache(self, key: str, value, type: int, expire=None):
-        """设置缓存
+        """
+        Set cache.
 
-        :param str key: 键
-        :param any value: 值
-        :param int type: 缓存类型
-        :param int expire: 缓存存活时间(s), 默认使用内定时间
+        :param str key: Key
+        :param any value: Value
+        :param int type: Cache type
+        :param int expire: Cache expiration time (in seconds), defaults to using predefined time
         """
         if self.use_cache == "0" or not self.cache:
             return
@@ -337,15 +271,9 @@ class BotCacheDb:
             else:
                 self.cache.set(name=cache_key, value=json.dumps(value))
         except Exception as e:
-            LOG.error(f"设置缓存: {cache_key} 失败: {e}")
+            LOG.error(f"Failed to set cache: {cache_key}: {e}")
 
     def get_cache(self, key, type: int):
-        """获取缓存
-
-        :param str key: 键
-        :param int type: 缓存类型
-        :return any: 缓存对象
-        """
         if self.use_cache == "0" or not self.cache:
             return
         key = str(key).lower()
@@ -355,4 +283,4 @@ class BotCacheDb:
             if value:
                 return json.loads(value)
         except Exception as e:
-            LOG.error(f"获取缓存: {cache_key} 失败: {e}")
+            LOG.error(f"Failed to retrieve cache: {cache_key}: {e}")
