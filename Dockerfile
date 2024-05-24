@@ -1,5 +1,7 @@
 FROM python:3.10
 
+ENV TZ Asia/Shanghai
+
 WORKDIR /app
 
 COPY . .
