@@ -18,8 +18,6 @@ The following functions are sorted by development completion time, and new funct
 - Support deployment via docker - 2023/01/08
 - Supports obtaining actor rankings and film ratings - 2023/01/20
 - Supports random access to high-scoring videos and latest videos - 2023/01/25
-- Support obtaining actors’ Chinese names through Wikipedia - 2023/02/18
-- Support translation of Japanese titles - 2023/02/18
 - Support searching for actors - 2023/02/18
 - Support caching through redis - 2023/03/17
 
