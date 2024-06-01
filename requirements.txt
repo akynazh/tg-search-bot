@@ -1,4 +1,4 @@
-Jvav==1.9.2
+Jvav==1.9.5
 langdetect==1.0.9
 Pyrogram==2.0.92
 pyTelegramBotAPI==4.14.0
