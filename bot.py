@@ -13,7 +13,6 @@ import telebot
 from pyrogram import Client
 from telebot import apihelper, types
 from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
-from config import BotConfig
 from database import BotFileDb, BotCacheDb
 from requests import get
 from requests.compat import quote
@@ -35,6 +34,7 @@ class Logger:
         self.logger.addHandler(r_file_handler)
         self.logger.addHandler(stream_handler)
         self.logger.setLevel(log_level)
+
 
 class BotConfig:
     def __init__(self, path_config_file: str):
@@ -70,8 +70,8 @@ class BotConfig:
             t2 = self.proxy_addr.rfind(":")
             self.proxy_json_pikpak = {
                 "scheme": self.proxy_addr[:t1],
-                "hostname": self.proxy_addr[t1 + 3 : t2],
-                "port": int(self.proxy_addr[t2 + 1 :]),
+                "hostname": self.proxy_addr[t1 + 3: t2],
+                "port": int(self.proxy_addr[t2 + 1:]),
             }
             LOG.info(f'Set proxy: "{self.proxy_addr}"')
         elif self.use_proxy_dmm == "1":
@@ -83,17 +83,20 @@ class BotConfig:
         LOG.info("Successfully read and loaded the configuration file.")
 
 
-
+# URL
 BASE_URL_TG = "https://t.me"
 BASE_URL_MISS_AV = "https://missav.com"
-PROJECT_ADDRESS = "https://github.com/akynazh/tg-search-bot"
 PIKPAK_BOT_NAME = "PikPak6_Bot"
-CONTACT_AUTHOR = f"{BASE_URL_TG}/jackbryant286"
+URL_PROJECT_ADDRESS = "https://github.com/akynazh/tg-search-bot"
+URL_AUTHOR = f"{BASE_URL_TG}/jackbryant286"
+URL_PIKPAK_BOT = f"{BASE_URL_TG}/{PIKPAK_BOT_NAME}"
+# PATH
 PATH_ROOT = f'{os.path.expanduser("~")}/.tg_search_bot'
 PATH_LOG_FILE = f"{PATH_ROOT}/log.txt"
 PATH_RECORD_FILE = f"{PATH_ROOT}/record.json"
 PATH_SESSION_FILE = f"{PATH_ROOT}/session"
 PATH_CONFIG_FILE = f"{PATH_ROOT}/config.yaml"
+# BASE
 LOG = Logger(path_log_file=PATH_LOG_FILE).logger
 BOT_CFG = BotConfig(PATH_CONFIG_FILE)
 apihelper.proxy = BOT_CFG.proxy_json
@@ -101,7 +104,7 @@ BOT = telebot.TeleBot(BOT_CFG.tg_bot_token)
 BOT_DB = BotFileDb(PATH_RECORD_FILE)
 BOT_CACHE_DB = BotCacheDb(
     host=BOT_CFG.redis_host,
-    port=BOT_CFG.redis_port,
+    port=int(BOT_CFG.redis_port),
     password=BOT_CFG.redis_password,
     use_cache=BOT_CFG.use_cache,
 )
@@ -163,9 +166,6 @@ class BotKey:
 
 class BotUtils:
     av_utils = [JAVDB_UTIL, JAVBUS_UTIL, SUKEBEI_UTIL]
-
-    def __init__(self):
-        pass
 
     def send_action_typing(self):
         BOT.send_chat_action(chat_id=BOT_CFG.tg_chat_id, action="typing")
@@ -230,14 +230,14 @@ class BotUtils:
             )
 
     def send_msg_btns(
-        self,
-        max_btn_per_row: int,
-        max_row_per_msg: int,
-        key_type: str,
-        title: str,
-        objs: list,
-        extra_btns=[],
-        page_btns=[],
+            self,
+            max_btn_per_row: int,
+            max_row_per_msg: int,
+            key_type: str,
+            title: str,
+            objs: list,
+            extra_btns=[],
+            page_btns=[],
     ):
         markup = InlineKeyboardMarkup()
         row_count = 0
@@ -267,7 +267,7 @@ class BotUtils:
             self.send_msg(msg=title, markup=markup)
 
     def get_page_elements(
-        self, objs: list, page: int, col: int, row: int, key_type: str
+            self, objs: list, page: int, col: int, row: int, key_type: str
     ):
         """
         Get the list of objects on the current page, list of pagination buttons, and the title of quantity.
@@ -288,7 +288,7 @@ class BotUtils:
         if page > page_count:
             page = page_count
         start_idx = (page - 1) * record_count_per_page
-        objs = objs[start_idx : start_idx + record_count_per_page]
+        objs = objs[start_idx: start_idx + record_count_per_page]
         if page == 1:
             to_previous = 1
         else:
@@ -394,7 +394,7 @@ class BotUtils:
                 text="Add to Favorites",
                 callback_data=f"{star_name}|{star_id}:{BotKey.KEY_RECORD_STAR_BY_STAR_NAME_ID}",
             )
-        title = f'<code>{star_name}</code> | <a href="{WIKI_UTIL.BASE_URL_JAPAN_WIKI}/{star_name}">Wiki</a> | <a href="{JAVBUS_UTIL.BASE_URL_SEARCH_BY_STAR_ID}/{star_id}">Javbus</a>'
+        title = f'<code>{star_name}</code> | <a href="{WIKI_UTIL.BASE_URL_JAPAN_WIKI}/{star_name}">Wiki</a> | <a href="{JAVBUS_UTIL.base_url_search_by_star_id}/{star_id}">Javbus</a>'
         if len(star_avs) == 0:
             markup = InlineKeyboardMarkup()
             markup.row(extra_btn1, extra_btn2, extra_btn3, extra_btn4)
@@ -495,9 +495,9 @@ class BotUtils:
             size_str = f"{size} b"
             if size >= 1024:
                 size_str = f"{(size / 1024):.2f} kb"
-            if size >= 1024**2:
+            if size >= 1024 ** 2:
                 size_str = f"{(size / 1024 ** 2):.2f} mb"
-            if size >= 1024**3:
+            if size >= 1024 ** 3:
                 size_str = f"{(size / 1024 ** 3):.2f} gb"
             return size_str
 
@@ -528,13 +528,13 @@ class BotUtils:
         return matches
 
     def get_av_by_id(
-        self,
-        id: str,
-        send_to_pikpak=False,
-        is_nice=True,
-        is_uncensored=True,
-        magnet_max_count=3,
-        not_send=False,
+            self,
+            id: str,
+            send_to_pikpak=False,
+            is_nice=True,
+            is_uncensored=True,
+            magnet_max_count=3,
+            not_send=False,
     ):
         """
         Get AV based on number
@@ -619,7 +619,7 @@ class BotUtils:
             av_tags = " ".join(av_tags).replace("<", "").replace(">", "")
             msg += f"""【Tags】{av_tags}
 """
-        msg += f"""【Other】<a href="{BASE_URL_TG}/{PIKPAK_BOT_NAME}">Pikpak</a> | <a href="{PROJECT_ADDRESS}">Project</a> | <a href="{CONTACT_AUTHOR}">Author</a>
+        msg += f"""【Other】<a href="{URL_PIKPAK_BOT}">Pikpak</a> | <a href="{URL_PROJECT_ADDRESS}">Project</a> | <a href="{URL_AUTHOR}">Author</a>
 """
         magnet_send_to_pikpak = ""
         for i, magnet in enumerate(av_magnets):
@@ -756,7 +756,7 @@ class BotUtils:
                     reason="The image parsing failed.", op=op_get_sample
                 )
 
-    def watch_av_by_id(self, id: str, type: str):
+    def watch_av_by_id(self, id: str, type: int):
         id = id.lower()
         if id.find("fc2") != -1 and id.find("ppv") == -1:
             id = id.replace("fc2", "fc2-ppv")
@@ -878,7 +878,7 @@ Avgle video link: {video}
         if langdetect.detect(star_name) == "ja":
             star_wiki = f"{WIKI_UTIL.BASE_URL_JAPAN_WIKI}/{star_name}"
         self.send_msg(
-            msg=f'<code>{star_name}</code> | <a href="{star_wiki}">Wiki</a> | <a href="{JAVBUS_UTIL.BASE_URL_SEARCH_BY_STAR_NAME}/{star_name}">Javbus</a>',
+            msg=f'<code>{star_name}</code> | <a href="{star_wiki}">Wiki</a> | <a href="{JAVBUS_UTIL.base_url_search_by_star_name}/{star_name}">Javbus</a>',
             markup=markup,
         )
         return True
@@ -893,7 +893,7 @@ Avgle video link: {video}
                 return
             BOT_CACHE_DB.set_cache(key=page, value=stars, type=BotCacheDb.TYPE_RANK)
         stars_tmp = [None] * 80
-        stars = stars_tmp[: ((page - 1) * 20)] + stars + stars_tmp[((page - 1) * 20) :]
+        stars = stars_tmp[: ((page - 1) * 20)] + stars + stars_tmp[((page - 1) * 20):]
         col, row = 4, 5
         objs, page_btns, title = self.get_page_elements(
             objs=stars, page=page, col=4, row=5, key_type=BotKey.KEY_GET_TOP_STARS
@@ -912,10 +912,10 @@ Avgle video link: {video}
         async def send():
             try:
                 async with Client(
-                    name=PATH_SESSION_FILE,
-                    api_id=BOT_CFG.tg_api_id,
-                    api_hash=BOT_CFG.tg_api_hash,
-                    proxy=BOT_CFG.proxy_json_pikpak,
+                        name=PATH_SESSION_FILE,
+                        api_id=BOT_CFG.tg_api_id,
+                        api_hash=BOT_CFG.tg_api_hash,
+                        proxy=BOT_CFG.proxy_json_pikpak,
                 ) as app:
                     return await app.send_message(PIKPAK_BOT_NAME, msg)
             except Exception as e:
@@ -1018,7 +1018,7 @@ Magnet: <code>{bt['magnet']}</code>
             res,
             markup=InlineKeyboardMarkup().row(
                 InlineKeyboardButton(
-                    "Go to PikPak Cloud Drive", url=f"{BASE_URL_TG}/{PIKPAK_BOT_NAME}"
+                    "Go to PikPak Cloud Drive", url=URL_PIKPAK_BOT
                 )
             ),
         )
@@ -1065,7 +1065,7 @@ Magnet: <code>{bt['magnet']}</code>
             star_name_ja = self.get_star_ja_name_by_zh_name(star_name_ori)
             code, avs = DMM_UTIL.get_nice_avs_by_star_name(star_name=star_name_ja)
             if self.check_success(
-                code, f"Get High-Rated AVs of Actress {star_name_ori}"
+                    code, f"Get High-Rated AVs of Actress {star_name_ori}"
             ):
                 avs = avs[:60]
                 BOT_CACHE_DB.set_cache(
@@ -1096,7 +1096,7 @@ def handle_callback(call):
     LOG.info(f"Handle callback: {call.data}")
     s = call.data.rfind(":")
     content = call.data[:s]
-    key_type = call.data[s + 1 :]
+    key_type = call.data[s + 1:]
     if key_type == BotKey.KEY_WATCH_PV_BY_ID:
         bot_utils.watch_av_by_id(id=content, type=0)
     elif key_type == BotKey.KEY_WATCH_FV_BY_ID:
@@ -1111,7 +1111,7 @@ def handle_callback(call):
         star_id = tmp[1]
         code, id = JAVBUS_UTIL.get_id_by_star_id(star_id=star_id)
         if bot_utils.check_success(
-            code, f"Randomly fetch AV of Actor <code>{star_name}</code>"
+                code, f"Randomly fetch AV of Actor <code>{star_name}</code>"
         ):
             bot_utils.get_av_by_id(id=id)
     elif key_type == BotKey.KEY_GET_NEW_AVS_BY_STAR_NAME_ID:
@@ -1122,7 +1122,7 @@ def handle_callback(call):
     elif key_type == BotKey.KEY_RECORD_STAR_BY_STAR_NAME_ID:
         s = content.find("|")
         star_name = content[:s]
-        star_id = content[s + 1 :]
+        star_id = content[s + 1:]
         if BOT_DB.record_star_by_name_id(star_name=star_name, star_id=star_id):
             bot_utils.get_star_detail_record_by_name_id(
                 star_name=star_name, star_id=star_id
@@ -1146,7 +1146,7 @@ def handle_callback(call):
     elif key_type == BotKey.KEY_GET_STAR_DETAIL_RECORD_BY_STAR_NAME_ID:
         s = content.find("|")
         bot_utils.get_star_detail_record_by_name_id(
-            star_name=content[:s], star_id=content[s + 1 :]
+            star_name=content[:s], star_id=content[s + 1:]
         )
     elif key_type == BotKey.KEY_GET_AV_DETAIL_RECORD_BY_ID:
         bot_utils.get_av_detail_record_by_id(id=content)
@@ -1171,7 +1171,7 @@ def handle_callback(call):
     elif key_type == BotKey.KEY_UNDO_RECORD_STAR_BY_STAR_NAME_ID:
         s = content.find("|")
         op_undo_record_star = f"Undo favorite actor <code>{content[:s]}</code>"
-        if BOT_DB.undo_record_star_by_id(star_id=content[s + 1 :]):
+        if BOT_DB.undo_record_star_by_id(star_id=content[s + 1:]):
             bot_utils.send_msg_success_op(op_undo_record_star)
         else:
             bot_utils.send_msg_fail_reason_op(
@@ -1182,7 +1182,7 @@ def handle_callback(call):
         star_name_alias = ""
         idx_alias = star_name.find("（")
         if idx_alias != -1:
-            star_name_alias = star_name[idx_alias + 1 : -1]
+            star_name_alias = star_name[idx_alias + 1: -1]
             star_name = star_name[:idx_alias]
         if not bot_utils.search_star_by_name(star_name) and star_name_alias != "":
             bot_utils.send_msg(
