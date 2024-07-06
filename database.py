@@ -23,16 +23,16 @@ class BotFileDb:
         if not record or record == {}:
             return None, False, False
         is_stars_exists = False
-        is_avs_exists = False
+        is_vs_exists = False
         if (
-            "stars" in record.keys()
-            and record["stars"] != []
-            and len(record["stars"]) > 0
+                "stars" in record.keys()
+                and record["stars"] != []
+                and len(record["stars"]) > 0
         ):
             is_stars_exists = True
-        if "avs" in record.keys() and record["avs"] != [] and len(record["avs"]) > 0:
-            is_avs_exists = True
-        return record, is_stars_exists, is_avs_exists
+        if "vs" in record.keys() and record["vs"] != [] and len(record["vs"]) > 0:
+            is_vs_exists = True
+        return record, is_stars_exists, is_vs_exists
 
     def check_star_exists_by_id(self, star_id: str):
         record, exists, _ = self.check_has_record()
@@ -47,9 +47,9 @@ class BotFileDb:
         record, _, exists = self.check_has_record()
         if not record or not exists:
             return False
-        avs = record["avs"]
-        for av in avs:
-            if av["id"].lower() == id.lower():
+        vs = record["vs"]
+        for v in vs:
+            if v["id"].lower() == id.lower():
                 return True
 
     def renew_record(self, record: dict):
@@ -80,19 +80,19 @@ class BotFileDb:
         return self.renew_record(record)
 
     def record_id_by_id_stars(self, id: str, stars: list):
-        record, _, is_avs_exists = self.check_has_record()
+        record, _, is_vs_exists = self.check_has_record()
         if not record:
-            record, avs = {}, []
+            record, vs = {}, []
         else:
-            if not is_avs_exists:
-                avs = []
+            if not is_vs_exists:
+                vs = []
             else:
-                avs = record["avs"]
-        for av in avs:
-            if av["id"].lower() == id.lower():
+                vs = record["vs"]
+        for v in vs:
+            if v["id"].lower() == id.lower():
                 return True
-        avs.append({"id": id.lower(), "stars": stars})
-        record["avs"] = avs
+        vs.append({"id": id.lower(), "stars": stars})
+        record["vs"] = vs
         return self.renew_record(record)
 
     def undo_record_star_by_id(self, star_id: str):
@@ -115,15 +115,15 @@ class BotFileDb:
         record, _, exists = self.check_has_record()
         if not record or not exists:
             return False
-        avs = record["avs"]
+        vs = record["vs"]
         exists = False
-        for i, av in enumerate(avs):
-            if av["id"].lower() == id.lower():
-                del avs[i]
+        for i, v in enumerate(vs):
+            if v["id"].lower() == id.lower():
+                del vs[i]
                 exists = True
                 break
         if exists:
-            record["avs"] = avs
+            record["vs"] = vs
             return self.renew_record(record)
         return True
 
@@ -133,8 +133,8 @@ class BotCacheDb:
         "prefix": "bt-",
         "expire": 3600 * 24 * 30,
     }
-    CACHE_AV = {
-        "prefix": "av-",
+    CACHE_V = {
+        "prefix": "v-",
         "expire": 3600 * 24 * 30,
     }
     CACHE_STAR = {
@@ -166,25 +166,25 @@ class BotCacheDb:
         "expire": 3600 * 24 * 5,
     }
     CACHE_COMMENT = {"prefix": "comment-", "expire": 3600 * 24 * 30}
-    CACHE_NICE_AVS_OF_STAR = {
-        "prefix": "nice-avs-of-star-",
+    CACHE_NICE_VS_OF_STAR = {
+        "prefix": "nice-vs-of-star-",
         "expire": 3600 * 24 * 15,
     }
-    CACHE_JLIB_PAGE_NICE_AVS = {
-        "prefix": "jlib-page-nice-avs-",
+    CACHE_JLIB_PAGE_NICE_VS = {
+        "prefix": "jlib-page-nice-vs-",
         "expire": 3600 * 24 * 7,
     }
-    CACHE_JLIB_PAGE_NEW_AVS = {
-        "prefix": "jlib-page-new-avs-",
+    CACHE_JLIB_PAGE_NEW_VS = {
+        "prefix": "jlib-page-new-vs-",
         "expire": 3600 * 24 * 2,
     }
     CACHE_STAR_JA_NAME = {"prefix": "star-ja-name-", "expire": 3600 * 24 * 30 * 6}
-    CACHE_NEW_AVS_OF_STAR = {
-        "prefix": "new-avs-of-star-",
+    CACHE_NEW_VS_OF_STAR = {
+        "prefix": "new-vs-of-star-",
         "expire": 3600 * 24 * 12,
     }
 
-    TYPE_AV = 1
+    TYPE_V = 1
     TYPE_STAR = 2
     TYPE_RANK = 3
     TYPE_SAMPLE = 4
@@ -193,15 +193,15 @@ class BotCacheDb:
     TYPE_FV = 7
     TYPE_STARS_MSG = 8
     TYPE_COMMENT = 10
-    TYPE_NICE_AVS_OF_STAR = 11
-    TYPE_JLIB_PAGE_NICE_AVS = 12
-    TYPE_JLIB_PAGE_NEW_AVS = 13
+    TYPE_NICE_VS_OF_STAR = 11
+    TYPE_JLIB_PAGE_NICE_VS = 12
+    TYPE_JLIB_PAGE_NEW_VS = 13
     TYPE_STAR_JA_NAME = 14
-    TYPE_NEW_AVS_OF_STAR = 16
+    TYPE_NEW_VS_OF_STAR = 16
     TYPE_BT = 17
 
     TYPE_MAP = {
-        TYPE_AV: CACHE_AV,
+        TYPE_V: CACHE_V,
         TYPE_STAR: CACHE_STAR,
         TYPE_RANK: CACHE_RANK,
         TYPE_SAMPLE: CACHE_SAMPLE,
@@ -210,11 +210,11 @@ class BotCacheDb:
         TYPE_FV: CACHE_FV,
         TYPE_STARS_MSG: CACHE_STARS_MSG,
         TYPE_COMMENT: CACHE_COMMENT,
-        TYPE_NICE_AVS_OF_STAR: CACHE_NICE_AVS_OF_STAR,
-        TYPE_JLIB_PAGE_NICE_AVS: CACHE_JLIB_PAGE_NICE_AVS,
-        TYPE_JLIB_PAGE_NEW_AVS: CACHE_JLIB_PAGE_NEW_AVS,
+        TYPE_NICE_VS_OF_STAR: CACHE_NICE_VS_OF_STAR,
+        TYPE_JLIB_PAGE_NICE_VS: CACHE_JLIB_PAGE_NICE_VS,
+        TYPE_JLIB_PAGE_NEW_VS: CACHE_JLIB_PAGE_NEW_VS,
         TYPE_STAR_JA_NAME: CACHE_STAR_JA_NAME,
-        TYPE_NEW_AVS_OF_STAR: CACHE_NEW_AVS_OF_STAR,
+        TYPE_NEW_VS_OF_STAR: CACHE_NEW_VS_OF_STAR,
         TYPE_BT: CACHE_BT,
     }
 

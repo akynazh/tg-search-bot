@@ -10,7 +10,6 @@ The following functions are sorted by development completion time, and new funct
 
 - Supports obtaining basic video information and magnet links - 2022/11/25
 - Support configuration proxy - 2022/11/26
-- Support filtering magnet links (uncensored => hd => subtitle)- 2022/11/26
 - Support allowing bot to automatically save optimal magnet links to Pikpak - 2022/12/29
 - Support getting preview video and full video - 2022/12/31
 - Support obtaining video screenshots - 2023/01/01
@@ -32,21 +31,15 @@ tg_chat_id:
 tg_bot_token:
 # required, global proxy, 1 yes | 0 no
 use_proxy:
-# required, dmm proxy, 1 yes | 0 no
-use_proxy_dmm:
-# optional, proxy server address (required if use_proxy == 1 or use_proxy_dmm == 1)
+# optional, proxy server address (required if use_proxy == 1)
 proxy_addr:
-# required, pikpak’s automatic sending function, 1 yes | 0 no
-use_pikpak:
-# optional, your telegram api id (required if use_pikpak == 1)
+# your telegram api id
 tg_api_id:
-# optional, your telegram api hash (required if use_pikpak == 1)
+# your telegram api hash
 tg_api_hash:
-# required, enable cache or not, 1 yes | 0 no
-use_cache:
-# optional, your redis host (required if use_cache == 1)
+# your redis host
 redis_host:
-# optional, your redis port (required if use_cache == 1)
+# your redis port
 redis_port:
 # optional, your redis password
 redis_password:
@@ -54,7 +47,7 @@ redis_password:
 enable_nsfw: 0
 ```
 
-PS: If you want to use Pikpak’s automatic sending function, you need to authorize it manually first: [Pikpak official bot](https://t.me/PikPak6_Bot), and then log in when running the bot for the first time. (My Pikpak invitation code: 99492001, enter to get membership)
+PS: If you want to use Pikpak’s automatic sending function, you need to authorize it manually first: [Pikpak official bot](https://t.me/PikPak6_Bot), and then log in when running the bot for the first time.
 
 Finally, run the bot: (files such as records and logs are located in `~/.tg_search_bot`)
 
@@ -78,10 +71,3 @@ pip3 install -r requirements.txt
 ```
 
 Then you can start writing code. When you are done, remember to write or run a test instance (in `tests/test.py`). Please make sure there is no problem with the test before submitting the code.
-
-## Todo
-
-- [ ] Video search supports more magnetic websites (currently only The Pirate Bay is supported)
-- [ ] Support multiple languages
-
-If you also want to contribute to this project, please check out [todo list](https://github.com/akynazh/tg-search-bot#TODO) and read [development steps](https://github.com/akynazh/tg-search-bot#Development), issues and prs are welcome.

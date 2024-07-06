@@ -4,7 +4,7 @@ import os
 import re
 import string
 import random
-import jvav
+import jvav as jv
 import yaml
 import asyncio
 import threading
@@ -44,28 +44,21 @@ class BotConfig:
         self.tg_bot_token = (
             str(config["tg_bot_token"]) if config["tg_bot_token"] else ""
         )
-        self.use_proxy = str(config["use_proxy"]) if config["use_proxy"] else "0"
-        self.use_proxy_dmm = (
-            str(config["use_proxy_dmm"]) if config["use_proxy_dmm"] else "0"
-        )
-        self.proxy_addr = str(config["proxy_addr"]) if config["proxy_addr"] else ""
-        self.use_pikpak = str(config["use_pikpak"]) if config["use_pikpak"] else "0"
         self.tg_api_id = str(config["tg_api_id"]) if config["tg_api_id"] else ""
         self.tg_api_hash = str(config["tg_api_hash"]) if config["tg_api_hash"] else ""
-        self.use_cache = str(config["use_cache"]) if config["use_cache"] else "0"
         self.redis_host = str(config["redis_host"]) if config["redis_host"] else ""
         self.redis_port = str(config["redis_port"]) if config["redis_port"] else ""
         self.redis_password = (
             str(config["redis_password"]) if config["redis_password"] else ""
         )
         self.enable_nsfw = str(config["enable_nsfw"]) if config["enable_nsfw"] else "0"
+        self.use_proxy = str(config["use_proxy"]) if config["use_proxy"] else "0"
+        self.proxy_addr = str(config["proxy_addr"]) if config["proxy_addr"] else ""
         # set
-        self.proxy_addr_dmm = ""
         self.proxy_json = {"http": "", "https": ""}
         self.proxy_json_pikpak = {}
         if self.use_proxy == "1":
             self.proxy_json = {"http": self.proxy_addr, "https": self.proxy_addr}
-            self.proxy_addr_dmm = self.proxy_addr
             t1 = self.proxy_addr.find(":")
             t2 = self.proxy_addr.rfind(":")
             self.proxy_json_pikpak = {
@@ -74,10 +67,6 @@ class BotConfig:
                 "port": int(self.proxy_addr[t2 + 1:]),
             }
             LOG.info(f'Set proxy: "{self.proxy_addr}"')
-        elif self.use_proxy_dmm == "1":
-            self.proxy_addr_dmm = self.proxy_addr
-            self.proxy_addr = ""
-            LOG.info(f'Set dmm proxy: "{self.proxy_addr_dmm}"')
         else:
             self.proxy_addr = ""
         LOG.info("Successfully read and loaded the configuration file.")
@@ -85,10 +74,8 @@ class BotConfig:
 
 # URL
 BASE_URL_TG = "https://t.me"
-BASE_URL_MISS_AV = "https://missav.com"
 PIKPAK_BOT_NAME = "PikPak6_Bot"
 URL_PROJECT_ADDRESS = "https://github.com/akynazh/tg-search-bot"
-URL_AUTHOR = f"{BASE_URL_TG}/jackbryant286"
 URL_PIKPAK_BOT = f"{BASE_URL_TG}/{PIKPAK_BOT_NAME}"
 # PATH
 PATH_ROOT = f'{os.path.expanduser("~")}/.tg_search_bot'
@@ -106,31 +93,31 @@ BOT_CACHE_DB = BotCacheDb(
     host=BOT_CFG.redis_host,
     port=int(BOT_CFG.redis_port),
     password=BOT_CFG.redis_password,
-    use_cache=BOT_CFG.use_cache,
+    use_cache="1",
 )
-BASE_UTIL = jvav.BaseUtil(BOT_CFG.proxy_addr)
-DMM_UTIL = jvav.DmmUtil(BOT_CFG.proxy_addr_dmm)
-JAVBUS_UTIL = jvav.JavBusUtil(BOT_CFG.proxy_addr)
-JAVDB_UTIL = jvav.JavDbUtil(BOT_CFG.proxy_addr)
-JAVLIB_UTIL = jvav.JavLibUtil(BOT_CFG.proxy_addr)
-SUKEBEI_UTIL = jvav.SukebeiUtil(BOT_CFG.proxy_addr)
-TRANS_UTIL = jvav.TransUtil(BOT_CFG.proxy_addr)
-WIKI_UTIL = jvav.WikiUtil(BOT_CFG.proxy_addr)
-AVGLE_UTIL = jvav.AvgleUtil(BOT_CFG.proxy_addr)
+BASE_UTIL = jv.BaseUtil(BOT_CFG.proxy_addr)
+DMM_UTIL = jv.DmmUtil(BOT_CFG.proxy_addr)
+JBUS_UTIL = jv.JavBusUtil(BOT_CFG.proxy_addr)
+JDB_UTIL = jv.JavDbUtil(BOT_CFG.proxy_addr)
+JLIB_UTIL = jv.JavLibUtil(BOT_CFG.proxy_addr)
+SUKEBEI_UTIL = jv.SukebeiUtil(BOT_CFG.proxy_addr)
+TRANS_UTIL = jv.TransUtil(BOT_CFG.proxy_addr)
+WIKI_UTIL = jv.WikiUtil(BOT_CFG.proxy_addr)
+VGLE_UTIL = jv.AvgleUtil(BOT_CFG.proxy_addr)
 EXECUTOR = concurrent.futures.ThreadPoolExecutor()
 ID_PAT = re.compile(r"[a-z0-9]+[-_](?:ppv-)?[a-z0-9]+")
 BOT_CMDS = {
     "help": "View command help",
-    "stars": "View favorite actors",
-    "ids": "View favorite numbers",
+    "stars": "View my actors",
+    "ids": "View my ids",
     "nice": "Randomly get a high-rated film",
     "new": "Randomly get a latest film",
     "rank": "Get DMM actor rankings",
     "record": "Get saved records file",
     "star": "Followed by the actor's name for searching the actor",
-    "id": "Followed by the number for searching the number",
+    "id": "Followed by the id for searching the id",
 }
-MSG_HELP = f"""Just send me the movie title, keywords, or number, and I'll take care of the rest!
+MSG_HELP = f"""Just send me the movie title, keywords, or id, and I'll take care of the rest!
 
 """
 for cmd, content in BOT_CMDS.items():
@@ -147,25 +134,25 @@ class BotKey:
     KEY_GET_TOP_STARS = "k0_3"
     KEY_WATCH_PV_BY_ID = "k1_0"
     KEY_WATCH_FV_BY_ID = "k1_1"
-    KEY_GET_AV_BY_ID = "k2_0"
-    KEY_RANDOM_GET_AV_BY_STAR_ID = "k2_1"
-    KEY_RANDOM_GET_AV_NICE = "k2_2"
-    KEY_RANDOM_GET_AV_NEW = "k2_3"
-    KEY_GET_NEW_AVS_BY_STAR_NAME_ID = "k2_4"
-    KEY_GET_NICE_AVS_BY_STAR_NAME = "k2_5"
+    KEY_GET_V_BY_ID = "k2_0"
+    KEY_RANDOM_GET_V_BY_STAR_ID = "k2_1"
+    KEY_RANDOM_GET_V_NICE = "k2_2"
+    KEY_RANDOM_GET_V_NEW = "k2_3"
+    KEY_GET_NEW_VS_BY_STAR_NAME_ID = "k2_4"
+    KEY_GET_NICE_VS_BY_STAR_NAME = "k2_5"
     KEY_RECORD_STAR_BY_STAR_NAME_ID = "k3_0"
-    KEY_RECORD_AV_BY_ID_STAR_IDS = "k3_1"
+    KEY_RECORD_V_BY_ID_STAR_IDS = "k3_1"
     KEY_GET_STARS_RECORD = "k3_2"
-    KEY_GET_AVS_RECORD = "k3_3"
+    KEY_GET_VS_RECORD = "k3_3"
     KEY_GET_STAR_DETAIL_RECORD_BY_STAR_NAME_ID = "k3_4"
-    KEY_GET_AV_DETAIL_RECORD_BY_ID = "k3_5"
+    KEY_GET_V_DETAIL_RECORD_BY_ID = "k3_5"
     KEY_UNDO_RECORD_STAR_BY_STAR_NAME_ID = "k3_6"
-    KEY_UNDO_RECORD_AV_BY_ID = "k3_7"
-    KEY_DEL_AV_CACHE = "k4_1"
+    KEY_UNDO_RECORD_V_BY_ID = "k3_7"
+    KEY_DEL_V_CACHE = "k4_1"
 
 
 class BotUtils:
-    av_utils = [JAVDB_UTIL, JAVBUS_UTIL, SUKEBEI_UTIL]
+    v_utils = [JDB_UTIL, JBUS_UTIL, SUKEBEI_UTIL]
 
     def send_action_typing(self):
         BOT.send_chat_action(chat_id=BOT_CFG.tg_chat_id, action="typing")
@@ -219,11 +206,11 @@ class BotUtils:
             return InlineKeyboardButton(
                 text=obj["name"], callback_data=f'{obj["name"]}|{obj["id"]}:{key_type}'
             )
-        elif key_type == BotKey.KEY_GET_AV_DETAIL_RECORD_BY_ID:
+        elif key_type == BotKey.KEY_GET_V_DETAIL_RECORD_BY_ID:
             return InlineKeyboardButton(text=obj, callback_data=f"{obj}:{key_type}")
         elif key_type == BotKey.KEY_SEARCH_STAR_BY_NAME:
             return InlineKeyboardButton(text=obj, callback_data=f"{obj}:{key_type}")
-        elif key_type == BotKey.KEY_GET_AV_BY_ID:
+        elif key_type == BotKey.KEY_GET_V_BY_ID:
             return InlineKeyboardButton(
                 text=f'{obj["id"]} | {obj["rate"]}',
                 callback_data=f'{obj["id"]}:{key_type}',
@@ -328,7 +315,7 @@ class BotUtils:
         record, is_star_exists, _ = BOT_DB.check_has_record()
         if not record or not is_star_exists:
             self.send_msg_fail_reason_op(
-                reason="No actor favorite records yet", op="Get actor favorite records"
+                reason="No actor records yet", op="Get actor records"
             )
             return
         stars = record["stars"]
@@ -345,57 +332,56 @@ class BotUtils:
             max_btn_per_row=col,
             max_row_per_msg=row,
             key_type=BotKey.KEY_GET_STAR_DETAIL_RECORD_BY_STAR_NAME_ID,
-            title="<b>Favorite Actors: </b>" + title,
+            title="<b>My Actors: </b>" + title,
             objs=objs,
             page_btns=page_btns,
         )
 
     def get_star_detail_record_by_name_id(self, star_name: str, star_id: str):
-        record, is_stars_exists, is_avs_exists = BOT_DB.check_has_record()
+        record, is_stars_exists, is_vs_exists = BOT_DB.check_has_record()
         if not record:
             self.send_msg_fail_reason_op(
-                reason="No favorite records for this actor",
+                reason="No records for this actor",
                 op=f"Get more information about actor <code>{star_name}</code>",
             )
             return
-        avs = []
-        star_avs = []
+        star_vs = []
         cur_star_exists = False
-        if is_avs_exists:
-            avs = record["avs"]
-            avs.reverse()
-            for av in avs:
-                if star_id in av["stars"]:
-                    star_avs.append(av["id"])
+        if is_vs_exists:
+            vs = record["vs"]
+            vs.reverse()
+            for v in vs:
+                if star_id in v["stars"]:
+                    star_vs.append(v["id"])
         if is_stars_exists:
             stars = record["stars"]
             for star in stars:
                 if star["id"].lower() == star_id.lower():
                     cur_star_exists = True
         extra_btn1 = InlineKeyboardButton(
-            text="Random AV",
-            callback_data=f"{star_name}|{star_id}:{BotKey.KEY_RANDOM_GET_AV_BY_STAR_ID}",
+            text="Random",
+            callback_data=f"{star_name}|{star_id}:{BotKey.KEY_RANDOM_GET_V_BY_STAR_ID}",
         )
         extra_btn2 = InlineKeyboardButton(
-            text="Latest AV",
-            callback_data=f"{star_name}|{star_id}:{BotKey.KEY_GET_NEW_AVS_BY_STAR_NAME_ID}",
+            text="Latest",
+            callback_data=f"{star_name}|{star_id}:{BotKey.KEY_GET_NEW_VS_BY_STAR_NAME_ID}",
         )
         extra_btn3 = InlineKeyboardButton(
-            text="High-rated AV",
-            callback_data=f"{star_name}:{BotKey.KEY_GET_NICE_AVS_BY_STAR_NAME}",
+            text="High-rated",
+            callback_data=f"{star_name}:{BotKey.KEY_GET_NICE_VS_BY_STAR_NAME}",
         )
         if cur_star_exists:
             extra_btn4 = InlineKeyboardButton(
-                text="Remove from Favorites",
+                text="Remove from collection",
                 callback_data=f"{star_name}|{star_id}:{BotKey.KEY_UNDO_RECORD_STAR_BY_STAR_NAME_ID}",
             )
         else:
             extra_btn4 = InlineKeyboardButton(
-                text="Add to Favorites",
+                text="Add to collection",
                 callback_data=f"{star_name}|{star_id}:{BotKey.KEY_RECORD_STAR_BY_STAR_NAME_ID}",
             )
-        title = f'<code>{star_name}</code> | <a href="{WIKI_UTIL.BASE_URL_JAPAN_WIKI}/{star_name}">Wiki</a> | <a href="{JAVBUS_UTIL.base_url_search_by_star_id}/{star_id}">Javbus</a>'
-        if len(star_avs) == 0:
+        title = f'<code>{star_name}</code> | <a href="{WIKI_UTIL.BASE_URL_JAPAN_WIKI}/{star_name}">Wiki</a> | <a href="{JBUS_UTIL.base_url_search_by_star_id}/{star_id}">Javbus</a>'
+        if len(star_vs) == 0:
             markup = InlineKeyboardMarkup()
             markup.row(extra_btn1, extra_btn2, extra_btn3, extra_btn4)
             self.send_msg(msg=title, markup=markup)
@@ -403,61 +389,61 @@ class BotUtils:
         self.send_msg_btns(
             max_btn_per_row=4,
             max_row_per_msg=10,
-            key_type=BotKey.KEY_GET_AV_DETAIL_RECORD_BY_ID,
+            key_type=BotKey.KEY_GET_V_DETAIL_RECORD_BY_ID,
             title=title,
-            objs=star_avs,
+            objs=star_vs,
             extra_btns=[[extra_btn1, extra_btn2, extra_btn3, extra_btn4]],
         )
 
-    def get_avs_record(self, page=1):
-        record, _, is_avs_exists = BOT_DB.check_has_record()
-        if not record or not is_avs_exists:
+    def get_vs_record(self, page=1):
+        record, _, is_vs_exists = BOT_DB.check_has_record()
+        if not record or not is_vs_exists:
             self.send_msg_fail_reason_op(
-                reason="No number favorite records yet",
-                op="Get number favorite records",
+                reason="No id collection yet",
+                op="Get id collection",
             )
             return
-        avs = [av["id"] for av in record["avs"]]
-        avs.reverse()
+        vs = [v["id"] for v in record["vs"]]
+        vs.reverse()
         extra_btn1 = InlineKeyboardButton(
-            text="Random High-rated AV",
-            callback_data=f"0:{BotKey.KEY_RANDOM_GET_AV_NICE}",
+            text="Random High-rated",
+            callback_data=f"0:{BotKey.KEY_RANDOM_GET_V_NICE}",
         )
         extra_btn2 = InlineKeyboardButton(
-            text="Random Latest AV", callback_data=f"0:{BotKey.KEY_RANDOM_GET_AV_NEW}"
+            text="Random Latest", callback_data=f"0:{BotKey.KEY_RANDOM_GET_V_NEW}"
         )
         col, row = 4, 10
         objs, page_btns, title = self.get_page_elements(
-            objs=avs, page=page, col=col, row=row, key_type=BotKey.KEY_GET_AVS_RECORD
+            objs=vs, page=page, col=col, row=row, key_type=BotKey.KEY_GET_VS_RECORD
         )
         self.send_msg_btns(
             max_btn_per_row=col,
             max_row_per_msg=row,
-            key_type=BotKey.KEY_GET_AV_DETAIL_RECORD_BY_ID,
-            title="<b>Favorite Numbers: </b>" + title,
+            key_type=BotKey.KEY_GET_V_DETAIL_RECORD_BY_ID,
+            title="<b>My Ids: </b>" + title,
             objs=objs,
             extra_btns=[[extra_btn1, extra_btn2]],
             page_btns=page_btns,
         )
 
-    def get_av_detail_record_by_id(self, id: str):
-        record, _, is_avs_exists = BOT_DB.check_has_record()
-        avs = record["avs"]
-        cur_av_exists = False
-        for av in avs:
-            if id.lower() == av["id"].lower():
-                cur_av_exists = True
+    def get_v_detail_record_by_id(self, id: str):
+        record, _, is_vs_exists = BOT_DB.check_has_record()
+        vs = record["vs"]
+        cur_v_exists = False
+        for v in vs:
+            if id.lower() == v["id"].lower():
+                cur_v_exists = True
         markup = InlineKeyboardMarkup()
         btn = InlineKeyboardButton(
-            text=f"Get corresponding AV",
-            callback_data=f"{id}:{BotKey.KEY_GET_AV_BY_ID}",
+            text=f"Get",
+            callback_data=f"{id}:{BotKey.KEY_GET_V_BY_ID}",
         )
-        if cur_av_exists:
+        if cur_v_exists:
             markup.row(
                 btn,
                 InlineKeyboardButton(
-                    text=f"Unfavorite",
-                    callback_data=f"{id}:{BotKey.KEY_UNDO_RECORD_AV_BY_ID}",
+                    text=f"Remove",
+                    callback_data=f"{id}:{BotKey.KEY_UNDO_RECORD_V_BY_ID}",
                 ),
             )
         else:
@@ -527,102 +513,102 @@ class BotUtils:
             )
         return matches
 
-    def get_av_by_id(
+    def get_v_by_id(
             self,
             id: str,
-            send_to_pikpak=False,
+            send_to_pikpak=True,
             is_nice=True,
             is_uncensored=True,
             magnet_max_count=3,
             not_send=False,
     ):
         """
-        Get AV based on number
+        Get based on id
 
         :param str id: Number
-        :param bool send_to_pikpak: Whether to send to pikpak, default is not
+        :param bool send_to_pikpak: Whether to send to pikpak, default is yes
         :param bool is_nice: Whether to filter out HD, subtitled magnet links, default is yes
         :param bool is_uncensored: Whether to filter out uncensored magnet links, default is yes
-        :param int magnet_max_count: Maximum number of magnet links after filtering, default is 3
-        :param not_send: Whether not to send AV results, default is to send
-        :return dict: When not sending AV results, return the obtained AV (if any)
+        :param int magnet_max_count: Maximum id of magnet links after filtering, default is 3
+        :param not_send: Whether not to send results, default is to send
+        :return dict: When not sending results, return the obtained results (if any)
         """
         if not self.check_if_enable_nsfw():
             return {}
-        op_get_av_by_id = f"Search code: <code>{id}</code>"
-        av = BOT_CACHE_DB.get_cache(key=id, type=BotCacheDb.TYPE_AV)
-        av_score = None
+        op_get_v_by_id = f"Search code: <code>{id}</code>"
+        v = BOT_CACHE_DB.get_cache(key=id, type=BotCacheDb.TYPE_V)
+        v_score = None
         is_cache = False
-        if not av or not_send:
-            for util in self.av_utils:
-                code, av = util.get_av_by_id(
+        if not v or not_send:
+            for util in self.v_utils:
+                code, v = util.get_av_by_id(
                     id=id,
                     is_nice=is_nice,
                     is_uncensored=is_uncensored,
                     magnet_max_count=magnet_max_count,
                 )
                 if code == 200:
-                    av_util = util
+                    v_util = util
                     break
-            if not av_util:
+            if not v_util:
                 if not not_send:
-                    self.send_msg_av_not_found(
-                        av_id=id,
-                        op=op_get_av_by_id,
+                    self.send_msg_v_not_found(
+                        v_id=id,
+                        op=op_get_v_by_id,
                         reason="Can not find result, try again later.",
                     )
                 return
-            if "score" not in av.keys():
-                _, av["score"] = DMM_UTIL.get_score_by_id(id)
+            if "score" not in v.keys():
+                _, v["score"] = DMM_UTIL.get_score_by_id(id)
             if not not_send:
-                if len(av["magnets"]) == 0:
+                if len(v["magnets"]) == 0:
                     BOT_CACHE_DB.set_cache(
-                        key=id, value=av, type=BotCacheDb.TYPE_AV, expire=3600 * 24 * 1
+                        key=id, value=v, type=BotCacheDb.TYPE_V, expire=3600 * 24 * 1
                     )
                 else:
-                    BOT_CACHE_DB.set_cache(key=id, value=av, type=BotCacheDb.TYPE_AV)
+                    BOT_CACHE_DB.set_cache(key=id, value=v, type=BotCacheDb.TYPE_V)
         else:
-            av_score = av["score"]
+            v_score = v["score"]
             is_cache = True
         if not_send:
-            return av
-        av_id = id
-        av_title = av["title"]
-        av_img = av["img"]
-        av_date = av["date"]
-        av_tags = av["tags"]
-        av_stars = av["stars"]
-        av_magnets = av["magnets"]
-        av_url = av["url"]
+            return v
+        v_id = id
+        v_title = v["title"]
+        v_img = v["img"]
+        v_date = v["date"]
+        v_tags = v["tags"]
+        v_stars = v["stars"]
+        v_magnets = v["magnets"]
+        v_url = v["url"]
         msg = ""
-        if av_title != "":
-            av_title = av_title.replace("<", "").replace(">", "")
-            msg += f"""【Title】<a href="{av_url}">{av_title}</a>
+        if v_title != "":
+            v_title = v_title.replace("<", "").replace(">", "")
+            msg += f"""【Title】<a href="{v_url}">{v_title}</a>
 """
-        msg += f"""【Code】<code>{av_id}</code>
+        msg += f"""【Code】<code>{v_id}</code>
 """
-        if av_date != "":
-            msg += f"""【Date】{av_date}
+        if v_date != "":
+            msg += f"""【Date】{v_date}
 """
-        if av_score:
-            msg += f"""【Score】{av_score}
+        if v_score:
+            msg += f"""【Score】{v_score}
 """
-        if av_stars != []:
-            show_star_name = av_stars[0]["name"]
-            show_star_id = av_stars[0]["id"]
+        if v_stars != []:
+            show_star_name = v_stars[0]["name"]
+            show_star_id = v_stars[0]["id"]
             stars_msg = ""
-            for star in av_stars:
+            for star in v_stars:
                 stars_msg += f"""【Actor】<code>{star["name"]}</code>
 """
             msg += stars_msg
-        if av_tags:
-            av_tags = " ".join(av_tags).replace("<", "").replace(">", "")
-            msg += f"""【Tags】{av_tags}
+        if v_tags:
+            v_tags = " ".join(v_tags).replace("<", "").replace(">", "")
+            msg += f"""【Tags】{v_tags}
 """
-        msg += f"""【Other】<a href="{URL_PIKPAK_BOT}">Pikpak</a> | <a href="{URL_PROJECT_ADDRESS}">Project</a> | <a href="{URL_AUTHOR}">Author</a>
+        msg += f"""【Other】<a href="{URL_PIKPAK_BOT}">Pikpak</a> | <a href="{URL_PROJECT_ADDRESS}">Project</a>
 """
         magnet_send_to_pikpak = ""
-        for i, magnet in enumerate(av_magnets):
+        for i, magnet in enumerate(v_magnets):
             if i == 0:
                 magnet_send_to_pikpak = magnet["link"]
             magnet_tags = ""
@@ -638,81 +624,81 @@ class BotUtils:
                 break
             msg += msg_tmp
         pv_btn = InlineKeyboardButton(
-            text="Preview", callback_data=f"{av_id}:{BotKey.KEY_WATCH_PV_BY_ID}"
+            text="Preview", callback_data=f"{v_id}:{BotKey.KEY_WATCH_PV_BY_ID}"
         )
         fv_btn = InlineKeyboardButton(
-            text="Watch", callback_data=f"{av_id}:{BotKey.KEY_WATCH_FV_BY_ID}"
+            text="Watch", callback_data=f"{v_id}:{BotKey.KEY_WATCH_FV_BY_ID}"
         )
         sample_btn = InlineKeyboardButton(
-            text="Screenshot", callback_data=f"{av_id}:{BotKey.KEY_GET_SAMPLE_BY_ID}"
+            text="Screenshot", callback_data=f"{v_id}:{BotKey.KEY_GET_SAMPLE_BY_ID}"
         )
         more_btn = InlineKeyboardButton(
-            text="More Magnets",
-            callback_data=f"{av_id}:{BotKey.KEY_GET_MORE_MAGNETS_BY_ID}",
+            text="More",
+            callback_data=f"{v_id}:{BotKey.KEY_GET_MORE_MAGNETS_BY_ID}",
         )
-        if len(av_magnets) != 0:
+        if len(v_magnets) != 0:
             markup = InlineKeyboardMarkup().row(sample_btn, pv_btn, fv_btn, more_btn)
         else:
             markup = InlineKeyboardMarkup().row(sample_btn, pv_btn, fv_btn)
         star_record_btn = None
-        if len(av_stars) == 1:
+        if len(v_stars) == 1:
             if BOT_DB.check_star_exists_by_id(star_id=show_star_id):
                 star_record_btn = InlineKeyboardButton(
-                    text=f"Actor Collection Info",
+                    text=f"Info",
                     callback_data=f"{show_star_name}|{show_star_id}:{BotKey.KEY_GET_STAR_DETAIL_RECORD_BY_STAR_NAME_ID}",
                 )
             else:
                 star_record_btn = InlineKeyboardButton(
-                    text=f"Collect {show_star_name}",
+                    text=f"Collect",
                     callback_data=f"{show_star_name}|{show_star_id}:{BotKey.KEY_RECORD_STAR_BY_STAR_NAME_ID}",
                 )
         star_ids = ""
-        for i, star in enumerate(av_stars):
+        for i, star in enumerate(v_stars):
             star_ids += star["id"] + "|"
             if i >= 5:
                 star_ids += "...|"
                 break
         if star_ids != "":
             star_ids = star_ids[: len(star_ids) - 1]
-        av_record_btn = None
-        if BOT_DB.check_id_exists(id=av_id):
-            av_record_btn = InlineKeyboardButton(
-                text=f"Code Collection Info",
-                callback_data=f"{av_id}:{BotKey.KEY_GET_AV_DETAIL_RECORD_BY_ID}",
+        v_record_btn = None
+        if BOT_DB.check_id_exists(id=v_id):
+            v_record_btn = InlineKeyboardButton(
+                text=f"Info",
+                callback_data=f"{v_id}:{BotKey.KEY_GET_V_DETAIL_RECORD_BY_ID}",
             )
         else:
-            av_record_btn = InlineKeyboardButton(
-                text=f"Collect {av_id}",
-                callback_data=f"{av_id}|{star_ids}:{BotKey.KEY_RECORD_AV_BY_ID_STAR_IDS}",
+            v_record_btn = InlineKeyboardButton(
+                text=f"Collect",
+                callback_data=f"{v_id}|{star_ids}:{BotKey.KEY_RECORD_V_BY_ID_STAR_IDS}",
             )
         renew_btn = None
         if is_cache:
             renew_btn = InlineKeyboardButton(
-                text="Retry", callback_data=f"{av_id}:{BotKey.KEY_DEL_AV_CACHE}"
+                text="Retry", callback_data=f"{v_id}:{BotKey.KEY_DEL_V_CACHE}"
             )
         if star_record_btn and renew_btn:
-            markup.row(av_record_btn, star_record_btn, renew_btn)
+            markup.row(v_record_btn, star_record_btn, renew_btn)
         elif star_record_btn:
-            markup.row(av_record_btn, star_record_btn)
+            markup.row(v_record_btn, star_record_btn)
         elif renew_btn:
-            markup.row(av_record_btn, renew_btn)
+            markup.row(v_record_btn, renew_btn)
         else:
-            markup.row(av_record_btn)
-        if av_img == "":
+            markup.row(v_record_btn)
+        if v_img == "":
             self.send_msg(msg=msg, markup=markup)
         else:
             try:
                 BOT.send_photo(
                     chat_id=BOT_CFG.tg_chat_id,
-                    photo=av_img,
+                    photo=v_img,
                     caption=msg,
                     parse_mode="HTML",
                     reply_markup=markup,
                 )
             except Exception:
                 self.send_msg(msg=msg, markup=markup)
-        if BOT_CFG.use_pikpak == "1" and magnet_send_to_pikpak != "" and send_to_pikpak:
-            self.send_magnet_to_pikpak(magnet_send_to_pikpak, av_id)
+        if magnet_send_to_pikpak != "" and send_to_pikpak:
+            self.send_magnet_to_pikpak(magnet_send_to_pikpak, v_id)
 
     def send_magnet_to_pikpak(self, magnet: str, id: str):
         op_send_magnet_to_pikpak = (
@@ -727,10 +713,10 @@ class BotUtils:
             )
 
     def get_sample_by_id(self, id: str):
-        op_get_sample = f"Get AV screenshots based on the code <code>{id}</code>."
+        op_get_sample = f"Get screenshots based on the code <code>{id}</code>."
         samples = BOT_CACHE_DB.get_cache(key=id, type=BotCacheDb.TYPE_SAMPLE)
         if not samples:
-            code, samples = JAVBUS_UTIL.get_samples_by_id(id)
+            code, samples = JBUS_UTIL.get_samples_by_id(id)
             if not self.check_success(code, op_get_sample):
                 return
             BOT_CACHE_DB.set_cache(key=id, value=samples, type=BotCacheDb.TYPE_SAMPLE)
@@ -756,37 +742,37 @@ class BotUtils:
                     reason="The image parsing failed.", op=op_get_sample
                 )
 
-    def watch_av_by_id(self, id: str, type: int):
+    def watch_v_by_id(self, id: str, type: int):
         id = id.lower()
         if id.find("fc2") != -1 and id.find("ppv") == -1:
             id = id.replace("fc2", "fc2-ppv")
         if type == 0:
             pv = BOT_CACHE_DB.get_cache(key=id, type=BotCacheDb.TYPE_PV)
             if not pv:
-                op_watch_av = f"Retrieve preview video for the code <code>{id}</code>."
+                op_watch_v = f"Retrieve preview video for the code <code>{id}</code>."
                 futures = {}
                 with concurrent.futures.ThreadPoolExecutor() as executor:
                     futures[executor.submit(DMM_UTIL.get_pv_by_id, id)] = 1
-                    futures[executor.submit(AVGLE_UTIL.get_pv_by_id, id)] = 2
+                    futures[executor.submit(VGLE_UTIL.get_pv_by_id, id)] = 2
                     for future in concurrent.futures.as_completed(futures):
                         if futures[future] == 1:
                             code_dmm, pv_dmm = future.result()
                         elif futures[future] == 2:
-                            code_avgle, pv_avgle = future.result()
-                if code_dmm != 200 and code_avgle != 200:
-                    if code_dmm == 502 or code_avgle == 502:
-                        self.send_msg_code_op(502, op_watch_av)
+                            code_vgle, pv_vgle = future.result()
+                if code_dmm != 200 and code_vgle != 200:
+                    if code_dmm == 502 or code_vgle == 502:
+                        self.send_msg_code_op(502, op_watch_v)
                     else:
-                        self.send_msg_code_op(404, op_watch_av)
+                        self.send_msg_code_op(404, op_watch_v)
                     return
                 from_site = ""
                 pv_src = ""
                 if code_dmm == 200:
                     from_site = "dmm"
                     pv_src = pv_dmm
-                elif code_avgle == 200:
+                elif code_vgle == 200:
                     from_site = "avgle"
-                    pv_src = pv_avgle
+                    pv_src = pv_vgle
                 pv_cache = {"from_site": from_site, "src": pv_src}
                 BOT_CACHE_DB.set_cache(key=id, value=pv_cache, type=BotCacheDb.TYPE_PV)
             else:
@@ -820,17 +806,12 @@ class BotUtils:
         elif type == 1:
             video = BOT_CACHE_DB.get_cache(key=id, type=BotCacheDb.TYPE_FV)
             if not video:
-                code, video = AVGLE_UTIL.get_fv_by_id(id)
+                code, video = VGLE_UTIL.get_fv_by_id(id)
                 if code != 200:
-                    self.send_msg(f"MissAv video link: {BASE_URL_MISS_AV}/{id}")
+                    self.send_msg(f"No results found.")
                     return
                 BOT_CACHE_DB.set_cache(key=id, value=video, type=BotCacheDb.TYPE_FV)
-            self.send_msg(
-                f"""MissAv video link: {BASE_URL_MISS_AV}/{id}
-
-Avgle video link: {video}
-"""
-            )
+            self.send_msg(video)
 
     def search_star_by_name(self, star_name: str):
         if not self.check_if_enable_nsfw():
@@ -840,7 +821,7 @@ Avgle video link: {video}
         if not star:
             star_name_origin = star_name
             star_name = self.get_star_ja_name_by_zh_name(star_name)
-            code, star = JAVBUS_UTIL.check_star_exists(star_name)
+            code, star = JBUS_UTIL.check_star_exists(star_name)
             if not self.check_success(code, op_search_star):
                 return
             BOT_CACHE_DB.set_cache(key=star_name, value=star, type=BotCacheDb.TYPE_STAR)
@@ -858,16 +839,16 @@ Avgle video link: {video}
         markup = InlineKeyboardMarkup()
         markup.row(
             InlineKeyboardButton(
-                text="Random AV",
-                callback_data=f"{star_name}|{star_id}:{BotKey.KEY_RANDOM_GET_AV_BY_STAR_ID}",
+                text="Random",
+                callback_data=f"{star_name}|{star_id}:{BotKey.KEY_RANDOM_GET_V_BY_STAR_ID}",
             ),
             InlineKeyboardButton(
-                text="Latest AV",
-                callback_data=f"{star_name}|{star_id}:{BotKey.KEY_GET_NEW_AVS_BY_STAR_NAME_ID}",
+                text="Latest",
+                callback_data=f"{star_name}|{star_id}:{BotKey.KEY_GET_NEW_VS_BY_STAR_NAME_ID}",
             ),
             InlineKeyboardButton(
-                text=f"High Rated AV",
-                callback_data=f"{star_name}:{BotKey.KEY_GET_NICE_AVS_BY_STAR_NAME}",
+                text=f"High Rated",
+                callback_data=f"{star_name}:{BotKey.KEY_GET_NICE_VS_BY_STAR_NAME}",
             ),
             InlineKeyboardButton(
                 text=f"Bookmark {star_name}",
@@ -878,7 +859,7 @@ Avgle video link: {video}
         if langdetect.detect(star_name) == "ja":
             star_wiki = f"{WIKI_UTIL.BASE_URL_JAPAN_WIKI}/{star_name}"
         self.send_msg(
-            msg=f'<code>{star_name}</code> | <a href="{star_wiki}">Wiki</a> | <a href="{JAVBUS_UTIL.base_url_search_by_star_name}/{star_name}">Javbus</a>',
+            msg=f'<code>{star_name}</code> | <a href="{star_wiki}">Wiki</a> | <a href="{JBUS_UTIL.base_url_search_by_star_name}/{star_name}">Javbus</a>',
             markup=markup,
         )
         return True
@@ -927,12 +908,12 @@ Avgle video link: {video}
     def get_more_magnets_by_id(self, id: str):
         magnets = BOT_CACHE_DB.get_cache(key=id, type=BotCacheDb.TYPE_MAGNET)
         if not magnets:
-            av = self.get_av_by_id(
+            v = self.get_v_by_id(
                 id=id, is_nice=False, is_uncensored=False, not_send=True
             )
-            if not av:
+            if not v:
                 return
-            magnets = av["magnets"]
+            magnets = v["magnets"]
             BOT_CACHE_DB.set_cache(key=id, value=magnets, type=BotCacheDb.TYPE_MAGNET)
         msg = ""
         for magnet in magnets:
@@ -956,20 +937,20 @@ Avgle video link: {video}
         if msg != "":
             self.send_msg(msg)
 
-    def get_star_new_avs_by_name_id(self, star_name: str, star_id: str):
-        op_get_star_new_avs = f"Get <code>{star_name}</code> Latest AVs"
-        ids = BOT_CACHE_DB.get_cache(key=star_id, type=BotCacheDb.TYPE_NEW_AVS_OF_STAR)
+    def get_star_new_vs_by_name_id(self, star_name: str, star_id: str):
+        op_get_star_new_vs = f"Get <code>{star_name}</code> Latest vs"
+        ids = BOT_CACHE_DB.get_cache(key=star_id, type=BotCacheDb.TYPE_NEW_VS_OF_STAR)
         if not ids:
-            code, ids = JAVBUS_UTIL.get_new_ids_by_star_id(star_id=star_id)
-            if not self.check_success(code, op_get_star_new_avs):
+            code, ids = JBUS_UTIL.get_new_ids_by_star_id(star_id=star_id)
+            if not self.check_success(code, op_get_star_new_vs):
                 return
             BOT_CACHE_DB.set_cache(
-                key=star_id, value=ids, type=BotCacheDb.TYPE_NEW_AVS_OF_STAR
+                key=star_id, value=ids, type=BotCacheDb.TYPE_NEW_VS_OF_STAR
             )
-        title = f"<code>{star_name}</code> Latest AV"
+        title = f"<code>{star_name}</code> Latest"
         btns = [
             InlineKeyboardButton(
-                text=id, callback_data=f"{id}:{BotKey.KEY_GET_AV_BY_ID}"
+                text=id, callback_data=f"{id}:{BotKey.KEY_GET_V_BY_ID}"
             )
             for id in ids
         ]
@@ -1017,76 +998,74 @@ Magnet: <code>{bt['magnet']}</code>
         self.send_msg(
             res,
             markup=InlineKeyboardMarkup().row(
-                InlineKeyboardButton(
-                    "Go to PikPak Cloud Drive", url=URL_PIKPAK_BOT
-                )
+                InlineKeyboardButton("Go to PikPak Cloud Drive", url=URL_PIKPAK_BOT)
             ),
         )
 
-    def random_get_new_av(self):
-        page = random.randint(1, JAVLIB_UTIL.MAX_RANK_PAGE)
-        ids = BOT_CACHE_DB.get_cache(key=page, type=BotCacheDb.TYPE_JLIB_PAGE_NEW_AVS)
+    def random_get_new_v(self):
+        page = random.randint(1, JLIB_UTIL.MAX_RANK_PAGE)
+        ids = BOT_CACHE_DB.get_cache(key=page, type=BotCacheDb.TYPE_JLIB_PAGE_NEW_VS)
         if not ids:
-            code, ids = JAVLIB_UTIL.get_random_ids_from_rank_by_page(
+            code, ids = JLIB_UTIL.get_random_ids_from_rank_by_page(
                 page=page, list_type=1
             )
-            if self.check_success(code, "Randomly Fetch Latest AV"):
+            if self.check_success(code, "Randomly Fetch Latest"):
                 BOT_CACHE_DB.set_cache(
                     key=page,
                     value=ids,
-                    type=BotCacheDb.TYPE_JLIB_PAGE_NEW_AVS,
+                    type=BotCacheDb.TYPE_JLIB_PAGE_NEW_VS,
                 )
             else:
                 return
-        self.get_av_by_id(id=random.choice(ids))
+        self.get_v_by_id(id=random.choice(ids))
 
-    def random_get_nice_av(self):
-        page = random.randint(1, JAVLIB_UTIL.MAX_RANK_PAGE)
-        ids = BOT_CACHE_DB.get_cache(key=page, type=BotCacheDb.TYPE_JLIB_PAGE_NICE_AVS)
+    def random_get_nice_v(self):
+        page = random.randint(1, JLIB_UTIL.MAX_RANK_PAGE)
+        ids = BOT_CACHE_DB.get_cache(key=page, type=BotCacheDb.TYPE_JLIB_PAGE_NICE_VS)
         if not ids:
-            code, ids = JAVLIB_UTIL.get_random_ids_from_rank_by_page(
+            code, ids = JLIB_UTIL.get_random_ids_from_rank_by_page(
                 page=page, list_type=0
             )
-            if self.check_success(code, "Randomly Fetch High-Rated AV"):
+            if self.check_success(code, "Randomly Fetch High-Rated"):
                 BOT_CACHE_DB.set_cache(
                     key=page,
                     value=ids,
-                    type=BotCacheDb.TYPE_JLIB_PAGE_NICE_AVS,
+                    type=BotCacheDb.TYPE_JLIB_PAGE_NICE_VS,
                 )
             else:
                 return
-        self.get_av_by_id(id=random.choice(ids))
+        self.get_v_by_id(id=random.choice(ids))
 
-    def random_get_nice_star_avs(self, star_name_ori):
-        avs = BOT_CACHE_DB.get_cache(
-            key=star_name_ori, type=BotCacheDb.TYPE_NICE_AVS_OF_STAR
+    def random_get_nice_star_vs(self, star_name_ori):
+        vs = BOT_CACHE_DB.get_cache(
+            key=star_name_ori, type=BotCacheDb.TYPE_NICE_VS_OF_STAR
         )
-        if not avs:
+        if not vs:
             star_name_ja = self.get_star_ja_name_by_zh_name(star_name_ori)
-            code, avs = DMM_UTIL.get_nice_avs_by_star_name(star_name=star_name_ja)
+            code, vs = DMM_UTIL.get_nice_vs_by_star_name(star_name=star_name_ja)
             if self.check_success(
-                    code, f"Get High-Rated AVs of Actress {star_name_ori}"
+                    code, f"Get High-Rated vs of Actress {star_name_ori}"
             ):
-                avs = avs[:60]
+                vs = vs[:60]
                 BOT_CACHE_DB.set_cache(
                     key=star_name_ori,
-                    value=avs,
-                    type=BotCacheDb.TYPE_NICE_AVS_OF_STAR,
+                    value=vs,
+                    type=BotCacheDb.TYPE_NICE_VS_OF_STAR,
                 )
                 if star_name_ja != star_name_ori:
                     BOT_CACHE_DB.set_cache(
                         key=star_name_ja,
-                        value=avs,
-                        type=BotCacheDb.TYPE_NICE_AVS_OF_STAR,
+                        value=vs,
+                        type=BotCacheDb.TYPE_NICE_VS_OF_STAR,
                     )
             else:
                 return
         self.send_msg_btns(
             max_btn_per_row=3,
             max_row_per_msg=20,
-            key_type=BotKey.KEY_GET_AV_BY_ID,
-            title=f"<b>High-Rated AV of Actor {star_name_ori}</b>",
-            objs=avs,
+            key_type=BotKey.KEY_GET_V_BY_ID,
+            title=f"<b>Actor High-Rated - {star_name_ori}</b>",
+            objs=vs,
         )
 
 
@@ -1098,27 +1077,27 @@ def handle_callback(call):
     content = call.data[:s]
     key_type = call.data[s + 1:]
     if key_type == BotKey.KEY_WATCH_PV_BY_ID:
-        bot_utils.watch_av_by_id(id=content, type=0)
+        bot_utils.watch_v_by_id(id=content, type=0)
     elif key_type == BotKey.KEY_WATCH_FV_BY_ID:
-        bot_utils.watch_av_by_id(id=content, type=1)
+        bot_utils.watch_v_by_id(id=content, type=1)
     elif key_type == BotKey.KEY_GET_SAMPLE_BY_ID:
         bot_utils.get_sample_by_id(id=content)
     elif key_type == BotKey.KEY_GET_MORE_MAGNETS_BY_ID:
         bot_utils.get_more_magnets_by_id(id=content)
-    elif key_type == BotKey.KEY_RANDOM_GET_AV_BY_STAR_ID:
+    elif key_type == BotKey.KEY_RANDOM_GET_V_BY_STAR_ID:
         tmp = content.split("|")
         star_name = tmp[0]
         star_id = tmp[1]
-        code, id = JAVBUS_UTIL.get_id_by_star_id(star_id=star_id)
+        code, id = JBUS_UTIL.get_id_by_star_id(star_id=star_id)
         if bot_utils.check_success(
-                code, f"Randomly fetch AV of Actor <code>{star_name}</code>"
+                code, f"Randomly fetch from Actor - <code>{star_name}</code>"
         ):
-            bot_utils.get_av_by_id(id=id)
-    elif key_type == BotKey.KEY_GET_NEW_AVS_BY_STAR_NAME_ID:
+            bot_utils.get_v_by_id(id=id)
+    elif key_type == BotKey.KEY_GET_NEW_VS_BY_STAR_NAME_ID:
         tmp = content.split("|")
         star_name = tmp[0]
         star_id = tmp[1]
-        bot_utils.get_star_new_avs_by_name_id(star_name=star_name, star_id=star_id)
+        bot_utils.get_star_new_vs_by_name_id(star_name=star_name, star_id=star_id)
     elif key_type == BotKey.KEY_RECORD_STAR_BY_STAR_NAME_ID:
         s = content.find("|")
         star_name = content[:s]
@@ -1128,49 +1107,49 @@ def handle_callback(call):
                 star_name=star_name, star_id=star_id
             )
         else:
-            bot_utils.send_msg_code_op(500, f"Favorite Actor <code>{star_name}</code>")
-    elif key_type == BotKey.KEY_RECORD_AV_BY_ID_STAR_IDS:
+            bot_utils.send_msg_code_op(500, f"Collect Actor <code>{star_name}</code>")
+    elif key_type == BotKey.KEY_RECORD_V_BY_ID_STAR_IDS:
         res = content.split("|")
         id = res[0]
         stars = []
         if res[1] != "":
             stars = [s for s in res[1:]]
         if BOT_DB.record_id_by_id_stars(id=id, stars=stars):
-            bot_utils.get_av_detail_record_by_id(id=id)
+            bot_utils.get_v_detail_record_by_id(id=id)
         else:
-            bot_utils.send_msg_code_op(500, f"Favorite AV Code <code>{id}</code>")
+            bot_utils.send_msg_code_op(500, f"Collect Code <code>{id}</code>")
     elif key_type == BotKey.KEY_GET_STARS_RECORD:
         bot_utils.get_stars_record(page=int(content))
-    elif key_type == BotKey.KEY_GET_AVS_RECORD:
-        bot_utils.get_avs_record(page=int(content))
+    elif key_type == BotKey.KEY_GET_VS_RECORD:
+        bot_utils.get_vs_record(page=int(content))
     elif key_type == BotKey.KEY_GET_STAR_DETAIL_RECORD_BY_STAR_NAME_ID:
         s = content.find("|")
         bot_utils.get_star_detail_record_by_name_id(
             star_name=content[:s], star_id=content[s + 1:]
         )
-    elif key_type == BotKey.KEY_GET_AV_DETAIL_RECORD_BY_ID:
-        bot_utils.get_av_detail_record_by_id(id=content)
-    elif key_type == BotKey.KEY_GET_AV_BY_ID:
-        bot_utils.get_av_by_id(id=content)
-    elif key_type == BotKey.KEY_RANDOM_GET_AV_NICE:
-        code, id = JAVLIB_UTIL.get_random_id_from_rank(0)
-        if bot_utils.check_success(code, "Randomly fetch high-rated AV"):
-            bot_utils.get_av_by_id(id=id)
-    elif key_type == BotKey.KEY_RANDOM_GET_AV_NEW:
-        code, id = JAVLIB_UTIL.get_random_id_from_rank(1)
-        if bot_utils.check_success(code, "Randomly fetch newest AV"):
-            bot_utils.get_av_by_id(id=id)
-    elif key_type == BotKey.KEY_UNDO_RECORD_AV_BY_ID:
-        op_undo_record_av = f"Undo favorite AV code <code>{content}</code>"
+    elif key_type == BotKey.KEY_GET_V_DETAIL_RECORD_BY_ID:
+        bot_utils.get_v_detail_record_by_id(id=content)
+    elif key_type == BotKey.KEY_GET_V_BY_ID:
+        bot_utils.get_v_by_id(id=content)
+    elif key_type == BotKey.KEY_RANDOM_GET_V_NICE:
+        code, id = JLIB_UTIL.get_random_id_from_rank(0)
+        if bot_utils.check_success(code, "Randomly fetch high-rated"):
+            bot_utils.get_v_by_id(id=id)
+    elif key_type == BotKey.KEY_RANDOM_GET_V_NEW:
+        code, id = JLIB_UTIL.get_random_id_from_rank(1)
+        if bot_utils.check_success(code, "Randomly fetch newest"):
+            bot_utils.get_v_by_id(id=id)
+    elif key_type == BotKey.KEY_UNDO_RECORD_V_BY_ID:
+        op_undo_record_v = f"Undo collect id <code>{content}</code>"
         if BOT_DB.undo_record_id(id=content):
-            bot_utils.send_msg_success_op(op_undo_record_av)
+            bot_utils.send_msg_success_op(op_undo_record_v)
         else:
             bot_utils.send_msg_fail_reason_op(
-                reason="File parsing error", op=op_undo_record_av
+                reason="File parsing error", op=op_undo_record_v
             )
     elif key_type == BotKey.KEY_UNDO_RECORD_STAR_BY_STAR_NAME_ID:
         s = content.find("|")
-        op_undo_record_star = f"Undo favorite actor <code>{content[:s]}</code>"
+        op_undo_record_star = f"Undo collect actor <code>{content[:s]}</code>"
         if BOT_DB.undo_record_star_by_id(star_id=content[s + 1:]):
             bot_utils.send_msg_success_op(op_undo_record_star)
         else:
@@ -1191,12 +1170,12 @@ def handle_callback(call):
             bot_utils.search_star_by_name(star_name_alias)
     elif key_type == BotKey.KEY_GET_TOP_STARS:
         bot_utils.get_top_stars(page=int(content))
-    elif key_type == BotKey.KEY_GET_NICE_AVS_BY_STAR_NAME:
-        bot_utils.random_get_nice_star_avs(content)
-    elif key_type == BotKey.KEY_DEL_AV_CACHE:
-        BOT_CACHE_DB.remove_cache(key=content, type=BotCacheDb.TYPE_AV)
+    elif key_type == BotKey.KEY_GET_NICE_VS_BY_STAR_NAME:
+        bot_utils.random_get_nice_star_vs(content)
+    elif key_type == BotKey.KEY_DEL_V_CACHE:
+        BOT_CACHE_DB.remove_cache(key=content, type=BotCacheDb.TYPE_V)
         BOT_CACHE_DB.remove_cache(key=content, type=BotCacheDb.TYPE_STARS_MSG)
-        bot_utils.get_av_by_id(id=content)
+        bot_utils.get_v_by_id(id=content)
 
 
 def handle_message(message):
@@ -1224,19 +1203,19 @@ def handle_message(message):
     elif msg_cmd == "/nice":
         if not bot_utils.check_if_enable_nsfw():
             return
-        bot_utils.random_get_nice_av()
+        bot_utils.random_get_nice_v()
     elif msg_cmd == "/new":
         if not bot_utils.check_if_enable_nsfw():
             return
-        bot_utils.random_get_new_av()
+        bot_utils.random_get_new_v()
     elif msg_cmd == "/stars":
         bot_utils.get_stars_record()
     elif msg_cmd == "/ids":
-        bot_utils.get_avs_record()
+        bot_utils.get_vs_record()
     elif msg_cmd == "/record":
         if not os.path.exists(PATH_RECORD_FILE):
             bot_utils.send_msg_fail_reason_op(
-                reason="No favorite records yet", op="Retrieve favorite records file"
+                reason="No records yet", op="Retrieve records file"
             )
             return
         BOT.send_document(
@@ -1251,7 +1230,7 @@ def handle_message(message):
     elif msg_cmd == "/id":
         if msg_param:
             bot_utils.send_msg(f"Search code: <code>{msg_param}</code> ......")
-            bot_utils.get_av_by_id(id=msg_param, send_to_pikpak=True)
+            bot_utils.get_v_by_id(id=msg_param)
     else:
         ids = ID_PAT.findall(msg)
         if not ids or len(ids) == 0:
@@ -1272,9 +1251,9 @@ def handle_message(message):
             ids = [id.lower() for id in ids]
             ids = set(ids)
             ids_msg = ", ".join(ids)
-            bot_utils.send_msg(f"Detected AV codes: {ids_msg}, starting search...")
+            bot_utils.send_msg(f"Detected ids: {ids_msg}, starting search...")
             for i, id in enumerate(ids):
-                threading.Thread(target=bot_utils.get_av_by_id, args=(id,)).start()
+                threading.Thread(target=bot_utils.get_v_by_id, args=(id,)).start()
 
 
 @BOT.callback_query_handler(func=lambda call: True)
@@ -1287,23 +1266,15 @@ def my_message_handler(message):
     EXECUTOR.submit(handle_message, message)
 
 
-def pyrogram_auth():
-    if BOT_CFG.use_pikpak == "1" and not os.path.exists(f"{PATH_SESSION_FILE}.session"):
-        LOG.info("Performing Pyrogram login authentication...")
-        try:
-            BotUtils().send_msg_to_pikpak("Pyrogram login authentication")
-            LOG.info("Pyrogram login authentication successful")
-        except BaseException as e:
-            LOG.error(f"Pyrogram login authentication failed: {e}")
-
-
 def main():
-    pyrogram_auth()
     try:
         bot_info = BOT.get_me()
         LOG.info(f"Connected to bot: @{bot_info.username} (ID: {bot_info.id})")
+        if not os.path.exists(f"{PATH_SESSION_FILE}.session") and not BotUtils().send_msg_to_pikpak("AUTH"):
+            return
+        LOG.info("Connected to api")
     except Exception as e:
-        LOG.error(f"Unable to connect to bot: {e}")
+        LOG.error(f"Unable to connect to bot or api: {e}")
         return
     BOT.set_my_commands([types.BotCommand(cmd, BOT_CMDS[cmd]) for cmd in BOT_CMDS])
     BOT.infinity_polling()

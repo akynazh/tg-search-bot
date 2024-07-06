@@ -13,6 +13,5 @@ services:
     build: .
     volumes:
       - ${HOST_PATH_ROOT}:${PATH_ROOT}
-    network_mode: "host"
     depends_on:
       - cache
