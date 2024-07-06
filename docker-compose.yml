@@ -3,15 +3,17 @@ services:
   cache:
     image: redis:alpine
     restart: unless-stopped
-    command: "redis-server --requirepass ${REDIS_PASSWORD}"
+    # use this and edit password if you have a password for redis
+    # command: "redis-server --requirepass ${REDIS_PASSWORD}"
+    command: "redis-server"
     ports:
-      - "${REDIS_PORT}:6379"
+      - "6379:6379"
     volumes:
-      - ${HOST_PATH_ROOT}/redis/data:/data
+      - ~/.tg_search_bot/redis/data:/data
   tg_search_bot:
     restart: always
     build: .
     volumes:
-      - ${HOST_PATH_ROOT}:${PATH_ROOT}
+      - ~/.tg_search_bot:/root/.tg_search_bot
     depends_on:
       - cache

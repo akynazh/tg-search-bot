@@ -52,7 +52,7 @@ PS: If you want to use Pikpak’s automatic sending function, you need to author
 Finally, run the bot: (files such as records and logs are located in `~/.tg_search_bot`)
 
 ```sh
-# op1. docker-compose(edit value in .env firstly)
+# op1. docker-compose
 docker-compose up -d
 # op2. simple way (Python >=3.9)
 pip install -r requirements.txt && python3 bot.py
