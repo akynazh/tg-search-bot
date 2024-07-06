@@ -26,23 +26,23 @@ First, you need to download the project code locally, then configure the bot and
 
 ```yaml
 # required, your telegram chat id
-tg_chat_id:
+tg_chat_id: 
 # required, your telegram bot token
-tg_bot_token:
+tg_bot_token: 
 # required, global proxy, 1 yes | 0 no
-use_proxy:
-# optional, proxy server address (required if use_proxy == 1)
-proxy_addr:
+use_proxy: 
+# optional, proxy server address, required if use_proxy == 1
+proxy_addr: 
 # your telegram api id
-tg_api_id:
+tg_api_id: 
 # your telegram api hash
-tg_api_hash:
+tg_api_hash: 
 # your redis host
-redis_host:
+redis_host: 
 # your redis port
-redis_port:
-# optional, your redis password
-redis_password:
+redis_port: 
+# optional, your redis password, empty by default when using docker
+redis_password: 
 # required, enable nsfw or not, 1 yes | 0 no
 enable_nsfw: 0
 ```
