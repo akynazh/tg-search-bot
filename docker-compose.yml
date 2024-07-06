@@ -17,6 +17,7 @@ services:
     working_dir: /app
     environment:
       - TZ=Asia/Shanghai
+    network_mode: "host"
     volumes:
       - .:/app
       - ~/.tg_search_bot:/root/.tg_search_bot
