@@ -47,7 +47,7 @@ redis_password:
 enable_nsfw: 0
 ```
 
-PS: If you want to use Pikpak’s automatic sending function, you need to authorize it manually first: [Pikpak official bot](https://t.me/PikPak6_Bot), and then log in when running the bot for the first time.
+PS: To use Pikpak’s automatic sending function, you need to authorize it manually first: [Pikpak official bot](https://t.me/PikPak6_Bot), and then log in when running the bot for the first time.
 
 Finally, run the bot: (files such as records and logs are located in `~/.tg_search_bot`)
 
