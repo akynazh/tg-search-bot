@@ -71,3 +71,10 @@ pip3 install -r requirements.txt
 ```
 
 Then you can start writing code. When you are done, remember to write or run a test instance (in `tests/test.py`). Please make sure there is no problem with the test before submitting the code.
+
+## Thanks
+
+<a href="https://www.jetbrains.com/">
+<img src="https://resources.jetbrains.com/storage/products/company/brand/logos/jb_beam.png" alt="JetBrains Logo (Main) logo." style="width: 200px;"></a>
+
+Thanks to JetBrains for their support to this project!
