@@ -22,7 +22,7 @@ The following functions are sorted by development completion time, and new funct
 
 ## Tutorial
 
-First, you need to download the project code locally, then configure the bot and edit `~/.tg_search_bot/config.yaml`：
+First, you need to download the code, then configure the bot and edit `~/.tg_search_bot/config.yaml`：
 
 ```yaml
 # required, your telegram chat id
