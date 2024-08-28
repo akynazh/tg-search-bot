@@ -232,7 +232,7 @@ class BotCacheDb:
             except Exception as e:
                 self.cache = None
                 LOG.error(
-                    f"Unable to connect to the Redis service: {host}:{port} : {e}"
+                    f"Unable to reach Redis: {host}:{port} : {e}"
                 )
 
     def remove_cache(self, key: str, type: int):
