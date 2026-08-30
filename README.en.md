@@ -1,10 +1,8 @@
 # tg-search-bot
 
-A Python3 Telegram bot for searching video magnet links. It supports collecting and exporting records, auto-saving magnets to cloud drive, and is configurable for NSFW blocking and proxy access; it also integrates AI natural-language understanding to identify the user's intent, target, and data source directly from plain-language requests.
+A Python3 Telegram bot for searching video magnet links. It supports collecting and exporting records, auto-saving magnets to cloud drive, and is configurable for NSFW blocking and proxy access; it also integrates AI natural-language understanding so the bot can automatically recognize the user's search intent, target, and data source from plain-language requests.
 
-- Data sources: multiple public video / magnet index sites (wrapped by [`Jvav`](https://pypi.org/project/Jvav/))
-- BT torrents: TorrentKitty (Chinese) + apibay (English), merged and de-duplicated
-- Cache: SQLite (no Redis required)
+- Data sources: TorrentKitty (Chinese) + apibay (English) + video magnet index API (Jvav)
 - Cloud drive: Pikpak official OpenAPI
 - AI: any OpenAI-compatible API with intent recognition and automatic search routing
 

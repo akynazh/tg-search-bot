@@ -2,8 +2,7 @@
 
 一个基于 Python3 的 Telegram 资源搜索机器人：搜索各类视频磁力链接，支持收藏、导出记录、自动保存到网盘，可配置 NSFW 开关与代理上网；同时集成 AI 自然语言理解能力，可直接根据用户自然语言意图自动识别搜索目标、类型与数据源。
 
-- 数据来源：多个公开影视 / 磁力索引站（由 [`Jvav`](https://pypi.org/project/Jvav/) 封装）
-- BT 种子：TorrentKitty（中文）+ apibay（英文），合并去重
+- 数据来源：TorrentKitty（中文）+ apibay（英文）+ 影视磁力索引 API（Jvav）
 - 网盘：Pikpak 官方 OpenAPI
 - AI：任意 OpenAI 兼容接口，支持意图识别与自动搜索
 
