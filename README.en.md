@@ -138,6 +138,11 @@ source ./.venv/bin/activate
 pip3 install -r requirements.txt
 ```
 
+## Language
+
+- [中文说明](README.md)
+- [English README](README.en.md)
+
 ## Thanks
 
 <a href="https://www.jetbrains.com/">

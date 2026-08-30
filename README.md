@@ -1,5 +1,7 @@
 # tg-search-bot
 
+中文 ｜ [English README](README.en.md)
+
 一个基于 Python3 的 Telegram 资源搜索机器人：搜索各类视频磁力链接，支持收藏、导出记录、自动保存到网盘，可配置 NSFW 开关与代理上网；同时集成 AI 自然语言理解能力，可直接根据用户自然语言意图自动识别搜索目标、类型与数据源。
 
 - 数据来源：TorrentKitty（中文）+ apibay（英文）+ 影视磁力索引 API（Jvav）
@@ -143,4 +145,4 @@ pip3 install -r requirements.txt
 <a href="https://www.jetbrains.com/">
 <img src="https://resources.jetbrains.com/storage/products/company/brand/logos/jb_beam.png" alt="JetBrains Logo (Main) logo." style="width: 200px;"></a>
 
-Thanks to JetBrains for their support to this project!
+感谢 JetBrains 对这个项目的支持！
