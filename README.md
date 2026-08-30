@@ -1,136 +1,130 @@
 # tg-search-bot
 
-中文 ｜ [English README](README.en.md)
+[English](README.md)｜[中文](README.zh.md)
 
-一个基于 Python3 的 Telegram 资源搜索机器人：搜索各类视频磁力链接，支持收藏、导出记录、自动保存到网盘，可配置 NSFW 开关与代理上网；同时集成 AI 自然语言理解能力，可直接根据用户自然语言意图自动识别搜索目标、类型与数据源。
+A Python 3 Telegram bot for searching video magnet links. It supports collection and export of records, automatic saving to cloud storage, configurable NSFW filtering, proxy support, and AI-powered natural-language understanding for automatic intent, target, and source detection from user input.
 
-- 数据来源：TorrentKitty（中文）+ apibay（英文）+ 影视磁力索引 API（Jvav）
-- 网盘：Pikpak 官方 OpenAPI
-- AI：任意 OpenAI 兼容接口，支持意图识别与自动搜索
+- Data sources: TorrentKitty (Chinese) + apibay (English) + video index APIs (Jvav)
+- Cloud storage: PikPak official OpenAPI
+- AI: any OpenAI-compatible API for intent recognition and automatic routing
 
-## 功能
+## Features
 
-- 按编号 / 演职人员 / 关键词搜索影片，返回封面、评分、日期、标签、演职人员及磁力链接（支持 HD / 字幕等过滤）
-- 获取预览视频、完整视频与影片截图
-- 收藏与导出记录（`record.json`）
-- 排行榜、随机高分 / 最新影片
-- 自动把最优磁力链接保存到 Pikpak（登录 token 直传离线任务）
-- AI 自然语言理解搜索：识别编号 / 演职人员 / 片名 / 剧情 / 类型并自动选择数据源
-- BT 种子搜索（中文 / 英文双引擎），结果分页
-- 多轮追问：`换一批` / `下一页` / `上一页` / `保存第N个`
-- 可配置 NSFW 开关与代理上网
+- Search by title, keyword, number, plot, performer name, or genre
+- Return cover art, rating, release date, tags, cast, and magnet links with optional HD / subtitle filtering
+- Fetch preview videos, full videos, and screenshots
+- Store and export records in `record.json`
+- Random high-quality and latest picks
+- Save the best magnet link to PikPak with direct offline download support
+- AI natural-language search that understands intent and selects the best source automatically
+- BT torrent search using multiple sources with paginated results
+- Multi-turn follow-up: `next batch`, `next page`, `previous page`, `save item N`
+- Configurable NSFW filter and proxy support
 
-## 核心流程（AI 自然语言搜索）
+## Core flow
 
-搜索流程：
+1. The user sends a resource request such as a movie title, TV show, number, plot summary, performer, or genre.
+2. The AI interprets the request and returns `intent`, `target`, `source`, and `explain`.
+3. The bot replies with `🔍 Searching: {target}`.
+4. The AI chooses the best crawler or API for the request.
+5. The bot replies with `⏳ Searching ...`.
+6. The crawler/API returns magnet links or alternative BT results if no magnet is found.
+7. The bot replies with `📄 Search results`.
+8. The best magnet is saved to the configured PikPak account.
+9. The bot replies with `✅ Saved successfully`.
 
-1. 用户输入想要的资源 / 资源相关信息（电影、电视剧名称、影片编号、剧情 / 对话、演职人员、影片类型）
-2. AI 根据输入理解用户目标（根据剧情推测片名、根据类型推荐等），输出 `intent / target / source / explain`
-3. 机器人回复：`🔍 搜索：{目标}`
-4. AI 选择最合适的爬虫 / API 进行搜索（编号 → 编号索引站，演职人员 → 演职人员搜索，其余 → 关键词或 BT）
-5. 机器人回复：`⏳ 搜索中 ...`
-6. 爬虫 / API 搜索得到磁力链接（没有磁力时返回 BT 种子等其他格式内容）
-7. 机器人回复：`📄 搜索结果`
-8. 程序将最优磁力链接保存到已配置的网盘（PikPak）
-9. 机器人回复：`✅ 保存结果：已提交离线任务到 PikPak`
-
-> 未配置 AI 接口时自动回退到原来的编号识别 + BT 关键词搜索逻辑。
+> If no AI API is configured, the bot falls back to the original number detection and BT keyword search flow.
 
 ```mermaid
 flowchart TD
-    A["① 用户输入<br/>电影 / 电视剧 / 编号 / 剧情 / 演职人员 / 类型"] --> B["② AI 理解意图<br/>intent · target · source · explain"]
-    B --> C["③ 回复 🔍 搜索：目标"]
-    C --> D["④ 选择最合适的爬虫 / API"]
-    D --> D1{意图 intent}
-    D1 -->|编号| E["按编号搜索<br/>编号索引站"]
-    D1 -->|演职人员| F["演职人员搜索"]
-    D1 -->|关键词 / 类型 / 剧情| G["关键词 → BT 种子"]
-    E --> H["⑤ 回复 ⏳ 搜索中"]
+    A["1. User input<br/>title / plot / number / genre / performer"] --> B["2. AI understands intent<br/>intent · target · source · explain"]
+    B --> C["3. Reply 🔍 Searching: target"]
+    C --> D["4. Select the best crawler / API"]
+    D --> D1{intent}
+    D1 -->|number| E["Search by number<br/>index sites"]
+    D1 -->|performer| F["Performer search"]
+    D1 -->|title / genre / plot| G["Keyword / BT search"]
+    E --> H["5. Reply ⏳ Searching ..."]
     F --> H
     G --> H
-    H --> I["⑥ 搜索得到磁力链接<br/>（无磁力则返回 BT 等其他格式）"]
-    I --> J["⑦ 回复 📄 搜索结果"]
-    J --> K["⑧ 保存最优磁力链接到 PikPak"]
-    K --> L["⑨ 回复 ✅ 保存结果"]
+    H --> I["6. Return magnet links<br/>or BT alternatives"]
+    I --> J["7. Reply 📄 Search results"]
+    J --> K["8. Save best magnet to PikPak"]
+    K --> L["9. Reply ✅ Saved successfully"]
 ```
 
-## 目录结构
+## Project structure
 
 ```
-bot.py              主程序：配置、日志、消息 / 回调处理、AI 搜索流程
-ai.py               AI 意图理解客户端（OpenAI 兼容 /chat/completions）
-pikpak.py           Pikpak 官方 OpenAPI 客户端（登录 / 刷新 token、离线下载）
-database.py         数据层：BotFileDb（JSON 收藏）+ BotCacheDb（SQLite 缓存）
-requirements.txt    依赖
-docker-compose.yml  一键部署
+bot.py              Main program: config, logging, message handlers, AI flow
+ai.py               AI intent client using OpenAI-compatible /chat/completions
+pikpak.py           PikPak official OpenAPI client for login, token refresh, and offline download
+database.py         Data layer: BotFileDb (JSON records) + BotCacheDb (SQLite cache)
+requirements.txt    Dependencies
+docker-compose.yml  One-click deployment
 ```
 
-配置与数据文件存放于 `~/.tg_search_bot/`：`config.yaml`（主配置）、`record.json`（收藏）、`cache.db`（缓存）、`pikpak_token.json`（Pikpak 登录态）、`log.txt`（日志）。
+Runtime data is stored under `~/.tg_search_bot/`: `config.yaml`, `record.json`, `cache.db`, `pikpak_token.json`, and `log.txt`.
 
-## 使用
+## Usage
 
-### 1. 配置
+### 1. Configure
 
-编辑 `~/.tg_search_bot/config.yaml`：
+Edit `~/.tg_search_bot/config.yaml`:
 
 ```yaml
-# 必填，你的 Telegram chat id
-tg_chat_id: 
-# 必填，你的 Telegram bot token
-tg_bot_token: 
-# 必填，是否启用全局代理，1 是 / 0 否
-use_proxy: 
-# 可选，代理地址（use_proxy 为 1 时必填），如 http://127.0.0.1:7890
-proxy_addr: 
-# 必填，是否开启 NSFW 内容，1 是 / 0 否
+# Required: Telegram chat ID
+tg_chat_id:
+# Required: Telegram bot token
+tg_bot_token:
+# Required: use global proxy, 1 = yes, 0 = no
+use_proxy:
+# Optional: proxy address, required when use_proxy is 1
+proxy_addr:
+# Required: enable NSFW content, 1 = yes, 0 = no
 enable_nsfw: 0
-# 可选，Pikpak 账号（用于自动保存磁力到网盘，官方 API）
-pikpak_username: 
-pikpak_password: 
-# 可选，AI 自然语言搜索（任意 OpenAI 兼容接口）
-ai_base_url: 
-ai_api_key: 
-ai_model: 
+# Optional: PikPak account for auto-saving magnets
+pikpak_username:
+pikpak_password:
+# Optional: AI natural-language search via any OpenAI-compatible API
+ai_base_url:
+ai_api_key:
+ai_model:
 ```
 
-### 2. 运行
+### 2. Run
 
 ```sh
-# 方式一：Docker 一键部署
+# Option 1: Docker deployment
 docker-compose up -d
 
-# 方式二：直接运行（Python >= 3.9）
+# Option 2: run directly (Python 3.9+)
 pip install -r requirements.txt
 python3 bot.py
 ```
 
-### 3. 命令
+### 3. Commands
 
-| 命令 | 说明 |
+| Command | Description |
 | --- | --- |
-| `/help` | 查看帮助 |
-| `/id 编号` | 按编号搜索 |
-| `/star 演职人员名` | 搜索演职人员 |
-| `/stars` | 查看已收藏演职人员 |
-| `/ids` | 查看已收藏编号 |
-| `/record` | 导出收藏记录文件 |
-| `/rank` | 查看演职人员排行 |
-| `/nice` | 随机一部高分影片 |
-| `/new` | 随机一部最新影片 |
+| `/help` | Show help |
+| `/stars` | View collected performers |
+| `/ids` | View collected numbers |
+| `/record` | Export the records file |
 
-直接发送电影名 / 关键词 / 编号 / 剧情 / 演职人员 / 类型即可，AI 会自动理解并搜索。
+Simply send a movie title, keyword, number, plot summary, performer name, or genre. The AI will understand and search automatically.
 
-### 4. 多轮追问
+### 4. Multi-turn follow-up
 
-BT 搜索结果每页 5 条，可继续回复：
+BT search results are paginated in groups of 5. You can continue with:
 
-- `换一批` / `下一页` / `还有吗` — 下一页
-- `上一页` — 上一页
-- `保存第N个`（或 `save N`）— 把第 N 条磁力保存到 Pikpak
+- `next batch` / `next page` / `more` — show the next page
+- `previous page` — show the previous page
+- `save item N` or `save N` — save the N-th magnet to PikPak
 
-## 开发
+## Development
 
-推荐使用 Python 3.9，并建议使用虚拟环境：
+Python 3.9+ is recommended, preferably with a virtual environment:
 
 ```sh
 git clone https://github.com/akynazh/tg-search-bot.git
@@ -140,9 +134,9 @@ source ./.venv/bin/activate
 pip3 install -r requirements.txt
 ```
 
-## 致谢
+## Thanks
 
 <a href="https://www.jetbrains.com/">
 <img src="https://resources.jetbrains.com/storage/products/company/brand/logos/jb_beam.png" alt="JetBrains Logo (Main) logo." style="width: 200px;"></a>
 
-感谢 JetBrains 对这个项目的支持！
+Thanks to JetBrains for supporting this project.

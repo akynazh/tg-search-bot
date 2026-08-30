@@ -124,12 +124,7 @@ BOT_CMDS = {
     "help": "查看帮助",
     "stars": "查看已收藏的演职人员",
     "ids": "查看已收藏的编号",
-    "nice": "随机一部高分影片",
-    "new": "随机一部最新影片",
-    "rank": "查看演职人员排行",
     "record": "导出收藏记录文件",
-    "star": "后接演职人员名，搜索该演职人员",
-    "id": "后接编号，搜索该编号",
 }
 MSG_HELP = f"""直接发送片名、关键词或编号，剩下的交给我！
 
@@ -145,7 +140,6 @@ class BotKey:
     KEY_GET_SAMPLE_BY_ID = "k0_0"
     KEY_GET_MORE_MAGNETS_BY_ID = "k0_1"
     KEY_SEARCH_STAR_BY_NAME = "k0_2"
-    KEY_GET_TOP_STARS = "k0_3"
     KEY_WATCH_PV_BY_ID = "k1_0"
     KEY_WATCH_FV_BY_ID = "k1_1"
     KEY_GET_V_BY_ID = "k2_0"
@@ -867,6 +861,7 @@ class BotUtils:
             self.get_v_by_id(id=target)
             return True
         if kind == "actor":
+            # 仅在 AI 明确判定为日本 AV 演员时，才走演员搜索；其他“演员/明星”类请求继续走一般搜索
             self.search_star_by_name(target)
             return True
 
@@ -1030,30 +1025,6 @@ class BotUtils:
             markup=markup,
         )
         return True
-
-    def get_top_stars(self, page=1):
-        op_get_top_stars = "获取演职人员排行"
-        stars = BOT_CACHE_DB.get_cache(key=page, type=BotCacheDb.TYPE_RANK)
-
-        if not stars:
-            code, stars = DMM_UTIL.get_top_stars(page)
-            if not self.check_success(code, op_get_top_stars):
-                return
-            BOT_CACHE_DB.set_cache(key=page, value=stars, type=BotCacheDb.TYPE_RANK)
-        stars_tmp = [None] * 80
-        stars = stars_tmp[: ((page - 1) * 20)] + stars + stars_tmp[((page - 1) * 20) :]
-        col, row = 4, 5
-        objs, page_btns, title = self.get_page_elements(
-            objs=stars, page=page, col=4, row=5, key_type=BotKey.KEY_GET_TOP_STARS
-        )
-        self.send_msg_btns(
-            max_btn_per_row=col,
-            max_row_per_msg=row,
-            key_type=BotKey.KEY_SEARCH_STAR_BY_NAME,
-            title="<b>演职人员排行：</b>" + title,
-            objs=objs,
-            page_btns=page_btns,
-        )
 
     def get_more_magnets_by_id(self, id: str):
         magnets = BOT_CACHE_DB.get_cache(key=id, type=BotCacheDb.TYPE_MAGNET)
@@ -1391,8 +1362,6 @@ def handle_callback(call):
                 f"尝试搜索演职人员 {star_name} 的别名 {star_name_alias}..."
             )
             bot_utils.search_star_by_name(star_name_alias)
-    elif key_type == BotKey.KEY_GET_TOP_STARS:
-        bot_utils.get_top_stars(page=int(content))
     elif key_type == BotKey.KEY_GET_NICE_VS_BY_STAR_NAME:
         bot_utils.random_get_nice_star_vs(content)
     elif key_type == BotKey.KEY_DEL_V_CACHE:
@@ -1426,14 +1395,6 @@ def handle_message(message):
         msg_param = msgs[1].strip()
     if msg_cmd == "/help" or msg_cmd == "/start":
         bot_utils.send_msg(MSG_HELP)
-    elif msg_cmd == "/nice":
-        if not bot_utils.check_if_enable_nsfw():
-            return
-        bot_utils.random_get_nice_v()
-    elif msg_cmd == "/new":
-        if not bot_utils.check_if_enable_nsfw():
-            return
-        bot_utils.random_get_new_v()
     elif msg_cmd == "/stars":
         bot_utils.get_stars_record()
     elif msg_cmd == "/ids":
@@ -1447,16 +1408,6 @@ def handle_message(message):
         BOT.send_document(
             chat_id=BOT_CFG.tg_chat_id, document=types.InputFile(PATH_RECORD_FILE)
         )
-    elif msg_cmd == "/rank":
-        bot_utils.get_top_stars(1)
-    elif msg_cmd == "/star":
-        if msg_param:
-            bot_utils.send_msg(f"搜索演职人员：<code>{msg_param}</code> ......")
-            bot_utils.search_star_by_name(msg_param)
-    elif msg_cmd == "/id":
-        if msg_param:
-            bot_utils.send_msg(f"搜索编号：<code>{msg_param}</code> ......")
-            bot_utils.get_v_by_id(id=msg_param)
     else:
         # 多轮会话：换一批 / 上一页 / 保存第 N 个
         if bot_utils.handle_bt_followup(msg):
