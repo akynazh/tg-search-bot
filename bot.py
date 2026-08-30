@@ -6,16 +6,18 @@ import string
 import random
 import jvav as jv
 import yaml
-import asyncio
 import threading
 import langdetect
+import html
 import telebot
-from pyrogram import Client
 from telebot import apihelper, types
 from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
 from database import BotFileDb, BotCacheDb
+from ai import AiClient
+from pikpak import PikPakClient
 from requests import get
 from requests.compat import quote
+from bs4 import BeautifulSoup
 import logging
 from logging.handlers import RotatingFileHandler
 
@@ -44,28 +46,26 @@ class BotConfig:
         self.tg_bot_token = (
             str(config["tg_bot_token"]) if config["tg_bot_token"] else ""
         )
-        self.tg_api_id = str(config["tg_api_id"]) if config["tg_api_id"] else ""
-        self.tg_api_hash = str(config["tg_api_hash"]) if config["tg_api_hash"] else ""
-        self.redis_host = str(config["redis_host"]) if config["redis_host"] else ""
-        self.redis_port = str(config["redis_port"]) if config["redis_port"] else ""
-        self.redis_password = (
-            str(config["redis_password"]) if config["redis_password"] else ""
-        )
         self.enable_nsfw = str(config["enable_nsfw"]) if config["enable_nsfw"] else "0"
         self.use_proxy = str(config["use_proxy"]) if config["use_proxy"] else "0"
         self.proxy_addr = str(config["proxy_addr"]) if config["proxy_addr"] else ""
+        self.pikpak_username = (
+            str(config["pikpak_username"]) if config.get("pikpak_username") else ""
+        )
+        self.pikpak_password = (
+            str(config["pikpak_password"]) if config.get("pikpak_password") else ""
+        )
+        self.ai_base_url = (
+            str(config["ai_base_url"]) if config.get("ai_base_url") else ""
+        )
+        self.ai_api_key = str(config["ai_api_key"]) if config.get("ai_api_key") else ""
+        self.ai_model = (
+            str(config["ai_model"]) if config.get("ai_model") else "gpt-4o-mini"
+        )
         # set
         self.proxy_json = {"http": "", "https": ""}
-        self.proxy_json_pikpak = {}
         if self.use_proxy == "1":
             self.proxy_json = {"http": self.proxy_addr, "https": self.proxy_addr}
-            t1 = self.proxy_addr.find(":")
-            t2 = self.proxy_addr.rfind(":")
-            self.proxy_json_pikpak = {
-                "scheme": self.proxy_addr[:t1],
-                "hostname": self.proxy_addr[t1 + 3: t2],
-                "port": int(self.proxy_addr[t2 + 1:]),
-            }
             LOG.info(f'Set proxy: "{self.proxy_addr}"')
         else:
             self.proxy_addr = ""
@@ -81,7 +81,8 @@ URL_PIKPAK_BOT = f"{BASE_URL_TG}/{PIKPAK_BOT_NAME}"
 PATH_ROOT = f'{os.path.expanduser("~")}/.tg_search_bot'
 PATH_LOG_FILE = f"{PATH_ROOT}/log.txt"
 PATH_RECORD_FILE = f"{PATH_ROOT}/record.json"
-PATH_SESSION_FILE = f"{PATH_ROOT}/session"
+PATH_PIKPAK_TOKEN_FILE = f"{PATH_ROOT}/pikpak_token.json"
+PATH_CACHE_FILE = f"{PATH_ROOT}/cache.db"
 PATH_CONFIG_FILE = f"{PATH_ROOT}/config.yaml"
 # BASE
 LOG = Logger(path_log_file=PATH_LOG_FILE).logger
@@ -90,9 +91,7 @@ apihelper.proxy = BOT_CFG.proxy_json
 BOT = telebot.TeleBot(BOT_CFG.tg_bot_token)
 BOT_DB = BotFileDb(PATH_RECORD_FILE)
 BOT_CACHE_DB = BotCacheDb(
-    host=BOT_CFG.redis_host,
-    port=int(BOT_CFG.redis_port),
-    password=BOT_CFG.redis_password,
+    path_cache_file=PATH_CACHE_FILE,
     use_cache="1",
 )
 BASE_UTIL = jv.BaseUtil(BOT_CFG.proxy_addr)
@@ -105,26 +104,41 @@ TRANS_UTIL = jv.TransUtil(BOT_CFG.proxy_addr)
 WIKI_UTIL = jv.WikiUtil(BOT_CFG.proxy_addr)
 VGLE_UTIL = jv.AvgleUtil(BOT_CFG.proxy_addr)
 EXECUTOR = concurrent.futures.ThreadPoolExecutor()
+PIKPAK = PikPakClient(
+    username=BOT_CFG.pikpak_username,
+    password=BOT_CFG.pikpak_password,
+    proxy=BOT_CFG.proxy_addr,
+    token_path=PATH_PIKPAK_TOKEN_FILE,
+)
+AI = AiClient(
+    base_url=BOT_CFG.ai_base_url,
+    api_key=BOT_CFG.ai_api_key,
+    model=BOT_CFG.ai_model,
+    proxy=BOT_CFG.proxy_addr,
+)
+# BT 搜索结果分页会话：token -> {"q": ..., "bts": [...], "page": n}
+BT_SESSIONS = {}
+CHAT_BT_SESSION = {}
 ID_PAT = re.compile(r"[a-z0-9]+[-_](?:ppv-)?[a-z0-9]+")
 BOT_CMDS = {
-    "help": "View command help",
-    "stars": "View my actors",
-    "ids": "View my ids",
-    "nice": "Randomly get a high-rated film",
-    "new": "Randomly get a latest film",
-    "rank": "Get DMM actor rankings",
-    "record": "Get saved records file",
-    "star": "Followed by the actor's name for searching the actor",
-    "id": "Followed by the id for searching the id",
+    "help": "查看帮助",
+    "stars": "查看已收藏的演职人员",
+    "ids": "查看已收藏的编号",
+    "nice": "随机一部高分影片",
+    "new": "随机一部最新影片",
+    "rank": "查看演职人员排行",
+    "record": "导出收藏记录文件",
+    "star": "后接演职人员名，搜索该演职人员",
+    "id": "后接编号，搜索该编号",
 }
-MSG_HELP = f"""Just send me the movie title, keywords, or id, and I'll take care of the rest!
+MSG_HELP = f"""直接发送片名、关键词或编号，剩下的交给我！
 
 """
 for cmd, content in BOT_CMDS.items():
     MSG_HELP += f"""/{cmd}  {content}
 """
 MSG_HELP += f"""
-[NSFW: {"OPENED" if BOT_CFG.enable_nsfw == "1" else "CLOSED"}]"""
+[NSFW: {"已开启" if BOT_CFG.enable_nsfw == "1" else "已关闭"}]"""
 
 
 class BotKey:
@@ -149,6 +163,7 @@ class BotKey:
     KEY_UNDO_RECORD_STAR_BY_STAR_NAME_ID = "k3_6"
     KEY_UNDO_RECORD_V_BY_ID = "k3_7"
     KEY_DEL_V_CACHE = "k4_1"
+    KEY_BT_PAGE = "k5_0"
 
 
 class BotUtils:
@@ -168,37 +183,34 @@ class BotUtils:
 
     def send_msg_code_op(self, code: int, op: str):
         if code == 200:
-            self.send_msg(f"Operation executed: {op}\nExecution result: Success ^_^")
+            self.send_msg(f"✅ 操作成功：{op}")
         elif code == 404:
-            self.send_msg(
-                f"Operation executed: {op}\nExecution result: No results found Q_Q"
-            )
+            self.send_msg(f"没有找到相关结果，{op} 未完成 Q_Q")
         elif code == 500:
-            self.send_msg(
-                f"Operation executed: {op}\nExecution result: Server error, please retry or check logs Q_Q"
-            )
+            self.send_msg(f"服务器出错，{op} 未完成，请稍后重试或查看日志 Q_Q")
         elif code == 502:
-            self.send_msg(
-                f"Operation executed: {op}\nExecution result: Network request failed, please retry or check network Q_Q"
-            )
+            self.send_msg(f"网络请求失败，{op} 未完成，请检查网络后重试 Q_Q")
 
     def send_msg_success_op(self, op: str):
-        self.send_msg(f"Operation executed: {op}\nExecution result: Success ^_^")
+        self.send_msg(f"✅ 操作成功：{op}")
 
     def send_msg_fail_reason_op(self, reason: str, op: str):
+        self.send_msg(f"{op} 失败：{reason} Q_Q")
+
+    def send_msg_v_not_found(self, v_id: str):
         self.send_msg(
-            f"Operation executed: {op}\nExecution result: Failed, {reason} Q_Q"
+            f"没有找到 <code>{html.escape(v_id)}</code> 的相关结果，请稍后重试或检查编号是否正确。"
         )
 
     def check_success(self, code: int, op: str):
         if code == 200:
             return True
         if code == 404:
-            self.send_msg_fail_reason_op(reason="No results found", op=op)
+            self.send_msg_fail_reason_op(reason="未找到相关结果", op=op)
         elif code == 500:
-            self.send_msg_fail_reason_op(reason="Server error", op=op)
+            self.send_msg_fail_reason_op(reason="服务器错误", op=op)
         elif code == 502:
-            self.send_msg_fail_reason_op(reason="Network request failed", op=op)
+            self.send_msg_fail_reason_op(reason="网络请求失败", op=op)
         return False
 
     def create_btn_by_key(self, key_type: str, obj):
@@ -217,14 +229,14 @@ class BotUtils:
             )
 
     def send_msg_btns(
-            self,
-            max_btn_per_row: int,
-            max_row_per_msg: int,
-            key_type: str,
-            title: str,
-            objs: list,
-            extra_btns=[],
-            page_btns=[],
+        self,
+        max_btn_per_row: int,
+        max_row_per_msg: int,
+        key_type: str,
+        title: str,
+        objs: list,
+        extra_btns=[],
+        page_btns=[],
     ):
         markup = InlineKeyboardMarkup()
         row_count = 0
@@ -254,7 +266,7 @@ class BotUtils:
             self.send_msg(msg=title, markup=markup)
 
     def get_page_elements(
-            self, objs: list, page: int, col: int, row: int, key_type: str
+        self, objs: list, page: int, col: int, row: int, key_type: str
     ):
         """
         Get the list of objects on the current page, list of pagination buttons, and the title of quantity.
@@ -275,7 +287,7 @@ class BotUtils:
         if page > page_count:
             page = page_count
         start_idx = (page - 1) * record_count_per_page
-        objs = objs[start_idx: start_idx + record_count_per_page]
+        objs = objs[start_idx : start_idx + record_count_per_page]
         if page == 1:
             to_previous = 1
         else:
@@ -298,7 +310,7 @@ class BotUtils:
             text=">>", callback_data=f"{page_count}:{key_type}"
         )
         # Get the title of quantity
-        title = f"Total: <b>{record_count_total}</b>, Total Pages: <b>{page_count}</b>"
+        title = f"共 <b>{record_count_total}</b> 条，共 <b>{page_count}</b> 页"
         return (
             objs,
             [btn_to_first, btn_to_previous, btn_to_current, btn_to_next, btn_to_last],
@@ -307,7 +319,7 @@ class BotUtils:
 
     def check_if_enable_nsfw(self):
         if BOT_CFG.enable_nsfw == "0":
-            self.send_msg("[NSFW] FORBIDDEN!")
+            self.send_msg("[NSFW] 已关闭，无法访问该内容。")
             return False
         return True
 
@@ -315,7 +327,7 @@ class BotUtils:
         record, is_star_exists, _ = BOT_DB.check_has_record()
         if not record or not is_star_exists:
             self.send_msg_fail_reason_op(
-                reason="No actor records yet", op="Get actor records"
+                reason="还没有收藏任何演职人员", op="查看收藏的演职人员"
             )
             return
         stars = record["stars"]
@@ -332,7 +344,7 @@ class BotUtils:
             max_btn_per_row=col,
             max_row_per_msg=row,
             key_type=BotKey.KEY_GET_STAR_DETAIL_RECORD_BY_STAR_NAME_ID,
-            title="<b>My Actors: </b>" + title,
+            title="<b>已收藏的演职人员：</b>" + title,
             objs=objs,
             page_btns=page_btns,
         )
@@ -341,8 +353,8 @@ class BotUtils:
         record, is_stars_exists, is_vs_exists = BOT_DB.check_has_record()
         if not record:
             self.send_msg_fail_reason_op(
-                reason="No records for this actor",
-                op=f"Get more information about actor <code>{star_name}</code>",
+                reason="还没有收藏该演职人员",
+                op=f"查看演职人员 <code>{star_name}</code> 的详情",
             )
             return
         star_vs = []
@@ -359,25 +371,25 @@ class BotUtils:
                 if star["id"].lower() == star_id.lower():
                     cur_star_exists = True
         extra_btn1 = InlineKeyboardButton(
-            text="Random",
+            text="随机一部",
             callback_data=f"{star_name}|{star_id}:{BotKey.KEY_RANDOM_GET_V_BY_STAR_ID}",
         )
         extra_btn2 = InlineKeyboardButton(
-            text="Latest",
+            text="最新作品",
             callback_data=f"{star_name}|{star_id}:{BotKey.KEY_GET_NEW_VS_BY_STAR_NAME_ID}",
         )
         extra_btn3 = InlineKeyboardButton(
-            text="High-rated",
+            text="高分作品",
             callback_data=f"{star_name}:{BotKey.KEY_GET_NICE_VS_BY_STAR_NAME}",
         )
         if cur_star_exists:
             extra_btn4 = InlineKeyboardButton(
-                text="Remove from collection",
+                text="取消收藏",
                 callback_data=f"{star_name}|{star_id}:{BotKey.KEY_UNDO_RECORD_STAR_BY_STAR_NAME_ID}",
             )
         else:
             extra_btn4 = InlineKeyboardButton(
-                text="Add to collection",
+                text="收藏",
                 callback_data=f"{star_name}|{star_id}:{BotKey.KEY_RECORD_STAR_BY_STAR_NAME_ID}",
             )
         title = f'<code>{star_name}</code> | <a href="{WIKI_UTIL.BASE_URL_JAPAN_WIKI}/{star_name}">Wiki</a> | <a href="{JBUS_UTIL.base_url_search_by_star_id}/{star_id}">Javbus</a>'
@@ -399,18 +411,18 @@ class BotUtils:
         record, _, is_vs_exists = BOT_DB.check_has_record()
         if not record or not is_vs_exists:
             self.send_msg_fail_reason_op(
-                reason="No id collection yet",
-                op="Get id collection",
+                reason="还没有收藏任何编号",
+                op="查看收藏的编号",
             )
             return
         vs = [v["id"] for v in record["vs"]]
         vs.reverse()
         extra_btn1 = InlineKeyboardButton(
-            text="Random High-rated",
+            text="随机高分",
             callback_data=f"0:{BotKey.KEY_RANDOM_GET_V_NICE}",
         )
         extra_btn2 = InlineKeyboardButton(
-            text="Random Latest", callback_data=f"0:{BotKey.KEY_RANDOM_GET_V_NEW}"
+            text="随机最新", callback_data=f"0:{BotKey.KEY_RANDOM_GET_V_NEW}"
         )
         col, row = 4, 10
         objs, page_btns, title = self.get_page_elements(
@@ -420,7 +432,7 @@ class BotUtils:
             max_btn_per_row=col,
             max_row_per_msg=row,
             key_type=BotKey.KEY_GET_V_DETAIL_RECORD_BY_ID,
-            title="<b>My Ids: </b>" + title,
+            title="<b>已收藏的编号：</b>" + title,
             objs=objs,
             extra_btns=[[extra_btn1, extra_btn2]],
             page_btns=page_btns,
@@ -435,14 +447,14 @@ class BotUtils:
                 cur_v_exists = True
         markup = InlineKeyboardMarkup()
         btn = InlineKeyboardButton(
-            text=f"Get",
+            text=f"查看",
             callback_data=f"{id}:{BotKey.KEY_GET_V_BY_ID}",
         )
         if cur_v_exists:
             markup.row(
                 btn,
                 InlineKeyboardButton(
-                    text=f"Remove",
+                    text=f"取消收藏",
                     callback_data=f"{id}:{BotKey.KEY_UNDO_RECORD_V_BY_ID}",
                 ),
             )
@@ -481,9 +493,9 @@ class BotUtils:
             size_str = f"{size} b"
             if size >= 1024:
                 size_str = f"{(size / 1024):.2f} kb"
-            if size >= 1024 ** 2:
+            if size >= 1024**2:
                 size_str = f"{(size / 1024 ** 2):.2f} mb"
-            if size >= 1024 ** 3:
+            if size >= 1024**3:
                 size_str = f"{(size / 1024 ** 3):.2f} gb"
             return size_str
 
@@ -493,7 +505,11 @@ class BotUtils:
 
         agent = BASE_UTIL.ua()
         url = f"https://apibay.org/q.php?q={quote(q)}"
-        results = get(url, headers={"agent": agent})
+        try:
+            results = get(url, headers={"agent": agent}, timeout=10)
+        except Exception as e:
+            LOG.error(f"apibay search request failed: {e}")
+            return None
         if not results.status_code == 200:
             return None
         matches = []
@@ -513,14 +529,55 @@ class BotUtils:
             )
         return matches
 
+    def search_bts_torrentkitty(self, q):
+        """通过 TorrentKitty 搜索中文 BT 资源，返回与 search_bts 相同格式的列表或 None。
+
+        TorrentKitty 聚合国内多家 BT 站，中文关键词命中率远高于 apibay。
+        """
+        url = f"https://www.torrentkitty.tv/search/{quote(q)}"
+        try:
+            resp = get(
+                url,
+                headers={"user-agent": BASE_UTIL.ua()},
+                timeout=10,
+            )
+        except Exception as e:
+            LOG.error(f"TorrentKitty search request failed: {e}")
+            return None
+        if resp.status_code != 200:
+            return None
+        try:
+            soup = BeautifulSoup(resp.text, "html.parser")
+            matches = []
+            for tr in soup.find_all("tr"):
+                name_td = tr.find("td", class_="name")
+                size_td = tr.find("td", class_="size")
+                magnet_a = tr.find("a", rel="magnet")
+                if not name_td or not magnet_a:
+                    continue
+                matches.append(
+                    {
+                        "seeders": 0,
+                        "leechers": 0,
+                        "name": name_td.get_text(strip=True),
+                        "category": "general",
+                        "size": size_td.get_text(strip=True) if size_td else "",
+                        "magnet": magnet_a.get("href"),
+                    }
+                )
+            return matches if matches else None
+        except Exception as e:
+            LOG.error(f"TorrentKitty search parse failed: {e}")
+            return None
+
     def get_v_by_id(
-            self,
-            id: str,
-            send_to_pikpak=True,
-            is_nice=True,
-            is_uncensored=True,
-            magnet_max_count=3,
-            not_send=False,
+        self,
+        id: str,
+        send_to_pikpak=True,
+        is_nice=True,
+        is_uncensored=True,
+        magnet_max_count=3,
+        not_send=False,
     ):
         """
         Get based on id
@@ -535,11 +592,12 @@ class BotUtils:
         """
         if not self.check_if_enable_nsfw():
             return {}
-        op_get_v_by_id = f"Search code: <code>{id}</code>"
+        op_get_v_by_id = f"搜索编号 <code>{id}</code>"
         v = BOT_CACHE_DB.get_cache(key=id, type=BotCacheDb.TYPE_V)
         v_score = None
         is_cache = False
         if not v or not_send:
+            v_util = None
             for util in self.v_utils:
                 code, v = util.get_av_by_id(
                     id=id,
@@ -552,11 +610,7 @@ class BotUtils:
                     break
             if not v_util:
                 if not not_send:
-                    self.send_msg_v_not_found(
-                        v_id=id,
-                        op=op_get_v_by_id,
-                        reason="Can not find result, try again later.",
-                    )
+                    self.send_msg_v_not_found(v_id=id)
                 return
             if "score" not in v.keys():
                 _, v["score"] = DMM_UTIL.get_score_by_id(id)
@@ -580,32 +634,35 @@ class BotUtils:
         v_stars = v["stars"]
         v_magnets = v["magnets"]
         v_url = v["url"]
+        LOG.info(f"AV 搜索结果: {v_id} | {v_title}")
+        for _m in v_magnets:
+            LOG.info(f"  磁力: {_m['link']}")
         msg = ""
         if v_title != "":
             v_title = v_title.replace("<", "").replace(">", "")
-            msg += f"""【Title】<a href="{v_url}">{v_title}</a>
+            msg += f"""【标题】<a href="{v_url}">{v_title}</a>
 """
-        msg += f"""【Code】<code>{v_id}</code>
+        msg += f"""【编号】<code>{v_id}</code>
 """
         if v_date != "":
-            msg += f"""【Date】{v_date}
+            msg += f"""【日期】{v_date}
 """
         if v_score:
-            msg += f"""【Score】{v_score}
+            msg += f"""【评分】{v_score}
 """
         if v_stars != []:
             show_star_name = v_stars[0]["name"]
             show_star_id = v_stars[0]["id"]
             stars_msg = ""
             for star in v_stars:
-                stars_msg += f"""【Actor】<code>{star["name"]}</code>
+                stars_msg += f"""【演职人员】<code>{star["name"]}</code>
 """
             msg += stars_msg
         if v_tags:
             v_tags = " ".join(v_tags).replace("<", "").replace(">", "")
-            msg += f"""【Tags】{v_tags}
+            msg += f"""【标签】{v_tags}
 """
-        msg += f"""【Other】<a href="{URL_PIKPAK_BOT}">Pikpak</a> | <a href="{URL_PROJECT_ADDRESS}">Project</a>
+        msg += f"""【其他】<a href="{URL_PIKPAK_BOT}">Pikpak</a> | <a href="{URL_PROJECT_ADDRESS}">项目主页</a>
 """
         magnet_send_to_pikpak = ""
         for i, magnet in enumerate(v_magnets):
@@ -613,27 +670,27 @@ class BotUtils:
                 magnet_send_to_pikpak = magnet["link"]
             magnet_tags = ""
             if magnet["uc"] == "1":
-                magnet_tags += "UC "
+                magnet_tags += "无码 "
             if magnet["hd"] == "1":
                 magnet_tags += "HD "
             if magnet["zm"] == "1":
-                magnet_tags += "SUB "
-            msg_tmp = f"""【{magnet_tags} Magnet-{string.ascii_letters[i].upper()} {magnet["size"]}】<code>{magnet["link"]}</code>
+                magnet_tags += "中字 "
+            msg_tmp = f"""【{magnet_tags}磁力-{string.ascii_letters[i].upper()} {magnet["size"]}】<code>{magnet["link"]}</code>
 """
             if len(msg + msg_tmp) >= 2000:
                 break
             msg += msg_tmp
         pv_btn = InlineKeyboardButton(
-            text="Preview", callback_data=f"{v_id}:{BotKey.KEY_WATCH_PV_BY_ID}"
+            text="预览", callback_data=f"{v_id}:{BotKey.KEY_WATCH_PV_BY_ID}"
         )
         fv_btn = InlineKeyboardButton(
-            text="Watch", callback_data=f"{v_id}:{BotKey.KEY_WATCH_FV_BY_ID}"
+            text="在线观看", callback_data=f"{v_id}:{BotKey.KEY_WATCH_FV_BY_ID}"
         )
         sample_btn = InlineKeyboardButton(
-            text="Screenshot", callback_data=f"{v_id}:{BotKey.KEY_GET_SAMPLE_BY_ID}"
+            text="截图", callback_data=f"{v_id}:{BotKey.KEY_GET_SAMPLE_BY_ID}"
         )
         more_btn = InlineKeyboardButton(
-            text="More",
+            text="更多磁力",
             callback_data=f"{v_id}:{BotKey.KEY_GET_MORE_MAGNETS_BY_ID}",
         )
         if len(v_magnets) != 0:
@@ -644,12 +701,12 @@ class BotUtils:
         if len(v_stars) == 1:
             if BOT_DB.check_star_exists_by_id(star_id=show_star_id):
                 star_record_btn = InlineKeyboardButton(
-                    text=f"Info",
+                    text="详情",
                     callback_data=f"{show_star_name}|{show_star_id}:{BotKey.KEY_GET_STAR_DETAIL_RECORD_BY_STAR_NAME_ID}",
                 )
             else:
                 star_record_btn = InlineKeyboardButton(
-                    text=f"Collect",
+                    text="收藏演职人员",
                     callback_data=f"{show_star_name}|{show_star_id}:{BotKey.KEY_RECORD_STAR_BY_STAR_NAME_ID}",
                 )
         star_ids = ""
@@ -663,18 +720,18 @@ class BotUtils:
         v_record_btn = None
         if BOT_DB.check_id_exists(id=v_id):
             v_record_btn = InlineKeyboardButton(
-                text=f"Info",
+                text="详情",
                 callback_data=f"{v_id}:{BotKey.KEY_GET_V_DETAIL_RECORD_BY_ID}",
             )
         else:
             v_record_btn = InlineKeyboardButton(
-                text=f"Collect",
+                text="收藏",
                 callback_data=f"{v_id}|{star_ids}:{BotKey.KEY_RECORD_V_BY_ID_STAR_IDS}",
             )
         renew_btn = None
         if is_cache:
             renew_btn = InlineKeyboardButton(
-                text="Retry", callback_data=f"{v_id}:{BotKey.KEY_DEL_V_CACHE}"
+                text="刷新", callback_data=f"{v_id}:{BotKey.KEY_DEL_V_CACHE}"
             )
         if star_record_btn and renew_btn:
             markup.row(v_record_btn, star_record_btn, renew_btn)
@@ -701,19 +758,131 @@ class BotUtils:
             self.send_magnet_to_pikpak(magnet_send_to_pikpak, v_id)
 
     def send_magnet_to_pikpak(self, magnet: str, id: str):
-        op_send_magnet_to_pikpak = (
-            f"Sending the magnet link A for code {id}: <code>{magnet}</code> to Pikpak."
-        )
-        if self.send_msg_to_pikpak(magnet):
-            self.send_msg_success_op(op_send_magnet_to_pikpak)
+        if not PIKPAK.enabled:
+            self.send_msg_fail_reason_op(
+                reason="请在 config.yaml 中配置 PikPak 账号 (pikpak_username / pikpak_password)",
+                op=f"保存编号 {id} 的磁力链接到 PikPak",
+            )
+            return
+        self.send_msg("💾 正在保存到 PikPak 网盘 ...")
+        ok, msg = PIKPAK.offline_download(magnet)
+        if ok:
+            self.send_msg(f"✅ 保存结果：{msg}")
         else:
             self.send_msg_fail_reason_op(
-                reason="Please verify the network or logs yourself.",
-                op=op_send_magnet_to_pikpak,
+                reason=msg, op=f"保存编号 {id} 的磁力链接到 PikPak"
             )
 
+    def get_bts_by_keyword(self, q):
+        """按关键词搜索 BT 资源（带缓存），返回资源列表或 None。
+
+        并行搜索 TorrentKitty（中文）与 apibay（英文）两个来源的结果，按磁力 info_hash 去重。
+        """
+        bts = BOT_CACHE_DB.get_cache(key=q, type=BotCacheDb.TYPE_BT)
+        if bts:
+            return bts
+        merged = []
+        seen = set()
+        # 并行搜索两个来源，但每个来源最多等待短时间，避免长时间无响应。
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+            tk_future = executor.submit(self.search_bts_torrentkitty, q)
+            ab_future = executor.submit(self.search_bts, q)
+            srcs = []
+            for name, future in (("torrentkitty", tk_future), ("apibay", ab_future)):
+                try:
+                    srcs.append(future.result(timeout=8))
+                except concurrent.futures.TimeoutError:
+                    LOG.warning(f"BT source {name} timed out for query: {q}")
+                    srcs.append([])
+            for src in srcs:
+                for bt in src or []:
+                    if not bt.get("magnet"):
+                        continue
+                    m = re.search(r"urn:btih:([A-Za-z0-9]+)", bt["magnet"])
+                    key = m.group(1).lower() if m else bt["magnet"]
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    merged.append(bt)
+        if not merged:
+            return None
+        if BOT_CFG.enable_nsfw == "0":
+            merged = list(filter(lambda bt: bt["category"] != "nsfw", merged))
+            merged = list(filter(lambda bt: "nsfw" not in bt["name"].lower(), merged))
+        merged = merged[:30]
+        BOT_CACHE_DB.set_cache(key=q, value=merged, type=BotCacheDb.TYPE_BT)
+        LOG.info(f"BT 搜索结果 {len(merged)} 条: {q}")
+        for _bt in merged:
+            LOG.info(f"  {_bt['name']} | {_bt['size']} | {_bt['magnet']}")
+        return merged
+
+    def search_bts_and_save(self, q):
+        try:
+            bts = self.get_bts_by_keyword(q)
+        except Exception as e:
+            LOG.error(f"BT 搜索异常: {e}")
+            self.send_msg_fail_reason_op(
+                reason=f"搜索超时或网络错误：{str(e)[:50]}",
+                op=f"搜索 <code>{html.escape(q)}</code>",
+            )
+            return False
+        if not bts:
+            self.send_msg_fail_reason_op(
+                reason="没有找到相关资源", op=f"搜索 <code>{html.escape(q)}</code>"
+            )
+            return False
+        self.show_bt_results(q, bts, save_first=True)
+        return True
+
+    def search_av_keyword(self, q):
+        """按关键词搜索 AV（JavDB 标签搜索），找到则返回 True。"""
+        code, ids = JDB_UTIL.get_ids_by_tag(q)
+        if code == 200 and ids:
+            self.get_v_by_id(id=ids[0])
+            return True
+        return False
+
+    def handle_nlp_search(self, msg):
+        """AI 自然语言理解搜索流程。返回 True 表示已处理。"""
+        if not AI.enabled:
+            return False
+        LOG.info(f'AI 搜索字符: "{msg}"')
+        intent = AI.understand(msg)
+        LOG.info(f"AI 返回结果: {intent}")
+        if not intent:
+            return False
+        target = (intent.get("target") or msg).strip()
+        kind = (intent.get("intent") or "general").strip().lower()
+        explain = (intent.get("explain") or target).strip()
+        source = (intent.get("source") or "auto").strip().lower()
+
+        # AV 相关意图需先检查 NSFW 开关
+        if kind in ("av_id", "actor") and not self.check_if_enable_nsfw():
+            return True
+
+        self.send_msg(f"🔍 搜索：<b>{html.escape(explain)}</b>")
+        self.send_msg("⏳ 搜索中 ...")
+
+        if kind == "av_id":
+            self.get_v_by_id(id=target)
+            return True
+        if kind == "actor":
+            self.search_star_by_name(target)
+            return True
+
+        # 类型 / 关键词 / 剧情 / 其他：优先 AV 关键词搜索，失败则 BT 搜索
+        if (
+            source in ("javdb", "javbus", "sukebei", "dmm")
+            and BOT_CFG.enable_nsfw == "1"
+        ):
+            if self.search_av_keyword(target):
+                return True
+        # BT 搜索（总是返回 True，表示已处理；搜索结果由 search_bts_and_save 内部反馈给用户）
+        self.search_bts_and_save(target)
+        return True
+
     def get_sample_by_id(self, id: str):
-        op_get_sample = f"Get screenshots based on the code <code>{id}</code>."
+        op_get_sample = f"获取编号 <code>{id}</code> 的截图"
         samples = BOT_CACHE_DB.get_cache(key=id, type=BotCacheDb.TYPE_SAMPLE)
         if not samples:
             code, samples = JBUS_UTIL.get_samples_by_id(id)
@@ -731,16 +900,14 @@ class BotUtils:
                 except Exception:
                     sample_error = True
                     self.send_msg_fail_reason_op(
-                        reason="The image parsing failed.", op=op_get_sample
+                        reason="图片解析失败", op=op_get_sample
                     )
                     break
         if samples_imp != [] and not sample_error:
             try:
                 BOT.send_media_group(chat_id=BOT_CFG.tg_chat_id, media=samples_imp)
             except Exception:
-                self.send_msg_fail_reason_op(
-                    reason="The image parsing failed.", op=op_get_sample
-                )
+                self.send_msg_fail_reason_op(reason="图片解析失败", op=op_get_sample)
 
     def watch_v_by_id(self, id: str, type: int):
         id = id.lower()
@@ -749,7 +916,7 @@ class BotUtils:
         if type == 0:
             pv = BOT_CACHE_DB.get_cache(key=id, type=BotCacheDb.TYPE_PV)
             if not pv:
-                op_watch_v = f"Retrieve preview video for the code <code>{id}</code>."
+                op_watch_v = f"获取编号 <code>{id}</code> 的预览视频"
                 futures = {}
                 with concurrent.futures.ThreadPoolExecutor() as executor:
                     futures[executor.submit(DMM_UTIL.get_pv_by_id, id)] = 1
@@ -784,31 +951,31 @@ class BotUtils:
                     BOT.send_video(
                         chat_id=BOT_CFG.tg_chat_id,
                         video=pv_src,
-                        caption=f'Results obtained through DMM search. <a href="{pv_src_nice}">Watch a clearer version here</a>.',
+                        caption=f'来自 DMM 的搜索结果。<a href="{pv_src_nice}">点此观看更清晰的版本</a>。',
                         parse_mode="HTML",
                     )
                 except Exception:
                     self.send_msg(
-                        f'Results obtained through DMM search, but video parsing failed: <a href="{pv_src_nice}">Video Link</a> Q_Q.'
+                        f'来自 DMM 的搜索结果，但视频解析失败：<a href="{pv_src_nice}">视频链接</a> Q_Q。'
                     )
             elif from_site == "avgle":
                 try:
                     BOT.send_video(
                         chat_id=BOT_CFG.tg_chat_id,
                         video=pv_src,
-                        caption=f'Results obtained through Avgle search: <a href="{pv_src}">Video Link</a>.',
+                        caption=f'来自 Avgle 的搜索结果：<a href="{pv_src}">视频链接</a>。',
                         parse_mode="HTML",
                     )
                 except Exception:
                     self.send_msg(
-                        f'Results obtained through Avgle search, but video parsing failed: <a href="{pv_src}">Video Link</a> Q_Q.'
+                        f'来自 Avgle 的搜索结果，但视频解析失败：<a href="{pv_src}">视频链接</a> Q_Q。'
                     )
         elif type == 1:
             video = BOT_CACHE_DB.get_cache(key=id, type=BotCacheDb.TYPE_FV)
             if not video:
                 code, video = VGLE_UTIL.get_fv_by_id(id)
                 if code != 200:
-                    self.send_msg(f"No results found.")
+                    self.send_msg("没有找到相关结果。")
                     return
                 BOT_CACHE_DB.set_cache(key=id, value=video, type=BotCacheDb.TYPE_FV)
             self.send_msg(video)
@@ -816,7 +983,7 @@ class BotUtils:
     def search_star_by_name(self, star_name: str):
         if not self.check_if_enable_nsfw():
             return False
-        op_search_star = f"Search actor: <code>{star_name}</code>"
+        op_search_star = f"搜索演职人员 <code>{star_name}</code>"
         star = BOT_CACHE_DB.get_cache(key=star_name, type=BotCacheDb.TYPE_STAR)
         if not star:
             star_name_origin = star_name
@@ -839,19 +1006,19 @@ class BotUtils:
         markup = InlineKeyboardMarkup()
         markup.row(
             InlineKeyboardButton(
-                text="Random",
+                text="随机一部",
                 callback_data=f"{star_name}|{star_id}:{BotKey.KEY_RANDOM_GET_V_BY_STAR_ID}",
             ),
             InlineKeyboardButton(
-                text="Latest",
+                text="最新作品",
                 callback_data=f"{star_name}|{star_id}:{BotKey.KEY_GET_NEW_VS_BY_STAR_NAME_ID}",
             ),
             InlineKeyboardButton(
-                text=f"High Rated",
+                text="高分作品",
                 callback_data=f"{star_name}:{BotKey.KEY_GET_NICE_VS_BY_STAR_NAME}",
             ),
             InlineKeyboardButton(
-                text=f"Bookmark {star_name}",
+                text=f"收藏 {star_name}",
                 callback_data=f"{star_name}|{star_id}:{BotKey.KEY_RECORD_STAR_BY_STAR_NAME_ID}",
             ),
         )
@@ -865,7 +1032,7 @@ class BotUtils:
         return True
 
     def get_top_stars(self, page=1):
-        op_get_top_stars = f"Get DMM Actress Ranking"
+        op_get_top_stars = "获取演职人员排行"
         stars = BOT_CACHE_DB.get_cache(key=page, type=BotCacheDb.TYPE_RANK)
 
         if not stars:
@@ -874,7 +1041,7 @@ class BotUtils:
                 return
             BOT_CACHE_DB.set_cache(key=page, value=stars, type=BotCacheDb.TYPE_RANK)
         stars_tmp = [None] * 80
-        stars = stars_tmp[: ((page - 1) * 20)] + stars + stars_tmp[((page - 1) * 20):]
+        stars = stars_tmp[: ((page - 1) * 20)] + stars + stars_tmp[((page - 1) * 20) :]
         col, row = 4, 5
         objs, page_btns, title = self.get_page_elements(
             objs=stars, page=page, col=4, row=5, key_type=BotKey.KEY_GET_TOP_STARS
@@ -883,27 +1050,10 @@ class BotUtils:
             max_btn_per_row=col,
             max_row_per_msg=row,
             key_type=BotKey.KEY_SEARCH_STAR_BY_NAME,
-            title="<b>DMM Actress Ranking:</b>" + title,
+            title="<b>演职人员排行：</b>" + title,
             objs=objs,
             page_btns=page_btns,
         )
-
-    def send_msg_to_pikpak(self, msg):
-
-        async def send():
-            try:
-                async with Client(
-                        name=PATH_SESSION_FILE,
-                        api_id=BOT_CFG.tg_api_id,
-                        api_hash=BOT_CFG.tg_api_hash,
-                        proxy=BOT_CFG.proxy_json_pikpak,
-                ) as app:
-                    return await app.send_message(PIKPAK_BOT_NAME, msg)
-            except Exception as e:
-                LOG.error(f"Unable to send message to Pikpak: {e}")
-                return None
-
-        return asyncio.run(send())
 
     def get_more_magnets_by_id(self, id: str):
         magnets = BOT_CACHE_DB.get_cache(key=id, type=BotCacheDb.TYPE_MAGNET)
@@ -919,15 +1069,15 @@ class BotUtils:
         for magnet in magnets:
             magnet_tags = ""
             if magnet["uc"] == "1":
-                magnet_tags += "Uncensored "
+                magnet_tags += "无码 "
             if magnet["hd"] == "1":
                 magnet_tags += "HD "
             if magnet["zm"] == "1":
-                magnet_tags += "Subtitled "
+                magnet_tags += "中字 "
             star_tag = ""
             if magnet["hd"] == "1" and magnet["zm"] == "1":
                 star_tag = "*"
-            msg_tmp = f"""【{star_tag}{magnet_tags}Magnet {magnet["size"]}】<code>{magnet["link"]}</code>
+            msg_tmp = f"""【{star_tag}{magnet_tags}磁力 {magnet["size"]}】<code>{magnet["link"]}</code>
         """
             if len(msg + msg_tmp) >= 4000:
                 self.send_msg(msg)
@@ -938,7 +1088,7 @@ class BotUtils:
             self.send_msg(msg)
 
     def get_star_new_vs_by_name_id(self, star_name: str, star_id: str):
-        op_get_star_new_vs = f"Get <code>{star_name}</code> Latest vs"
+        op_get_star_new_vs = f"获取 <code>{star_name}</code> 的最新作品"
         ids = BOT_CACHE_DB.get_cache(key=star_id, type=BotCacheDb.TYPE_NEW_VS_OF_STAR)
         if not ids:
             code, ids = JBUS_UTIL.get_new_ids_by_star_id(star_id=star_id)
@@ -947,7 +1097,7 @@ class BotUtils:
             BOT_CACHE_DB.set_cache(
                 key=star_id, value=ids, type=BotCacheDb.TYPE_NEW_VS_OF_STAR
             )
-        title = f"<code>{star_name}</code> Latest"
+        title = f"<code>{star_name}</code> 的最新作品"
         btns = [
             InlineKeyboardButton(
                 text=id, callback_data=f"{id}:{BotKey.KEY_GET_V_BY_ID}"
@@ -982,25 +1132,100 @@ class BotUtils:
             return wiki_json["title"]
         return star_name
 
-    def send_bts(self, q, bts):
-        res = f"""Query results for {q}:
+    def register_bt_session(self, q, bts):
+        token = "".join(random.choices(string.ascii_letters + string.digits, k=8))
+        BT_SESSIONS[token] = {"q": q, "bts": bts, "page": 1}
+        CHAT_BT_SESSION[BOT_CFG.tg_chat_id] = token
+        return token
 
-"""
-        for bt in bts:
-            if len(res) >= 3000:
-                return
-            res += f"""Name: {bt['name']}
-Size: {bt['size']}
-Category: {bt['category']}
-Magnet: <code>{bt['magnet']}</code>
+    def show_bt_results(self, q, bts, save_first=False):
+        token = self.register_bt_session(q, bts)
+        self.show_bt_page(token, 1)
+        if save_first and bts:
+            self.send_magnet_to_pikpak(bts[0]["magnet"], q)
+        return token
 
-"""
-        self.send_msg(
-            res,
-            markup=InlineKeyboardMarkup().row(
-                InlineKeyboardButton("Go to PikPak Cloud Drive", url=URL_PIKPAK_BOT)
-            ),
+    def show_bt_page(self, token, page):
+        sess = BT_SESSIONS.get(token)
+        if not sess:
+            self.send_msg("结果会话已过期，请重新搜索。")
+            return
+        bts = sess["bts"]
+        page_size = 5
+        page_count = math.ceil(len(bts) / page_size) if bts else 1
+        if page < 1:
+            page = 1
+        if page > page_count:
+            page = 1  # 换一批：最后一页回到第一页
+        sess["page"] = page
+        start = (page - 1) * page_size
+        items = bts[start : start + page_size]
+        res = (
+            f"「<b>{html.escape(sess['q'])}</b>」的搜索结果"
+            f"（第 {page}/{page_count} 页）：\n\n"
         )
+        for i, bt in enumerate(items):
+            idx = start + i + 1
+            name = bt.get("name") or ""
+            if len(name) > 80:
+                name = name[:77] + "..."
+            magnet = bt.get("magnet") or ""
+            magnet_preview = magnet
+            if len(magnet_preview) > 80:
+                magnet_preview = magnet_preview[:77] + "..."
+            res += (
+                f"{idx}. {html.escape(name)}\n"
+                f"   大小: {bt.get('size', '')} | 分类: {bt.get('category', 'general')}\n"
+                f"   磁力: <code>{html.escape(magnet_preview)}</code>\n\n"
+            )
+        res = res[:3500] + "\n\n..." if len(res) > 3500 else res
+        markup = InlineKeyboardMarkup()
+        btns = []
+        if page > 1:
+            btns.append(
+                InlineKeyboardButton(
+                    "◀ 上一页",
+                    callback_data=f"{token}|{page - 1}:{BotKey.KEY_BT_PAGE}",
+                )
+            )
+        btns.append(
+            InlineKeyboardButton(
+                "🔄 换一批",
+                callback_data=f"{token}|{page + 1}:{BotKey.KEY_BT_PAGE}",
+            )
+        )
+        markup.row(*btns)
+        markup.row(InlineKeyboardButton("保存到 PikPak 网盘", url=URL_PIKPAK_BOT))
+        self.send_msg(res, markup=markup)
+
+    def handle_bt_followup(self, msg):
+        """处理 BT 搜索结果的多轮追问：换一批 / 上一页 / 保存第 N 个。"""
+        token = CHAT_BT_SESSION.get(BOT_CFG.tg_chat_id)
+        if not token or token not in BT_SESSIONS:
+            return False
+        sess = BT_SESSIONS[token]
+        m = msg.strip()
+        save_match = re.match(r"^(?:保存|save)\s*第?\s*(\d+)\s*个?$", m)
+        if save_match:
+            n = int(save_match.group(1))
+            bts = sess["bts"]
+            if 1 <= n <= len(bts):
+                self.send_magnet_to_pikpak(bts[n - 1]["magnet"], sess["q"])
+            else:
+                self.send_msg_fail_reason_op(
+                    reason=f"没有第 {n} 个结果", op="保存到 PikPak"
+                )
+            return True
+        if m in ("下一页", "下一批", "next"):
+            self.show_bt_page(token, sess["page"] + 1)
+            return True
+        if m in ("上一页", "prev"):
+            self.show_bt_page(token, sess["page"] - 1)
+            return True
+        if m in ("换一批", "换一页", "还有吗", "再来", "more"):
+            self.show_bt_page(token, sess["page"] + 1)
+            return True
+        return False
 
     def random_get_new_v(self):
         page = random.randint(1, JLIB_UTIL.MAX_RANK_PAGE)
@@ -1009,7 +1234,7 @@ Magnet: <code>{bt['magnet']}</code>
             code, ids = JLIB_UTIL.get_random_ids_from_rank_by_page(
                 page=page, list_type=1
             )
-            if self.check_success(code, "Randomly Fetch Latest"):
+            if self.check_success(code, "随机获取最新影片"):
                 BOT_CACHE_DB.set_cache(
                     key=page,
                     value=ids,
@@ -1026,7 +1251,7 @@ Magnet: <code>{bt['magnet']}</code>
             code, ids = JLIB_UTIL.get_random_ids_from_rank_by_page(
                 page=page, list_type=0
             )
-            if self.check_success(code, "Randomly Fetch High-Rated"):
+            if self.check_success(code, "随机获取高分影片"):
                 BOT_CACHE_DB.set_cache(
                     key=page,
                     value=ids,
@@ -1043,9 +1268,7 @@ Magnet: <code>{bt['magnet']}</code>
         if not vs:
             star_name_ja = self.get_star_ja_name_by_zh_name(star_name_ori)
             code, vs = DMM_UTIL.get_nice_vs_by_star_name(star_name=star_name_ja)
-            if self.check_success(
-                    code, f"Get High-Rated vs of Actress {star_name_ori}"
-            ):
+            if self.check_success(code, f"获取演职人员 {star_name_ori} 的高分作品"):
                 vs = vs[:60]
                 BOT_CACHE_DB.set_cache(
                     key=star_name_ori,
@@ -1064,7 +1287,7 @@ Magnet: <code>{bt['magnet']}</code>
             max_btn_per_row=3,
             max_row_per_msg=20,
             key_type=BotKey.KEY_GET_V_BY_ID,
-            title=f"<b>Actor High-Rated - {star_name_ori}</b>",
+            title=f"<b>{star_name_ori} 的高分作品</b>",
             objs=vs,
         )
 
@@ -1075,7 +1298,7 @@ def handle_callback(call):
     LOG.info(f"Handle callback: {call.data}")
     s = call.data.rfind(":")
     content = call.data[:s]
-    key_type = call.data[s + 1:]
+    key_type = call.data[s + 1 :]
     if key_type == BotKey.KEY_WATCH_PV_BY_ID:
         bot_utils.watch_v_by_id(id=content, type=0)
     elif key_type == BotKey.KEY_WATCH_FV_BY_ID:
@@ -1090,7 +1313,7 @@ def handle_callback(call):
         star_id = tmp[1]
         code, id = JBUS_UTIL.get_id_by_star_id(star_id=star_id)
         if bot_utils.check_success(
-                code, f"Randomly fetch from Actor - <code>{star_name}</code>"
+            code, f"从演职人员 <code>{star_name}</code> 随机选取作品"
         ):
             bot_utils.get_v_by_id(id=id)
     elif key_type == BotKey.KEY_GET_NEW_VS_BY_STAR_NAME_ID:
@@ -1101,13 +1324,13 @@ def handle_callback(call):
     elif key_type == BotKey.KEY_RECORD_STAR_BY_STAR_NAME_ID:
         s = content.find("|")
         star_name = content[:s]
-        star_id = content[s + 1:]
+        star_id = content[s + 1 :]
         if BOT_DB.record_star_by_name_id(star_name=star_name, star_id=star_id):
             bot_utils.get_star_detail_record_by_name_id(
                 star_name=star_name, star_id=star_id
             )
         else:
-            bot_utils.send_msg_code_op(500, f"Collect Actor <code>{star_name}</code>")
+            bot_utils.send_msg_code_op(500, f"收藏演职人员 <code>{star_name}</code>")
     elif key_type == BotKey.KEY_RECORD_V_BY_ID_STAR_IDS:
         res = content.split("|")
         id = res[0]
@@ -1117,7 +1340,7 @@ def handle_callback(call):
         if BOT_DB.record_id_by_id_stars(id=id, stars=stars):
             bot_utils.get_v_detail_record_by_id(id=id)
         else:
-            bot_utils.send_msg_code_op(500, f"Collect Code <code>{id}</code>")
+            bot_utils.send_msg_code_op(500, f"收藏编号 <code>{id}</code>")
     elif key_type == BotKey.KEY_GET_STARS_RECORD:
         bot_utils.get_stars_record(page=int(content))
     elif key_type == BotKey.KEY_GET_VS_RECORD:
@@ -1125,7 +1348,7 @@ def handle_callback(call):
     elif key_type == BotKey.KEY_GET_STAR_DETAIL_RECORD_BY_STAR_NAME_ID:
         s = content.find("|")
         bot_utils.get_star_detail_record_by_name_id(
-            star_name=content[:s], star_id=content[s + 1:]
+            star_name=content[:s], star_id=content[s + 1 :]
         )
     elif key_type == BotKey.KEY_GET_V_DETAIL_RECORD_BY_ID:
         bot_utils.get_v_detail_record_by_id(id=content)
@@ -1133,39 +1356,39 @@ def handle_callback(call):
         bot_utils.get_v_by_id(id=content)
     elif key_type == BotKey.KEY_RANDOM_GET_V_NICE:
         code, id = JLIB_UTIL.get_random_id_from_rank(0)
-        if bot_utils.check_success(code, "Randomly fetch high-rated"):
+        if bot_utils.check_success(code, "随机获取高分影片"):
             bot_utils.get_v_by_id(id=id)
     elif key_type == BotKey.KEY_RANDOM_GET_V_NEW:
         code, id = JLIB_UTIL.get_random_id_from_rank(1)
-        if bot_utils.check_success(code, "Randomly fetch newest"):
+        if bot_utils.check_success(code, "随机获取最新影片"):
             bot_utils.get_v_by_id(id=id)
     elif key_type == BotKey.KEY_UNDO_RECORD_V_BY_ID:
-        op_undo_record_v = f"Undo collect id <code>{content}</code>"
+        op_undo_record_v = f"取消收藏编号 <code>{content}</code>"
         if BOT_DB.undo_record_id(id=content):
             bot_utils.send_msg_success_op(op_undo_record_v)
         else:
             bot_utils.send_msg_fail_reason_op(
-                reason="File parsing error", op=op_undo_record_v
+                reason="文件解析错误", op=op_undo_record_v
             )
     elif key_type == BotKey.KEY_UNDO_RECORD_STAR_BY_STAR_NAME_ID:
         s = content.find("|")
-        op_undo_record_star = f"Undo collect actor <code>{content[:s]}</code>"
-        if BOT_DB.undo_record_star_by_id(star_id=content[s + 1:]):
+        op_undo_record_star = f"取消收藏演职人员 <code>{content[:s]}</code>"
+        if BOT_DB.undo_record_star_by_id(star_id=content[s + 1 :]):
             bot_utils.send_msg_success_op(op_undo_record_star)
         else:
             bot_utils.send_msg_fail_reason_op(
-                reason="File parsing error", op=op_undo_record_star
+                reason="文件解析错误", op=op_undo_record_star
             )
     elif key_type == BotKey.KEY_SEARCH_STAR_BY_NAME:
         star_name = content
         star_name_alias = ""
         idx_alias = star_name.find("（")
         if idx_alias != -1:
-            star_name_alias = star_name[idx_alias + 1: -1]
+            star_name_alias = star_name[idx_alias + 1 : -1]
             star_name = star_name[:idx_alias]
         if not bot_utils.search_star_by_name(star_name) and star_name_alias != "":
             bot_utils.send_msg(
-                f"Attempting to search for actor {star_name}'s alias {star_name_alias}..."
+                f"尝试搜索演职人员 {star_name} 的别名 {star_name_alias}..."
             )
             bot_utils.search_star_by_name(star_name_alias)
     elif key_type == BotKey.KEY_GET_TOP_STARS:
@@ -1176,6 +1399,9 @@ def handle_callback(call):
         BOT_CACHE_DB.remove_cache(key=content, type=BotCacheDb.TYPE_V)
         BOT_CACHE_DB.remove_cache(key=content, type=BotCacheDb.TYPE_STARS_MSG)
         bot_utils.get_v_by_id(id=content)
+    elif key_type == BotKey.KEY_BT_PAGE:
+        tmp = content.split("|")
+        bot_utils.show_bt_page(token=tmp[0], page=int(tmp[1]))
 
 
 def handle_message(message):
@@ -1215,7 +1441,7 @@ def handle_message(message):
     elif msg_cmd == "/record":
         if not os.path.exists(PATH_RECORD_FILE):
             bot_utils.send_msg_fail_reason_op(
-                reason="No records yet", op="Retrieve records file"
+                reason="还没有任何收藏记录", op="导出收藏记录"
             )
             return
         BOT.send_document(
@@ -1225,33 +1451,34 @@ def handle_message(message):
         bot_utils.get_top_stars(1)
     elif msg_cmd == "/star":
         if msg_param:
-            bot_utils.send_msg(f"Search actor: <code>{msg_param}</code> ......")
+            bot_utils.send_msg(f"搜索演职人员：<code>{msg_param}</code> ......")
             bot_utils.search_star_by_name(msg_param)
     elif msg_cmd == "/id":
         if msg_param:
-            bot_utils.send_msg(f"Search code: <code>{msg_param}</code> ......")
+            bot_utils.send_msg(f"搜索编号：<code>{msg_param}</code> ......")
             bot_utils.get_v_by_id(id=msg_param)
     else:
+        # 多轮会话：换一批 / 上一页 / 保存第 N 个
+        if bot_utils.handle_bt_followup(msg):
+            return
         ids = ID_PAT.findall(msg)
         if not ids or len(ids) == 0:
-            op = f"Search <code>{msg}</code>"
-            bts = BOT_CACHE_DB.get_cache(key=msg, type=BotCacheDb.TYPE_BT)
+            # 优先走 AI 自然语言理解搜索，失败则退回 BT 关键词搜索
+            if bot_utils.handle_nlp_search(msg):
+                return
+            bts = bot_utils.get_bts_by_keyword(msg)
             if not bts:
-                bts = bot_utils.search_bts(msg)
-                if not bts:
-                    bot_utils.send_msg_fail_reason_op(reason="No result", op=op)
-                    return
-                if BOT_CFG.enable_nsfw == "0":
-                    bts = list(filter(lambda bt: bt["category"] != "nsfw", bts))
-                    bts = list(filter(lambda bt: "nsfw" not in bt["name"].lower(), bts))
-                bts = bts[:5]
-                BOT_CACHE_DB.set_cache(key=msg, value=bts, type=BotCacheDb.TYPE_BT)
-            bot_utils.send_bts(msg, bts)
+                bot_utils.send_msg_fail_reason_op(
+                    reason="没有找到相关资源",
+                    op=f"搜索 <code>{html.escape(msg)}</code>",
+                )
+                return
+            bot_utils.show_bt_results(msg, bts)
         else:
             ids = [id.lower() for id in ids]
             ids = set(ids)
             ids_msg = ", ".join(ids)
-            bot_utils.send_msg(f"Detected ids: {ids_msg}, starting search...")
+            bot_utils.send_msg(f"已识别到编号：{ids_msg}，开始搜索...")
             for i, id in enumerate(ids):
                 threading.Thread(target=bot_utils.get_v_by_id, args=(id,)).start()
 
@@ -1270,8 +1497,12 @@ def main():
     try:
         bot_info = BOT.get_me()
         LOG.info(f"Connected to bot: @{bot_info.username} (ID: {bot_info.id})")
-        if not os.path.exists(f"{PATH_SESSION_FILE}.session") and not BotUtils().send_msg_to_pikpak("AUTH"):
-            return
+        if PIKPAK.enabled:
+            ok, msg = PIKPAK.ensure_login()
+            if ok:
+                LOG.info(f"PikPak: {msg}")
+            else:
+                LOG.error(f"PikPak login failed: {msg}")
         LOG.info("Connected to api")
     except Exception as e:
         LOG.error(f"Unable to connect to bot or api: {e}")

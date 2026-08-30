@@ -1,6 +1,8 @@
 import os
 import json
-import redis
+import sqlite3
+import threading
+import time
 import logging
 
 LOG = logging.getLogger(__name__)
@@ -25,9 +27,9 @@ class BotFileDb:
         is_stars_exists = False
         is_vs_exists = False
         if (
-                "stars" in record.keys()
-                and record["stars"] != []
-                and len(record["stars"]) > 0
+            "stars" in record.keys()
+            and record["stars"] != []
+            and len(record["stars"]) > 0
         ):
             is_stars_exists = True
         if "vs" in record.keys() and record["vs"] != [] and len(record["vs"]) > 0:
@@ -218,22 +220,26 @@ class BotCacheDb:
         TYPE_BT: CACHE_BT,
     }
 
-    def __init__(self, host: str, port: int, password: str, use_cache: str):
+    def __init__(self, path_cache_file: str, use_cache: str = "1"):
         self.use_cache = use_cache
+        self.path_cache_file = path_cache_file
         self.cache = None
+        self._lock = threading.Lock()
         if self.use_cache == "1":
             try:
-                if password:
-                    self.cache = redis.Redis(host=host, port=port, password=password)
-                else:
-                    self.cache = redis.Redis(host=host, port=port)
-                self.cache.ping()
-                LOG.info(f"Connecting to the Redis service: {host}:{port}")
+                os.makedirs(os.path.dirname(self.path_cache_file), exist_ok=True)
+                self.cache = sqlite3.connect(
+                    self.path_cache_file, check_same_thread=False
+                )
+                self.cache.execute(
+                    "CREATE TABLE IF NOT EXISTS cache ("
+                    "key TEXT PRIMARY KEY, value TEXT NOT NULL, expire_at INTEGER DEFAULT 0)"
+                )
+                self.cache.commit()
+                LOG.info(f"Connecting to the SQLite cache: {self.path_cache_file}")
             except Exception as e:
                 self.cache = None
-                LOG.error(
-                    f"Unable to reach Redis: {host}:{port} : {e}"
-                )
+                LOG.error(f"Unable to open SQLite cache: {self.path_cache_file}: {e}")
 
     def remove_cache(self, key: str, type: int):
         if self.use_cache == "0" or not self.cache:
@@ -241,7 +247,9 @@ class BotCacheDb:
         key = str(key).lower()
         cache_key = f"{BotCacheDb.TYPE_MAP[type]['prefix']}{key}"
         try:
-            self.cache.delete(cache_key)
+            with self._lock:
+                self.cache.execute("DELETE FROM cache WHERE key=?", (cache_key,))
+                self.cache.commit()
         except Exception as e:
             LOG.error(f"Failed to delete cache: {cache_key}: {e}")
 
@@ -261,15 +269,14 @@ class BotCacheDb:
             expire = BotCacheDb.TYPE_MAP[type]["expire"]
         prefix = BotCacheDb.TYPE_MAP[type]["prefix"]
         cache_key = f"{prefix}{key}"
+        expire_at = 0 if expire == 0 else int(time.time()) + expire
         try:
-            if expire != 0:
-                self.cache.set(
-                    name=cache_key,
-                    value=json.dumps(value),
-                    ex=expire,
+            with self._lock:
+                self.cache.execute(
+                    "INSERT OR REPLACE INTO cache (key, value, expire_at) VALUES (?, ?, ?)",
+                    (cache_key, json.dumps(value), expire_at),
                 )
-            else:
-                self.cache.set(name=cache_key, value=json.dumps(value))
+                self.cache.commit()
         except Exception as e:
             LOG.error(f"Failed to set cache: {cache_key}: {e}")
 
@@ -279,8 +286,19 @@ class BotCacheDb:
         key = str(key).lower()
         cache_key = f"{BotCacheDb.TYPE_MAP[type]['prefix']}{key}"
         try:
-            value = self.cache.get(cache_key)
-            if value:
-                return json.loads(value)
+            with self._lock:
+                cur = self.cache.execute(
+                    "SELECT value, expire_at FROM cache WHERE key=?", (cache_key,)
+                )
+                row = cur.fetchone()
+            if not row:
+                return
+            value, expire_at = row
+            if expire_at and expire_at < int(time.time()):
+                with self._lock:
+                    self.cache.execute("DELETE FROM cache WHERE key=?", (cache_key,))
+                    self.cache.commit()
+                return
+            return json.loads(value)
         except Exception as e:
             LOG.error(f"Failed to retrieve cache: {cache_key}: {e}")
